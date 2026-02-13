@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Outputs
+memo/outputs/
+docs/raw/
+docs/snapshots/
+
+# Local notes
+*.log
