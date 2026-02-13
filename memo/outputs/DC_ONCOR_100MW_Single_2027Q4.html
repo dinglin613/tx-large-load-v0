@@ -94,8 +94,8 @@
           <a href="#sec-provenance">Provenance</a>
           <div class="meta">
             <div><span class="row-muted">Project</span>: <code>DC_ONCOR_100MW_Single_2027Q4</code></div>
-            <div><span class="row-muted">Rendered</span>: <code>2026-02-13T20:05:04.063086+00:00</code></div>
-            <div style="margin-top:8px"><span class="row-muted">Evaluated</span>: <code>2026-02-13T20:04:54+00:00</code></div>
+            <div><span class="row-muted">Rendered</span>: <code>2026-02-13T20:41:13.305503+00:00</code></div>
+            <div style="margin-top:8px"><span class="row-muted">Evaluated</span>: <code>2026-02-13T20:41:13+00:00</code></div>
           </div>
         </div>
       </aside>
@@ -121,7 +121,7 @@
             <div class="k">Requesting energization?</div>
             <div class="v"><code>False</code></div>
             <div class="k">Process path</div>
-            <div class="v"><code>Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) → Facility Review (TDSP) → Risk Flags → Decision Memo</code></div>
+            <div class="v"><code>Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</code></div>
           </div>
         </div>
 
@@ -178,10 +178,11 @@
               <tbody>
                 <tr><td class="nowrap"><code>E0</code></td><td class="nowrap"><code>N0</code> → <code>N1</code></td><td class="wrap"><span class="small">project_type==large_load (large_load)</span></td><td class="wrap"><span class="muted small">None</span></td></tr>
 <tr><td class="nowrap"><code>E1</code></td><td class="nowrap"><code>N1</code> → <code>N2</code></td><td class="wrap"><span class="small"></span></td><td class="wrap"><code>ERCOT_LLI_INTAKE_REQUIRED_DOCS</code> <code>LL_QA_003_TSP_INITIATION</code> <code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code> <code>LL_QA_005_APPLICATION_FEE</code></td></tr>
-<tr><td class="nowrap"><code>E2</code></td><td class="nowrap"><code>N2</code> → <code>N3</code></td><td class="wrap"><span class="small">exists(load_mw_total)=True | exists(tdsp_area)=True</span></td><td class="wrap"><code>LL_QA_001_LARGE_LOAD_DEFINITION</code> <code>ONC_003_LOAD_PROJECTION</code> <code>ONC_004_ONE_LINE_DIAGRAM</code></td></tr>
-<tr><td class="nowrap"><code>E3</code></td><td class="nowrap"><code>N3</code> → <code>N4</code></td><td class="wrap"><span class="small">tdsp_area==ONCOR (ONCOR)</span></td><td class="wrap"><code>LL_QA_007_REQUIRED_STUDIES</code> <code>LL_QA_008_SSO_REQUIRED</code></td></tr>
-<tr><td class="nowrap"><code>E4</code></td><td class="nowrap"><code>N4</code> → <code>N5</code></td><td class="wrap"><span class="small"></span></td><td class="wrap"><code>ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS</code> <code>ONC_001_TRANSMISSION_VOLTAGE_SCOPE</code> <code>ONC_010_NOMCR_APPROVAL</code></td></tr>
-<tr><td class="nowrap"><code>E5</code></td><td class="nowrap"><code>N5</code> → <code>N6</code></td><td class="wrap"><span class="small"></span></td><td class="wrap"><code>LL_QA_011_ENERGIZATION_REQUIREMENTS</code> <code>LL_QA_014_365_DAY_RULE</code> <code>LLI_EN_001_WRITTEN_APPROVAL_REQUIRED</code> <code>LLI_EN_003_LLIS_COMPLETE</code> <code>LLI_EN_006_AGREEMENTS_AND_SECURITY</code> <code>LLI_EN_011_NETWORK_MODEL</code></td></tr>
+<tr><td class="nowrap"><code>E2S</code></td><td class="nowrap"><code>N2</code> → <code>N3S</code></td><td class="wrap"><span class="small">exists(load_mw_total)=True | exists(tdsp_area)=True | energization_plan==single (single)</span></td><td class="wrap"><code>LL_QA_001_LARGE_LOAD_DEFINITION</code> <code>ONC_003_LOAD_PROJECTION</code> <code>ONC_004_ONE_LINE_DIAGRAM</code></td></tr>
+<tr><td class="nowrap"><code>E3S_BASE</code></td><td class="nowrap"><code>N3S</code> → <code>N3T</code></td><td class="wrap"><span class="small"></span></td><td class="wrap"><code>LL_QA_007_REQUIRED_STUDIES</code> <code>LL_QA_008_SSO_REQUIRED</code></td></tr>
+<tr><td class="nowrap"><code>E4_ONCOR</code></td><td class="nowrap"><code>N3T</code> → <code>N4</code></td><td class="wrap"><span class="small">tdsp_area==ONCOR (ONCOR)</span></td><td class="wrap"><code>LL_QA_007_REQUIRED_STUDIES</code> <code>LL_QA_008_SSO_REQUIRED</code></td></tr>
+<tr><td class="nowrap"><code>E5_ONCOR</code></td><td class="nowrap"><code>N4</code> → <code>N5</code></td><td class="wrap"><span class="small"></span></td><td class="wrap"><code>ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS</code> <code>ONC_001_TRANSMISSION_VOLTAGE_SCOPE</code> <code>ONC_010_NOMCR_APPROVAL</code></td></tr>
+<tr><td class="nowrap"><code>E6_FEASIBILITY</code></td><td class="nowrap"><code>N5</code> → <code>N6</code></td><td class="wrap"><span class="small"></span></td><td class="wrap"><code>LL_QA_014_365_DAY_RULE</code></td></tr>
               </tbody>
             </table>
           </div>
@@ -197,7 +198,11 @@
             <span class="muted small">These are the fastest “next actions” to reduce uncertainty.</span>
           </div>
           <div class="chips" id="missingChips">
-            <span class="chip"><code>peak_power_factor</code></span>
+            <span class="chip"><code>application_fee_paid</code></span>
+<span class="chip"><code>load_commissioning_plan_provided</code></span>
+<span class="chip"><code>load_projection_5y</code></span>
+<span class="chip"><code>one_line_diagram</code></span>
+<span class="chip"><code>peak_power_factor</code></span>
           </div>
         </div>
 
@@ -244,6 +249,9 @@
               </thead>
               <tbody>
                 <tr><td class="nowrap"><code>LL_QA_002_SECTION9_APPLICABILITY</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.4, Section 9.2.1 Applicability</span></td><td class="wrap"><code>process_trigger</code> <code>modification_trigger</code></td><td class="wrap"><span class="small">load_mw_total&gt;=75 (100) | is_new_interconnection==True (True)</span></td></tr>
+<tr><td class="nowrap"><code>ONC_002_VOLTAGE_AVAILABILITY</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.4.1, p.3</span></td><td class="wrap"><code>voltage_selection_risk</code></td><td class="wrap"><span class="small">tdsp_area==ONCOR (ONCOR) | exists(voltage_options_kv)=True</span></td></tr>
+<tr><td class="nowrap"><code>ONC_005_FAULT_INTERRUPT_RATING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 5.2.1, p.7</span></td><td class="wrap"><code>short_circuit</code> <code>protection</code> <code>upgrade_exposure</code></td><td class="wrap"><span class="small">tdsp_area==ONCOR (ONCOR)</span></td></tr>
+<tr><td class="nowrap"><code>ONC_009_REVENUE_METERING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.6.1, p.3–4</span></td><td class="wrap"><code>metering_requirement</code></td><td class="wrap"><span class="small">tdsp_area==ONCOR (ONCOR)</span></td></tr>
               </tbody>
             </table>
           </div>
@@ -326,16 +334,16 @@
 <tr><td class="nowrap"><code>ONC_004_ONE_LINE_DIAGRAM</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 4.1.6, p.6</span></td><td class="wrap"><code>data_completeness</code> <code>engineering_review</code> <code>process_latency</code></td></tr>
 <tr><td class="nowrap"><code>LL_QA_007_REQUIRED_STUDIES</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.8–9, &quot;What types of reliability studies are required?&quot;</span></td><td class="wrap"><code>dynamic_stability</code> <code>short_circuit</code> <code>steady_state</code> <code>study_dependency</code></td></tr>
 <tr><td class="nowrap"><code>LL_QA_008_SSO_REQUIRED</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.8, SSO discussion</span></td><td class="wrap"><code>dynamic_study</code> <code>energization_gate</code> <code>sso</code> <code>study_dependency</code></td></tr>
+<tr><td class="nowrap"><code>LL_QA_007_REQUIRED_STUDIES</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.8–9, &quot;What types of reliability studies are required?&quot;</span></td><td class="wrap"><code>dynamic_stability</code> <code>short_circuit</code> <code>steady_state</code> <code>study_dependency</code></td></tr>
+<tr><td class="nowrap"><code>LL_QA_008_SSO_REQUIRED</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.8, SSO discussion</span></td><td class="wrap"><code>dynamic_study</code> <code>energization_gate</code> <code>sso</code> <code>study_dependency</code></td></tr>
 <tr><td class="nowrap"><code>ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">p.8, Sec 6.0 &quot;System Protection Requirements&quot; (protection requirements depend on POD/location/line protection)</span></td><td class="wrap"><code>protection</code> <code>upgrade_exposure</code></td></tr>
 <tr><td class="nowrap"><code>ONC_001_TRANSMISSION_VOLTAGE_SCOPE</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 1.1, p.1</span></td><td class="wrap"><code>transmission_scope</code></td></tr>
 <tr><td class="nowrap"><code>ONC_010_NOMCR_APPROVAL</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.3.2, p.3</span></td><td class="wrap"><code>energization_gate</code> <code>modeling_requirement</code> <code>process_latency</code></td></tr>
-<tr><td class="nowrap"><code>LL_QA_011_ENERGIZATION_REQUIREMENTS</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.13, Planning Guide Sections 9.5–9.6</span></td><td class="wrap"><code>commissioning_plan</code> <code>energization_gate</code> <code>financial_security</code> <code>study_dependency</code></td></tr>
 <tr><td class="nowrap"><code>LL_QA_014_365_DAY_RULE</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.15, Planning Guide Section 9.4(10)</span></td><td class="wrap"><code>re_study</code> <code>timeline_risk</code></td></tr>
-<tr><td class="nowrap"><code>LLI_EN_001_WRITTEN_APPROVAL_REQUIRED</code></td><td class="nowrap"><code>ERCOT_LLI_ENERGIZATION_REQUEST</code></td><td class="wrap"><span class="muted">p.3, approval statement</span></td><td class="wrap"><code>energization_gate</code> <code>process_latency</code></td></tr>
-<tr><td class="nowrap"><code>LLI_EN_003_LLIS_COMPLETE</code></td><td class="nowrap"><code>ERCOT_LLI_ENERGIZATION_REQUEST</code></td><td class="wrap"><span class="muted">p.2, checklist item 2</span></td><td class="wrap"><code>energization_gate</code> <code>study_dependency</code></td></tr>
-<tr><td class="nowrap"><code>LLI_EN_006_AGREEMENTS_AND_SECURITY</code></td><td class="nowrap"><code>ERCOT_LLI_ENERGIZATION_REQUEST</code></td><td class="wrap"><span class="muted">p.2, agreements checkbox</span></td><td class="wrap"><code>energization_gate</code> <code>financial_security</code> <code>process_latency</code></td></tr>
-<tr><td class="nowrap"><code>LLI_EN_011_NETWORK_MODEL</code></td><td class="nowrap"><code>ERCOT_LLI_ENERGIZATION_REQUEST</code></td><td class="wrap"><span class="muted">p.2, NOMCR section</span></td><td class="wrap"><code>energization_gate</code> <code>modeling_requirement</code></td></tr>
 <tr><td class="nowrap"><code>LL_QA_002_SECTION9_APPLICABILITY</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.4, Section 9.2.1 Applicability</span></td><td class="wrap"><code>modification_trigger</code> <code>process_trigger</code></td></tr>
+<tr><td class="nowrap"><code>ONC_002_VOLTAGE_AVAILABILITY</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.4.1, p.3</span></td><td class="wrap"><code>voltage_selection_risk</code></td></tr>
+<tr><td class="nowrap"><code>ONC_005_FAULT_INTERRUPT_RATING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 5.2.1, p.7</span></td><td class="wrap"><code>protection</code> <code>short_circuit</code> <code>upgrade_exposure</code></td></tr>
+<tr><td class="nowrap"><code>ONC_009_REVENUE_METERING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.6.1, p.3–4</span></td><td class="wrap"><code>metering_requirement</code></td></tr>
               </tbody>
             </table>
           </div>
@@ -349,8 +357,12 @@
           <div class="kv">
             <div class="k">Graph version</div>
             <div class="v"><code>0.1</code></div>
+            <div class="k">Graph sha256</div>
+            <div class="v"><code>e763ffc2399deebc82f31432b2bf561269e0d554d7579cd5403571e4f9026997</code></div>
             <div class="k">Rules source</div>
             <div class="v"><code>rules/published.jsonl</code></div>
+            <div class="k">Rules sha256</div>
+            <div class="v"><code>78c957965dcfabbf6d37ed535a1f98e15048aa940433bbc184eb310dd3a716e3</code></div>
           </div>
           <div class="muted small" style="margin-top:10px">Document artifacts referenced by this evaluation.</div>
           <div style="overflow-x:auto;margin-top:8px">

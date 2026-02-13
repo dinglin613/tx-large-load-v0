@@ -138,7 +138,9 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any]) -> str:
         .replace("{{operational_exposure}}", esc(risk.get("operational_exposure_bucket", "unknown")))
         .replace("{{evidence_rows}}", evidence_rows)
         .replace("{{graph_version}}", esc(graph.get("graph_version")))
+        .replace("{{graph_sha256}}", esc((ev.get("provenance") or {}).get("graph_sha256")))
         .replace("{{rules_source}}", esc((ev.get("provenance") or {}).get("rules_source")))
+        .replace("{{rules_sha256}}", esc((ev.get("provenance") or {}).get("rules_sha256")))
         .replace("{{docs_rows}}", render_docs_rows(ev.get("provenance") or {}))
     )
 

@@ -11,12 +11,24 @@ nodes:
     label: Large Load Intake (ERCOT)
   - id: N2
     label: Completeness Check
-  - id: N3
-    label: Study Path (ERCOT)
+  - id: N2X
+    label: "Intake Incomplete (v0: stop and request missing inputs)"
+  - id: N3P
+    label: Study Path (ERCOT) — Phased plan
+  - id: N3S
+    label: Study Path (ERCOT) — Single plan
+  - id: N3R
+    label: Material Change / Re-study Screening
+  - id: N3T
+    label: TDSP Routing
   - id: N4
     label: Facility Review (TDSP)
+  - id: N4G
+    label: Facility Review (TDSP - Generic/Other)
   - id: N5
     label: Risk Flags
+  - id: N5E
+    label: Energization Readiness (gate evaluation)
   - id: N6
     label: Decision Memo
 
@@ -40,21 +52,105 @@ edges:
       - LL_QA_004_LOAD_COMMISSIONING_PLAN
       - LL_QA_005_APPLICATION_FEE
 
-  - id: E2
+  # Branch 1: plan shape (phased vs single) + minimal required fields.
+  - id: E2P
     from: N2
-    to: N3
+    to: N3P
     criteria:
       - op: exists
         field: load_mw_total
       - op: exists
         field: tdsp_area
+      - op: equals
+        field: energization_plan
+        value: phased
     rule_ids:
       - LL_QA_001_LARGE_LOAD_DEFINITION
       - ONC_003_LOAD_PROJECTION
       - ONC_004_ONE_LINE_DIAGRAM
 
-  - id: E3
-    from: N3
+  - id: E2S
+    from: N2
+    to: N3S
+    criteria:
+      - op: exists
+        field: load_mw_total
+      - op: exists
+        field: tdsp_area
+      - op: equals
+        field: energization_plan
+        value: single
+    rule_ids:
+      - LL_QA_001_LARGE_LOAD_DEFINITION
+      - ONC_003_LOAD_PROJECTION
+      - ONC_004_ONE_LINE_DIAGRAM
+
+  # Branch 2: default route when minimal intake fields missing/unspecified.
+  - id: E2X
+    from: N2
+    to: N2X
+    criteria: []
+    rule_ids:
+      - ERCOT_LLI_INTAKE_REQUIRED_DOCS
+      - LL_QA_004_LOAD_COMMISSIONING_PLAN
+      - LL_QA_005_APPLICATION_FEE
+
+  - id: E2X_END
+    from: N2X
+    to: N6
+    criteria: []
+    rule_ids:
+      - ERCOT_LLI_INTAKE_REQUIRED_DOCS
+      - ONC_003_LOAD_PROJECTION
+      - ONC_004_ONE_LINE_DIAGRAM
+
+  # Branch 3: material change / re-study signal (applies to both plans).
+  - id: E3P_RESTUDY
+    from: N3P
+    to: N3R
+    criteria:
+      - op: any_true
+        field: material_change_flags
+        value: ["poi_changed", "timeline_accelerated", "load_type_changed", "control_system_changed"]
+    rule_ids:
+      - LL_QA_006_MATERIAL_CHANGE
+
+  - id: E3P_BASE
+    from: N3P
+    to: N3T
+    criteria: []
+    rule_ids:
+      - LL_QA_007_REQUIRED_STUDIES
+      - LL_QA_008_SSO_REQUIRED
+
+  - id: E3S_RESTUDY
+    from: N3S
+    to: N3R
+    criteria:
+      - op: any_true
+        field: material_change_flags
+        value: ["poi_changed", "timeline_accelerated", "load_type_changed", "control_system_changed"]
+    rule_ids:
+      - LL_QA_006_MATERIAL_CHANGE
+
+  - id: E3S_BASE
+    from: N3S
+    to: N3T
+    criteria: []
+    rule_ids:
+      - LL_QA_007_REQUIRED_STUDIES
+      - LL_QA_008_SSO_REQUIRED
+
+  - id: E3R_TO_TDSP
+    from: N3R
+    to: N3T
+    criteria: []
+    rule_ids:
+      - LL_QA_006_MATERIAL_CHANGE
+
+  # Branch 4: TDSP-specific routing (Oncor vs generic).
+  - id: E4_ONCOR
+    from: N3T
     to: N4
     criteria:
       - op: equals
@@ -64,7 +160,14 @@ edges:
       - LL_QA_007_REQUIRED_STUDIES
       - LL_QA_008_SSO_REQUIRED
 
-  - id: E4
+  - id: E4_GENERIC
+    from: N3T
+    to: N4G
+    criteria: []
+    rule_ids:
+      - LL_QA_007_REQUIRED_STUDIES
+
+  - id: E5_ONCOR
     from: N4
     to: N5
     criteria: []
@@ -73,8 +176,36 @@ edges:
       - ONC_001_TRANSMISSION_VOLTAGE_SCOPE
       - ONC_010_NOMCR_APPROVAL
 
-  - id: E5
+  - id: E5_GENERIC
+    from: N4G
+    to: N5
+    criteria: []
+    rule_ids:
+      - LL_QA_007_REQUIRED_STUDIES
+
+  # Branch 5: energization requested vs feasibility-only memo.
+  - id: E6_ENERGIZATION
     from: N5
+    to: N5E
+    criteria:
+      - op: equals
+        field: is_requesting_energization
+        value: true
+    rule_ids:
+      - LLI_EN_001_WRITTEN_APPROVAL_REQUIRED
+      - LLI_EN_003_LLIS_COMPLETE
+      - LLI_EN_006_AGREEMENTS_AND_SECURITY
+      - LLI_EN_011_NETWORK_MODEL
+
+  - id: E6_FEASIBILITY
+    from: N5
+    to: N6
+    criteria: []
+    rule_ids:
+      - LL_QA_014_365_DAY_RULE
+
+  - id: E6E_TO_MEMO
+    from: N5E
     to: N6
     criteria: []
     rule_ids:

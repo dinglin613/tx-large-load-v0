@@ -32,7 +32,38 @@
       "items": { "type": "number", "exclusiveMinimum": 0 }
     },
     "cod_target_window": { "type": "string" },
-    "load_profile_type": { "type": "string", "enum": ["baseload", "ramp", "variable", "unknown"] }
+    "load_profile_type": { "type": "string", "enum": ["baseload", "ramp", "variable", "unknown"] },
+
+    "is_requesting_energization": { "type": "boolean" },
+    "requested_energization_window": { "type": "string" },
+
+    "is_new_interconnection": { "type": "boolean" },
+    "material_change_flags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+
+    "llis_completed_and_ercot_approved": { "type": "boolean" },
+    "agreements_executed": { "type": "boolean" },
+    "financial_security_posted": { "type": "boolean" },
+    "nom_included": { "type": "boolean" },
+
+    "one_line_diagram": { "type": "boolean" },
+    "load_projection_5y": { "type": "boolean" },
+    "peak_power_factor": { "type": "number" },
+
+    "load_commissioning_plan_provided": { "type": "boolean" },
+    "application_fee_paid": { "type": "boolean" },
+
+    "is_large_electronic_load": { "type": "boolean" },
+    "lel_interim_assessment_complete": { "type": "boolean" },
+    "model_consistency_confirmed": { "type": "boolean" },
+    "telemetry_operational_and_accurate": { "type": "boolean" },
+    "dme_installed_and_operational": { "type": "boolean" },
+    "sso_complete_and_mitigation_in_place": { "type": "boolean" },
+
+    "sso_required": { "type": "boolean" },
+    "dme_required": { "type": "boolean" }
   },
   "additionalProperties": true
 }

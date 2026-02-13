@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,6 +20,32 @@ DOC_REGISTRY = REPO_ROOT / "registry" / "doc_registry.json"
 
 def now_iso() -> str:
     return datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat()
+
+
+_SHA256_CACHE: Dict[str, str] = {}
+
+
+def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        while True:
+            b = f.read(chunk_size)
+            if not b:
+                break
+            h.update(b)
+    return h.hexdigest()
+
+
+def sha256_cached(path: Path) -> str:
+    k = str(path.resolve())
+    v = _SHA256_CACHE.get(k)
+    if v:
+        return v
+    if not path.exists():
+        return ""
+    v = sha256_file(path)
+    _SHA256_CACHE[k] = v
+    return v
 
 
 def load_yaml(path: Path) -> Dict[str, Any]:
@@ -327,6 +354,8 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
     rid = rule.get("rule_id")
     preds = rule_predicates(rule)
     required = required_fields_from_rule(rule)
+    dsl = ((rule.get("criteria") or {}).get("dsl") or {})
+    is_completeness = dsl.get("kind") == "completeness_check"
 
     # If rule is explicitly gated on energization, treat it as not applicable unless requesting energization.
     if has_gate_predicate(rule, field="is_requesting_energization", value=True) and req.get("is_requesting_energization") is not True:
@@ -340,8 +369,48 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
             "traces": [],
         }
 
-    # Missing required fields (generic + completeness_check)
-    missing_required = [f for f in required if req.get(f) in (None, "", [])]
+    # Conditional gates ("if required ...") should not fail when the request explicitly says the gate is not required.
+    #
+    # IMPORTANT: only fields listed in dsl.applicability_fields are treated as applicability toggles.
+    # Completion fields (e.g., telemetry_operational_and_accurate) must still fail if False.
+    if dsl.get("kind") == "conditional_gate":
+        app_fields = dsl.get("applicability_fields") or []
+        if isinstance(app_fields, list):
+            for field in [str(x) for x in app_fields if x]:
+                v = get_field(req, field)
+                if v is False:
+                    return {
+                        "rule_id": rid,
+                        "doc_id": rule.get("doc_id"),
+                        "loc": rule.get("loc"),
+                        "trigger_tags": rule.get("trigger_tags") or [],
+                        "status": "not_applicable",
+                        "missing_fields": [],
+                        "traces": [f"{field}==True (False) => not_applicable"],
+                    }
+
+    # Missing required fields.
+    #
+    # v0 nuance:
+    # - For "completeness_check" rules, many request fields are modeled as booleans
+    #   where False means "not provided" (e.g., one_line_diagram=false). Treat False as missing.
+    # - For non-completeness rules, False is usually a valid factual value (e.g., agreements_executed=false),
+    #   and should not be treated as "missing".
+    def _missing_required_field(field: str) -> bool:
+        if field not in req:
+            return True
+        v = req.get(field)
+        if v is None:
+            return True
+        if isinstance(v, str) and v.strip() == "":
+            return True
+        if is_completeness and (v is False):
+            return True
+        if is_completeness and isinstance(v, list) and len(v) == 0:
+            return True
+        return False
+
+    missing_required = [f for f in required if _missing_required_field(f)]
 
     if not preds:
         # No predicates => cannot evaluate satisfied/not_satisfied; report missing if required fields exist.
@@ -503,8 +572,23 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any]) -> Dict[str, Any]
                     if has_gate_predicate(r, field="is_requesting_energization", value=True) and req.get("is_requesting_energization") is not True:
                         continue
         for f in rf:
-            if req.get(f) in (None, "", []):
+            # Same missing semantics as tri-state (but applied to memo-level missing_inputs list)
+            if f not in req:
                 missing_inputs.append(f)
+                continue
+            v = req.get(f)
+            if v is None:
+                missing_inputs.append(f)
+                continue
+            if isinstance(v, str) and v.strip() == "":
+                missing_inputs.append(f)
+                continue
+            if is_completeness and (v is False):
+                missing_inputs.append(f)
+                continue
+            if is_completeness and isinstance(v, list) and len(v) == 0:
+                missing_inputs.append(f)
+                continue
 
     risk = risk_from_matched_rules(req, all_signal_rules, missing_inputs=sorted(set(missing_inputs)))
 
@@ -529,7 +613,10 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any]) -> Dict[str, Any]
         "risk": risk,
         "provenance": {
             "doc_registry_count": len(load_doc_registry()),
+            "graph_source": "graph/process_graph.yaml",
+            "graph_sha256": sha256_cached(GRAPH_PATH),
             "rules_source": "rules/published.jsonl",
+            "rules_sha256": sha256_cached(RULES_PUBLISHED),
             "docs": used_docs,
         },
     }
