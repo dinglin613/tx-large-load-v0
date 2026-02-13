@@ -443,7 +443,27 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
     }
 
 
-def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any]) -> Dict[str, Any]:
+def _summarize_option_eval(ev: Dict[str, Any]) -> Dict[str, Any]:
+    graph = ev.get("graph") or {}
+    risk = ev.get("risk") or {}
+    tb = risk.get("timeline_buckets") or {}
+    path = " → ".join(graph.get("path_node_labels") or [])
+    return {
+        "path": path,
+        "missing_inputs_count": len(ev.get("missing_inputs") or []),
+        "missing_inputs": ev.get("missing_inputs") or [],
+        "flags_count": len(ev.get("flags") or []),
+        "timeline_buckets": {
+            "le_12_months": tb.get("le_12_months", "unknown"),
+            "m12_24_months": tb.get("m12_24_months", "unknown"),
+            "gt_24_months": tb.get("gt_24_months", "unknown"),
+        },
+        "upgrade_exposure_bucket": risk.get("upgrade_exposure_bucket", "unknown"),
+        "operational_exposure_bucket": risk.get("operational_exposure_bucket", "unknown"),
+    }
+
+
+def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_options: bool = True) -> Dict[str, Any]:
     req = normalize_request(req)
     edges: List[Dict[str, Any]] = graph.get("edges") or []
     nodes_by_id = {n.get("id"): n for n in (graph.get("nodes") or [])}
@@ -596,7 +616,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any]) -> Dict[str, Any]
     used_doc_ids = sorted({e.get("doc_id") for e in (risk.get("evidence") or []) if e.get("doc_id")})
     used_docs = [doc_provenance_entry(docs_by_id[d]) for d in used_doc_ids if d in docs_by_id]
 
-    return {
+    out = {
         "evaluated_at": now_iso(),
         "request": req,
         "graph": {
@@ -607,6 +627,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any]) -> Dict[str, Any]
         },
         "missing_inputs": sorted(set(missing_inputs)),
         "levers": levers,
+        "options": [],
         "flags": flags,
         "rule_checks": rule_checks,
         "energization_checklist": energization_checklist,
@@ -620,6 +641,53 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any]) -> Dict[str, Any]
             "docs": used_docs,
         },
     }
+
+    if include_options:
+        options: List[Dict[str, Any]] = []
+
+        # Lever 1: voltage choice (evaluate each option separately).
+        vopts = get_field(req, "voltage_options_kv")
+        if isinstance(vopts, list) and len(vopts) >= 2:
+            for v in vopts:
+                try:
+                    v_num = float(v)
+                except Exception:
+                    continue
+                req2 = dict(req)
+                req2["voltage_options_kv"] = [v_num]
+                # Keep alias in sync for readability in raw request JSON.
+                req2["voltage_options"] = [v_num]
+                ev2 = evaluate_graph(req2, graph, include_options=False)
+                options.append(
+                    {
+                        "option_id": f"voltage_{int(v_num) if v_num.is_integer() else v_num}",
+                        "lever_id": "voltage_level_choice",
+                        "patch": {"voltage_options_kv": [v_num]},
+                        "summary": _summarize_option_eval(ev2),
+                    }
+                )
+
+        # Lever 2: single vs phased plan (evaluate alternate plan shape).
+        plan = req.get("energization_plan")
+        if plan in ("single", "phased"):
+            other = "phased" if plan == "single" else "single"
+            req2 = dict(req)
+            req2["energization_plan"] = other
+            if other == "single":
+                req2.pop("phases", None)
+            ev2 = evaluate_graph(req2, graph, include_options=False)
+            options.append(
+                {
+                    "option_id": f"energization_plan_{other}",
+                    "lever_id": "phased_energization",
+                    "patch": {"energization_plan": other},
+                    "summary": _summarize_option_eval(ev2),
+                }
+            )
+
+        out["options"] = options
+
+    return out
 
 
 def main() -> int:

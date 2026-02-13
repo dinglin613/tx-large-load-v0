@@ -11,6 +11,45 @@ from io_jsonl import read_jsonl, write_jsonl
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RULES_DIR = REPO_ROOT / "rules"
+SCHEMA_DIR = REPO_ROOT / "schema"
+REGISTRY_DIR = REPO_ROOT / "registry"
+
+
+_CACHE_REQUEST_FIELDS: Set[str] | None = None
+_CACHE_DOC_IDS: Set[str] | None = None
+
+
+def load_request_fields() -> Set[str]:
+    global _CACHE_REQUEST_FIELDS
+    if _CACHE_REQUEST_FIELDS is not None:
+        return _CACHE_REQUEST_FIELDS
+    path = SCHEMA_DIR / "request.schema.json"
+    with path.open("r", encoding="utf-8") as f:
+        schema = json.load(f)
+    props = schema.get("properties") or {}
+    fields = {str(k) for k in props.keys()} if isinstance(props, dict) else set()
+    # evaluator supports legacy alias
+    fields.add("voltage_options")
+    _CACHE_REQUEST_FIELDS = fields
+    return fields
+
+
+def load_doc_ids() -> Set[str]:
+    global _CACHE_DOC_IDS
+    if _CACHE_DOC_IDS is not None:
+        return _CACHE_DOC_IDS
+    path = REGISTRY_DIR / "doc_registry.json"
+    if not path.exists():
+        _CACHE_DOC_IDS = set()
+        return _CACHE_DOC_IDS
+    with path.open("r", encoding="utf-8") as f:
+        reg = json.load(f)
+    doc_ids = {str(d.get("doc_id")) for d in (reg or []) if isinstance(d, dict) and d.get("doc_id")}
+    _CACHE_DOC_IDS = doc_ids
+    return doc_ids
+
+
+ALLOWED_PRED_OPS = {"exists", "equals", "eq", "gte", "any_of", "any_true"}
 
 
 def now_iso() -> str:
@@ -77,6 +116,46 @@ def validate_for_publish(rule: Dict[str, Any]) -> List[str]:
     tags = rule.get("trigger_tags") or []
     if not isinstance(tags, list) or len(tags) == 0:
         errs.append("trigger_tags_empty")
+
+    doc_id = str(rule.get("doc_id", "")).strip()
+    if not doc_id:
+        errs.append("doc_id_missing")
+    elif doc_id not in load_doc_ids():
+        errs.append("doc_id_not_in_registry")
+
+    # DSL lint: field references must exist in request schema (fail-fast on typos).
+    request_fields = load_request_fields()
+    dsl = ((rule.get("criteria") or {}).get("dsl") or {})
+    if isinstance(dsl, dict):
+        rf = dsl.get("required_fields") or []
+        if isinstance(rf, list):
+            for f in rf:
+                if f and str(f) not in request_fields:
+                    errs.append("dsl_required_fields_unknown")
+                    break
+        preds = dsl.get("predicates") or []
+        if isinstance(preds, list):
+            for p in preds:
+                if not isinstance(p, dict):
+                    errs.append("dsl_predicate_not_object")
+                    break
+                op = p.get("op")
+                if op not in ALLOWED_PRED_OPS:
+                    errs.append("dsl_predicate_unknown_op")
+                    break
+                field = p.get("field")
+                if field and str(field) not in request_fields:
+                    errs.append("dsl_predicate_unknown_field")
+                    break
+        if dsl.get("kind") == "conditional_gate":
+            af = dsl.get("applicability_fields") or []
+            if not isinstance(af, list) or len(af) == 0:
+                errs.append("dsl_missing_applicability_fields")
+            else:
+                for f in af:
+                    if f and str(f) not in request_fields:
+                        errs.append("dsl_applicability_fields_unknown")
+                        break
 
     return errs
 

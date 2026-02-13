@@ -2,10 +2,10 @@
   {
     "doc_id": "ERCOT_PLANNING_GUIDE",
     "title": "ERCOT Planning Guide",
-    "source_url": "https://www.ercot.com/files/docs/2025/01/31/February%201%2C%202025%20Planning%20Guide.pdf",
-    "retrieved_date": "2026-02-12",
-    "effective_date": "2025-02-01",
-    "hash": "6F47851F6A8FDCA83F286675B5269894E7A6345279CB386CA2E0123A11718564",
+    "source_url": "https://www.ercot.com/files/docs/2025/12/14/December-15-2025-Planning-Guide.pdf",
+    "retrieved_date": "2026-02-13",
+    "effective_date": "2025-12-15",
+    "hash": "BC7CC96C6937EF96345C0F2C1DDA1033864F4CCB225B00E7D2CA9C2F4D1164E4",
     "scope_tags": [
       "ERCOT",
       "planning",
@@ -18,6 +18,13 @@
         "sha256": "6f47851f6a8fdca83f286675b5269894e7a6345279cb386ca2e0123a11718564",
         "size_bytes": 910500,
         "retrieved_date": "2026-02-12"
+      },
+      {
+        "kind": "pdf",
+        "path": "docs/raw/ERCOT_PLANNING_GUIDE__2025-12-15.pdf",
+        "size_bytes": 983641,
+        "sha256": "bc7cc96c6937ef96345c0f2c1dda1033864f4ccb225b00e7d2ca9c2f4d1164e4",
+        "retrieved_date": "2026-02-13"
       }
     ]
   },

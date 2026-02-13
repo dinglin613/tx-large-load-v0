@@ -11,7 +11,24 @@
     },
     "doc_id": { "type": "string", "minLength": 1 },
     "loc": { "type": "string", "minLength": 1 },
-    "stage": { "type": "string", "minLength": 1 },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "Dynamic Modeling",
+        "Dynamic Study",
+        "Engineering",
+        "Energization",
+        "Facility Review",
+        "Intake",
+        "Large Load Intake",
+        "Operations",
+        "Post-Energization",
+        "Post-Study",
+        "Pre-Energization",
+        "Screening",
+        "Study"
+      ]
+    },
     "study_type": { "type": "string" },
     "criteria": {
       "type": "object",

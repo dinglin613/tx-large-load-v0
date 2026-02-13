@@ -84,10 +84,12 @@
         <div class="toc">
           <h3>Decision Memo (v0)</h3>
           <a href="#sec-summary">Summary</a>
+          <a href="#sec-scope">Scope & disclaimers</a>
           <a href="#sec-input">Input snapshot</a>
           <a href="#sec-path">Process path</a>
           <a href="#sec-missing">Missing inputs</a>
           <a href="#sec-levers">Levers</a>
+          <a href="#sec-options">Options comparison</a>
           <a href="#sec-flags">Parallel flags</a>
           <a href="#sec-checklist">Energization checklist</a>
           <a href="#sec-risk">Risk buckets & evidence</a>
@@ -122,6 +124,25 @@
             <div class="v"><code>{{is_requesting_energization}}</code></div>
             <div class="k">Process path</div>
             <div class="v"><code>{{path}}</code></div>
+          </div>
+        </div>
+
+        <div class="card" id="sec-scope">
+          <div class="section-title">
+            <h2>Scope & disclaimers</h2>
+            <div class="id">screening only</div>
+          </div>
+          <div class="muted small">
+            This memo is an <strong>audit-friendly screening artifact</strong>. It is not legal advice, and it does not replace ERCOT/TSP/TDSP engineering studies.
+          </div>
+          <ul class="small" style="margin:10px 0 0 18px">
+            <li><strong>Not a schedule commitment</strong>: risk buckets are qualitative and rule-driven; they do not guarantee COD or energization timelines.</li>
+            <li><strong>Not an interconnection determination</strong>: final requirements depend on studies, agreements, and stakeholder approvals (ERCOT / TSP / TDSP).</li>
+            <li><strong>Inputs matter</strong>: missing or incorrect request inputs can materially change the evaluated path and checklist outcomes.</li>
+            <li><strong>Evidence scope</strong>: citations reference public artifacts captured in the registry (doc_id + loc + sha256); interpretations may evolve as rules are updated.</li>
+          </ul>
+          <div class="muted small" style="margin-top:8px">
+            中文提示：本 Memo 仅用于流程筛查/准备度评估（screening/process-readiness），不构成工程结论或工期承诺。
           </div>
         </div>
 
@@ -179,7 +200,7 @@
             <h2>4) Levers detected</h2>
             <div class="id">structural hints</div>
           </div>
-          <div class="muted small">Levers are options present in the request (v0 does not simulate alternatives).</div>
+          <div class="muted small">Levers are configurable inputs. See “Options comparison” for lightweight what-if variants when available.</div>
           <div style="overflow-x:auto;margin-top:10px">
             <table>
               <thead>
@@ -190,6 +211,37 @@
               </thead>
               <tbody>
                 {{levers_rows}}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" id="sec-options">
+          <div class="section-title">
+            <h2>4a) Options comparison</h2>
+            <div class="id">lever variants</div>
+          </div>
+          <div class="muted small">
+            v0 can generate lightweight “what-if” variants for certain levers (e.g., voltage choice, phased vs single). These are comparative screenings, not final determinations.
+          </div>
+          <div class="toolbar">
+            <input id="optionsFilter" type="search" placeholder="Filter options by lever, option, risk bucket, missing field..." />
+            <button class="btn" data-clear="optionsFilter">Clear</button>
+          </div>
+          <div style="overflow-x:auto;margin-top:8px">
+            <table id="optionsTable">
+              <thead>
+                <tr>
+                  <th class="nowrap">option_id</th>
+                  <th class="nowrap">lever</th>
+                  <th>patch</th>
+                  <th>path</th>
+                  <th class="nowrap">missing</th>
+                  <th class="nowrap">risk</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{options_rows}}
               </tbody>
             </table>
           </div>
@@ -310,7 +362,30 @@
             <div class="v"><code>{{rules_source}}</code></div>
             <div class="k">Rules sha256</div>
             <div class="v"><code>{{rules_sha256}}</code></div>
+            <div class="k">Citation audit (PDF)</div>
+            <div class="v"><code>{{citation_audit_mode}}</code> / <code>{{citation_audit_ok}}</code> (errors: <code>{{citation_audit_error_count}}</code>, warns: <code>{{citation_audit_warn_count}}</code>)</div>
           </div>
+          <details style="margin-top:10px">
+            <summary>Show citation audit findings</summary>
+            <div class="hint muted small">This audit checks PDF sha256, loc page range, and loc anchor matches for published rules.</div>
+            <div style="overflow-x:auto;margin-top:8px">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="nowrap">status</th>
+                    <th class="nowrap">rule_id</th>
+                    <th class="nowrap">doc_id</th>
+                    <th>loc</th>
+                    <th class="nowrap">anchor</th>
+                    <th>message</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{citation_audit_rows}}
+                </tbody>
+              </table>
+            </div>
+          </details>
           <div class="muted small" style="margin-top:10px">Document artifacts referenced by this evaluation.</div>
           <div style="overflow-x:auto;margin-top:8px">
             <table>
@@ -389,6 +464,7 @@
         bindFilter("evidenceFilter", "evidenceTable");
         bindFilter("flagsFilter", "flagsTable");
         bindFilter("checklistFilter", "checklistTable");
+        bindFilter("optionsFilter", "optionsTable");
 
         document.addEventListener("click", function (ev) {
           var t = ev.target;

@@ -35,9 +35,13 @@ python src/pdf_search.py --pdf "docs/raw/ERCOT_LARGE_LOAD_QA__2025-06-01.pdf" --
 ### Evaluate + render memo (v0)
 
 ```bash
+python src/validate.py --rules rules/published.jsonl --requests tests/test_requests.jsonl --graph graph/process_graph.yaml
 python src/evaluate.py --in tests/test_requests.jsonl --out memo/outputs/evals.jsonl
 python src/render_memo.py --in memo/outputs/evals.jsonl --out-dir memo/outputs
 ```
+
+Notes:
+- `render_memo.py` runs a **strict PDF citation audit** by default. To skip (e.g., no local PDFs), pass `--citation-audit off`.
 
 Notes:
 - `docs/raw/` is gitignored by default; the registry stores the provenance to local copies.

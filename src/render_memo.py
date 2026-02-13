@@ -5,9 +5,10 @@ import html
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from io_jsonl import iter_jsonl
+from citation_audit import audit_citations
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -55,7 +56,34 @@ def badge_for_status(status: str) -> str:
     return f"<span class=\"{cls_attr}\"><code>{esc(status)}</code></span>"
 
 
-def render_eval_to_html(tpl: str, ev: Dict[str, Any]) -> str:
+def render_citation_audit_rows(report: Optional[Dict[str, Any]]) -> str:
+    if not report:
+        return "<tr><td colspan=\"6\" class=\"muted\">Not run</td></tr>"
+    findings = report.get("findings") or []
+    if not findings:
+        return "<tr><td colspan=\"6\" class=\"muted\">None</td></tr>"
+
+    rows: List[str] = []
+    for f in findings:
+        status = str(f.get("status") or "")
+        if status == "ok":
+            continue
+        rows.append(
+            "<tr>"
+            f"<td class=\"nowrap\">{badge_for_status(status)}</td>"
+            f"<td class=\"nowrap\"><code>{esc(f.get('rule_id'))}</code></td>"
+            f"<td class=\"nowrap\"><code>{esc(f.get('doc_id'))}</code></td>"
+            f"<td class=\"wrap\"><span class=\"muted\">{esc(f.get('loc'))}</span></td>"
+            f"<td class=\"wrap\"><span class=\"small\">{esc(f.get('anchor_used') or '')}</span></td>"
+            f"<td class=\"wrap\"><span class=\"small\">{esc(f.get('message'))}</span></td>"
+            "</tr>"
+        )
+    if not rows:
+        return "<tr><td colspan=\"6\" class=\"muted\">No issues (all ok)</td></tr>"
+    return "\n".join(rows)
+
+
+def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optional[Dict[str, Any]]) -> str:
     req = ev.get("request") or {}
     graph = (ev.get("graph") or {})
     risk = ev.get("risk") or {}
@@ -104,6 +132,8 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any]) -> str:
 
     checklist_rows = render_checklist_rows(ev.get("energization_checklist") or [])
 
+    options_rows = render_options_rows(ev.get("options") or [])
+
     evidence_rows = "\n".join(
         "<tr>"
         f"<td class=\"nowrap\"><code>{esc(e.get('rule_id'))}</code></td>"
@@ -113,6 +143,16 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any]) -> str:
         "</tr>"
         for e in evidence
     ) or "<tr><td colspan=\"4\" class=\"muted\">None</td></tr>"
+
+    audit_mode = "off" if not citation_audit else ("strict" if citation_audit.get("_strict") else "warn")
+    audit_ok = "not_run"
+    audit_err = ""
+    audit_warn = ""
+    audit_rows = render_citation_audit_rows(citation_audit)
+    if citation_audit:
+        audit_ok = str(bool(citation_audit.get("ok")))
+        audit_err = str(citation_audit.get("error_count", 0))
+        audit_warn = str(citation_audit.get("warn_count", 0))
 
     return (
         tpl.replace("{{project_name}}", esc(req.get("project_name")))
@@ -128,6 +168,7 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any]) -> str:
         .replace("{{edges_rows}}", edges_rows)
         .replace("{{missing_chips}}", missing_chips)
         .replace("{{levers_rows}}", levers_rows)
+        .replace("{{options_rows}}", options_rows)
         .replace("{{flags_rows}}", flags_rows)
         .replace("{{checklist_rows}}", checklist_rows)
         .replace("{{risk_status}}", esc(risk_status))
@@ -141,6 +182,11 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any]) -> str:
         .replace("{{graph_sha256}}", esc((ev.get("provenance") or {}).get("graph_sha256")))
         .replace("{{rules_source}}", esc((ev.get("provenance") or {}).get("rules_source")))
         .replace("{{rules_sha256}}", esc((ev.get("provenance") or {}).get("rules_sha256")))
+        .replace("{{citation_audit_mode}}", esc(audit_mode))
+        .replace("{{citation_audit_ok}}", esc(audit_ok))
+        .replace("{{citation_audit_error_count}}", esc(audit_err))
+        .replace("{{citation_audit_warn_count}}", esc(audit_warn))
+        .replace("{{citation_audit_rows}}", audit_rows)
         .replace("{{docs_rows}}", render_docs_rows(ev.get("provenance") or {}))
     )
 
@@ -162,6 +208,47 @@ def render_checklist_rows(items: List[Dict[str, Any]]) -> str:
             f"<td class=\"wrap\"><span class=\"muted\">{esc(c.get('loc'))}</span></td>"
             f"<td class=\"wrap\">{code_list(missing)}</td>"
             f"<td class=\"wrap\"><span class=\"small\">{esc(' | '.join(traces))}</span></td>"
+            "</tr>"
+        )
+    return "\n".join(out)
+
+
+def render_options_rows(items: List[Dict[str, Any]]) -> str:
+    if not items:
+        return (
+            "<tr><td colspan=\"6\" class=\"muted\">"
+            "None (provide multiple <code>voltage_options_kv</code> or set <code>energization_plan</code> to compare)"
+            "</td></tr>"
+        )
+
+    out: List[str] = []
+    for it in items:
+        opt_id = it.get("option_id")
+        lever = it.get("lever_id")
+        patch = it.get("patch") or {}
+        summ = it.get("summary") or {}
+
+        path = summ.get("path") or ""
+        miss = summ.get("missing_inputs") or []
+        miss_count = summ.get("missing_inputs_count", len(miss))
+        tb = summ.get("timeline_buckets") or {}
+        risk_text = (
+            f"≤12:{tb.get('le_12_months','unknown')} | "
+            f"12–24:{tb.get('m12_24_months','unknown')} | "
+            f">24:{tb.get('gt_24_months','unknown')} | "
+            f"upgrade:{summ.get('upgrade_exposure_bucket','unknown')} | "
+            f"ops:{summ.get('operational_exposure_bucket','unknown')}"
+        )
+
+        patch_s = json.dumps(patch, ensure_ascii=False)
+        out.append(
+            "<tr>"
+            f"<td class=\"nowrap\"><code>{esc(opt_id)}</code></td>"
+            f"<td class=\"nowrap\"><code>{esc(lever)}</code></td>"
+            f"<td class=\"wrap\"><span class=\"small\"><code>{esc(patch_s)}</code></span></td>"
+            f"<td class=\"wrap\"><span class=\"small\">{esc(path)}</span></td>"
+            f"<td class=\"wrap\"><code>{esc(miss_count)}</code> {code_list(miss[:8])}</td>"
+            f"<td class=\"wrap\"><span class=\"small\">{esc(risk_text)}</span></td>"
             "</tr>"
         )
     return "\n".join(out)
@@ -219,6 +306,12 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Render Decision Memo HTML from evaluations JSONL")
     ap.add_argument("--in", dest="in_path", required=True, help="Input evaluations JSONL")
     ap.add_argument("--out-dir", dest="out_dir", required=True, help="Output directory for HTML memos")
+    ap.add_argument(
+        "--citation-audit",
+        choices=["off", "warn", "strict"],
+        default="strict",
+        help="Whether to run PDF citation audit and gate memo generation",
+    )
     args = ap.parse_args()
 
     out_dir = Path(args.out_dir)
@@ -226,12 +319,22 @@ def main() -> int:
 
     tpl = load_template()
 
+    citation_report: Optional[Dict[str, Any]] = None
+    if args.citation_audit != "off":
+        strict = args.citation_audit == "strict"
+        citation_report = audit_citations(strict=strict)
+        # carry mode hint for rendering
+        citation_report["_strict"] = strict
+        if not citation_report.get("ok"):
+            print(json.dumps(citation_report, ensure_ascii=False, indent=2))
+            return 3
+
     n = 0
     for ev in iter_jsonl(args.in_path):
         req = ev.get("request") or {}
         name = safe_filename(str(req.get("project_name", f"memo_{n+1}")))
         out_path = out_dir / f"{name}.html"
-        out_path.write_text(render_eval_to_html(tpl, ev), encoding="utf-8")
+        out_path.write_text(render_eval_to_html(tpl, ev, citation_audit=citation_report), encoding="utf-8")
         n += 1
 
     print(f"Wrote {n} memos to {out_dir}")

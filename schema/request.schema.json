@@ -50,10 +50,13 @@
 
     "one_line_diagram": { "type": "boolean" },
     "load_projection_5y": { "type": "boolean" },
-    "peak_power_factor": { "type": "number" },
+    "peak_power_factor": { "type": ["number", "null"] },
 
     "load_commissioning_plan_provided": { "type": "boolean" },
     "application_fee_paid": { "type": "boolean" },
+
+    "ack_change_notification_obligation": { "type": "boolean" },
+    "llis_formal_request_submitted": { "type": "boolean" },
 
     "is_large_electronic_load": { "type": "boolean" },
     "lel_interim_assessment_complete": { "type": "boolean" },
