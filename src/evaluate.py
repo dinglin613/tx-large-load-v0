@@ -152,121 +152,317 @@ def required_fields_from_rule(rule: Dict[str, Any]) -> List[str]:
     return uniq
 
 
-def risk_from_matched_rules(req: Dict[str, Any], matched_rules: List[Dict[str, Any]], missing_inputs: List[str]) -> Dict[str, Any]:
-    # v0: qualitative, rule-driven knobs only (no numeric "probabilities")
+def _missing_required_fields_for_rule(rule: Dict[str, Any], req: Dict[str, Any]) -> List[str]:
+    """
+    Determine which required_fields are missing for a given rule.
+
+    Align semantics with tri-state evaluation:
+    - For completeness_check rules: False (and empty lists) are treated as missing.
+    - For other rules: False is a valid factual value (not "missing").
+    """
+    required = required_fields_from_rule(rule)
+    dsl = ((rule.get("criteria") or {}).get("dsl") or {})
+    is_completeness = dsl.get("kind") == "completeness_check"
+
+    missing: List[str] = []
+    for f in required:
+        if f not in req:
+            missing.append(f)
+            continue
+        v = req.get(f)
+        if v is None:
+            missing.append(f)
+            continue
+        if isinstance(v, str) and v.strip() == "":
+            missing.append(f)
+            continue
+        if is_completeness and v is False:
+            missing.append(f)
+            continue
+        if is_completeness and isinstance(v, list) and len(v) == 0:
+            missing.append(f)
+            continue
+    return missing
+
+
+_TAG_RISK_CONTRIB: Dict[str, Dict[str, float]] = {
+    # wait / timeline pressure
+    "process_latency": {"wait": 0.5},
+    "timeline_risk": {"wait": 1.0},
+    "re_study": {"wait": 1.5},
+    "queue_density": {"wait": 1.0},
+    "queue_dependency": {"wait": 1.0},
+    "must_study": {"wait": 1.0},
+    "study_dependency": {"wait": 0.5},
+    "financial_security": {"wait": 0.5},
+    "modeling_requirement": {"wait": 0.5},
+    "telemetry_requirement": {"wait": 0.5},
+    # upgrade exposure
+    "protection": {"upgrade": 1.0},
+    "short_circuit": {"upgrade": 1.0},
+    "upgrade_exposure": {"upgrade": 0.5},
+    "new_substation": {"upgrade": 3.0},
+    "new_line": {"upgrade": 3.0},
+    "dynamic_stability": {"upgrade": 1.0},
+    "dynamic_study": {"upgrade": 1.0},
+    "sso": {"upgrade": 1.0},
+    # operations exposure
+    "curtailment_risk": {"ops": 2.0},
+    "operational_constraint": {"ops": 1.0},
+    "commissioning_limit": {"ops": 1.0},
+}
+
+
+def risk_from_signals(
+    req: Dict[str, Any],
+    signal_rules: List[Dict[str, Any]],
+    *,
+    missing_inputs: List[str],
+) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    """
+    Compute qualitative risk buckets with a reproducible trace.
+
+    Returns:
+      (risk_dict, risk_trace_list)
+    """
+    # v0: qualitative, explainable scores (no numeric "probabilities")
     upgrade_score = 0.0
     wait_score = 0.0
     ops_score = 0.0
-    evidence: List[Dict[str, Any]] = []
 
-    for r in matched_rules:
-        tags = set(r.get("trigger_tags") or [])
-        rid = r.get("rule_id")
+    evidence: List[Dict[str, Any]] = []
+    risk_trace: List[Dict[str, Any]] = []
+
+    def _add_trace(
+        *,
+        kind: str,
+        rule_id: str,
+        doc_id: str,
+        loc: str,
+        trigger_tags: List[str],
+        contributions: Dict[str, float],
+        notes: List[str],
+        source: str,
+    ) -> None:
+        risk_trace.append(
+            {
+                "kind": kind,
+                "source": source,  # published_rule | non_cited_heuristic
+                "rule_id": rule_id,
+                "doc_id": doc_id,
+                "loc": loc,
+                "trigger_tags": trigger_tags,
+                "contributions": contributions,
+                "notes": notes,
+            }
+        )
+
+    # 1) Published rules (graph path + parallel flags) -> contributions via trigger_tags (+ completeness penalty)
+    for r in signal_rules:
+        rid = str(r.get("rule_id") or "")
+        doc_id = str(r.get("doc_id") or "")
+        loc = str(r.get("loc") or "")
+        tags = sorted(set(r.get("trigger_tags") or []))
+
         evidence.append(
             {
                 "rule_id": rid,
-                "doc_id": r.get("doc_id"),
-                "loc": r.get("loc"),
-                "trigger_tags": sorted(tags),
+                "doc_id": doc_id,
+                "loc": loc,
+                "trigger_tags": tags,
             }
         )
-        if "data_completeness" in tags:
-            # if any required fields missing, count as waiting/latency risk
-            required = required_fields_from_rule(r)
-            if any((req.get(f) in (None, "", [])) for f in required):
-                wait_score += 2.0
-        if "process_latency" in tags:
-            wait_score += 0.5
-        if "timeline_risk" in tags:
-            wait_score += 1.0
-        if "re_study" in tags:
-            wait_score += 1.5
-        if "queue_density" in tags or "queue_dependency" in tags or "must_study" in tags:
-            wait_score += 1.0
-        if "study_dependency" in tags:
-            wait_score += 0.5
-        if "financial_security" in tags:
-            wait_score += 0.5
-        if "modeling_requirement" in tags or "telemetry_requirement" in tags:
-            wait_score += 0.5
-        if "protection" in tags or "short_circuit" in tags:
-            upgrade_score += 1.0
-        if "upgrade_exposure" in tags:
-            upgrade_score += 0.5
-        if "new_substation" in tags or "new_line" in tags:
-            upgrade_score += 3.0
-        if "dynamic_stability" in tags or "dynamic_study" in tags or "sso" in tags:
-            upgrade_score += 1.0
-        if "curtailment_risk" in tags:
-            ops_score += 2.0
-        if "operational_constraint" in tags or "commissioning_limit" in tags:
-            ops_score += 1.0
 
-    # request-level heuristics (still explainable, but not tied to specific clause)
+        contrib = {"upgrade": 0.0, "wait": 0.0, "ops": 0.0}
+        notes: List[str] = []
+
+        for t in tags:
+            m = _TAG_RISK_CONTRIB.get(t)
+            if not m:
+                continue
+            for k, dv in m.items():
+                contrib[k] = float(contrib.get(k, 0.0)) + float(dv)
+                notes.append(f"tag:{t} => {k} {dv:+g}")
+
+        if "data_completeness" in set(tags):
+            missing_for_rule = _missing_required_fields_for_rule(r, req)
+            if missing_for_rule:
+                contrib["wait"] += 2.0
+                notes.append(f"data_completeness missing={missing_for_rule} => wait +2.0")
+
+        upgrade_score += contrib["upgrade"]
+        wait_score += contrib["wait"]
+        ops_score += contrib["ops"]
+
+        _add_trace(
+            kind="rule",
+            rule_id=rid,
+            doc_id=doc_id,
+            loc=loc,
+            trigger_tags=tags,
+            contributions=contrib,
+            notes=notes,
+            source="published_rule",
+        )
+
+    # 2) Non-cited heuristics "rule-ified" (explicitly marked, still auditable)
+    NON_CITED_DOC = "NON_CITED_HEURISTIC"
+
+    def _add_heuristic(
+        *,
+        rule_id: str,
+        loc: str,
+        tags: List[str],
+        contrib: Dict[str, float],
+        notes: List[str],
+    ) -> None:
+        nonlocal upgrade_score, wait_score, ops_score
+        tags2 = sorted(set((tags or []) + ["non_cited_heuristic"]))
+
+        evidence.append(
+            {
+                "rule_id": rule_id,
+                "doc_id": NON_CITED_DOC,
+                "loc": loc,
+                "trigger_tags": tags2,
+            }
+        )
+        upgrade_score += float(contrib.get("upgrade") or 0.0)
+        wait_score += float(contrib.get("wait") or 0.0)
+        ops_score += float(contrib.get("ops") or 0.0)
+
+        _add_trace(
+            kind="heuristic",
+            rule_id=rule_id,
+            doc_id=NON_CITED_DOC,
+            loc=loc,
+            trigger_tags=tags2,
+            contributions={
+                "upgrade": float(contrib.get("upgrade") or 0.0),
+                "wait": float(contrib.get("wait") or 0.0),
+                "ops": float(contrib.get("ops") or 0.0),
+            },
+            notes=notes,
+            source="non_cited_heuristic",
+        )
+
+    # MW threshold heuristics (mutually exclusive, deterministic)
     try:
         mw = float(req.get("load_mw_total") or 0)
     except Exception:
         mw = 0.0
+
     if mw >= 500:
-        upgrade_score += 2.0
+        _add_heuristic(
+            rule_id="HEUR_LOAD_MW_GTE_500",
+            loc="non-cited heuristic: very large load (MW total ≥ 500) increases upgrade exposure pressure",
+            tags=["mw_threshold", "upgrade_exposure"],
+            contrib={"upgrade": 2.0},
+            notes=[f"load_mw_total={mw} => upgrade +2.0"],
+        )
     elif mw >= 300:
-        upgrade_score += 1.0
+        _add_heuristic(
+            rule_id="HEUR_LOAD_MW_GTE_300",
+            loc="non-cited heuristic: large load (MW total ≥ 300) increases upgrade exposure pressure",
+            tags=["mw_threshold", "upgrade_exposure"],
+            contrib={"upgrade": 1.0},
+            notes=[f"load_mw_total={mw} => upgrade +1.0"],
+        )
 
     if req.get("energization_plan") == "phased":
-        upgrade_score -= 0.5
+        _add_heuristic(
+            rule_id="HEUR_PHASED_PLAN_REDUCES_UPGRADE_PRESSURE",
+            loc="non-cited heuristic: phased energization plan can reduce upgrade exposure pressure in screening",
+            tags=["phased_plan", "upgrade_exposure"],
+            contrib={"upgrade": -0.5},
+            notes=["energization_plan=phased => upgrade -0.5"],
+        )
 
-    # Missing inputs: if evaluator already sees missing core fields, raise wait risk
     if missing_inputs:
-        wait_score += 0.5
+        _add_heuristic(
+            rule_id="HEUR_MISSING_INPUTS_PRESENT_INCREASES_WAIT_PRESSURE",
+            loc="non-cited heuristic: missing inputs increase process waiting/latency pressure",
+            tags=["data_completeness", "process_latency"],
+            contrib={"wait": 0.5},
+            notes=[f"missing_inputs_count={len(missing_inputs)} => wait +0.5"],
+        )
 
-    # Buckets are qualitative “pressure” indicators
+    # 3) Bucket assignment (deterministic, based on totals)
     le_12 = "unknown"
     m12_24 = "unknown"
     gt_24 = "unknown"
     exposure = "unknown"
     operational_exposure = "unknown"
 
-    if matched_rules:
+    reasoning: List[str] = []
+    if signal_rules:
         if upgrade_score >= 3:
             gt_24 = "up"
             m12_24 = "up"
             le_12 = "down"
             exposure = "high"
+            reasoning.append(f"upgrade_score={upgrade_score:g} >= 3 => upgrade_exposure_bucket=high, shift to >24 and 12–24")
         elif upgrade_score >= 0.75:
             m12_24 = "up"
             le_12 = "down"
             exposure = "medium"
+            reasoning.append(f"upgrade_score={upgrade_score:g} >= 0.75 => upgrade_exposure_bucket=medium, shift away from ≤12")
         else:
             le_12 = "up"
             exposure = "low"
+            reasoning.append(f"upgrade_score={upgrade_score:g} < 0.75 => upgrade_exposure_bucket=low")
 
         status = "rule_driven_v0"
         if wait_score >= 2:
             # waiting pressure shifts mass away from <=12
-            le_12 = "down" if le_12 != "unknown" else "down"
+            le_12 = "down"
             m12_24 = "up" if m12_24 != "unknown" else "up"
+            reasoning.append(f"wait_score={wait_score:g} >= 2 => additional shift away from ≤12 into 12–24")
     else:
         status = "insufficient_rule_coverage"
+        reasoning.append("no published rules matched/flagged => insufficient_rule_coverage (heuristics may still apply)")
 
-    if matched_rules:
+    if signal_rules:
         if ops_score >= 2:
             operational_exposure = "high"
         elif ops_score >= 1:
             operational_exposure = "medium"
         else:
             operational_exposure = "low"
+        reasoning.append(f"ops_score={ops_score:g} => operational_exposure_bucket={operational_exposure}")
 
-    return {
-        "timeline_buckets": {
-            "le_12_months": le_12,
-            "m12_24_months": m12_24,
-            "gt_24_months": gt_24,
+    risk_trace.append(
+        {
+            "kind": "summary",
+            "upgrade_score": upgrade_score,
+            "wait_score": wait_score,
+            "ops_score": ops_score,
+            "status": status,
+            "timeline_buckets": {
+                "le_12_months": le_12,
+                "m12_24_months": m12_24,
+                "gt_24_months": gt_24,
+            },
+            "upgrade_exposure_bucket": exposure,
+            "operational_exposure_bucket": operational_exposure,
+            "reasoning": reasoning,
+        }
+    )
+
+    return (
+        {
+            "timeline_buckets": {
+                "le_12_months": le_12,
+                "m12_24_months": m12_24,
+                "gt_24_months": gt_24,
+            },
+            "upgrade_exposure_bucket": exposure,
+            "operational_exposure_bucket": operational_exposure,
+            "status": status,
+            "evidence": evidence,
         },
-        "upgrade_exposure_bucket": exposure,
-        "operational_exposure_bucket": operational_exposure,
-        "status": status,
-        "evidence": evidence,
-    }
+        risk_trace,
+    )
 
 def eval_pred(req: Dict[str, Any], pred: Dict[str, Any]) -> Tuple[bool, str, List[str]]:
     op = pred.get("op")
@@ -666,6 +862,17 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
             )
 
     all_signal_rules = matched_rules + flagged_rules
+    # Deduplicate rules by rule_id to avoid double-counting risk contributions.
+    seen_rids: set[str] = set()
+    unique_signal_rules: List[Dict[str, Any]] = []
+    for r in all_signal_rules:
+        rid = str(r.get("rule_id") or "")
+        if not rid:
+            continue
+        if rid in seen_rids:
+            continue
+        seen_rids.add(rid)
+        unique_signal_rules.append(r)
 
     # Rule checks (predicate-backed), for memo-grade checklists.
     rule_checks: List[Dict[str, Any]] = []
@@ -723,7 +930,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                 missing_inputs.append(f)
                 continue
 
-    risk = risk_from_matched_rules(req, all_signal_rules, missing_inputs=sorted(set(missing_inputs)))
+    risk, risk_trace = risk_from_signals(req, unique_signal_rules, missing_inputs=sorted(set(missing_inputs)))
 
     # Attach provenance for any docs referenced by evidence
     used_doc_ids = sorted({e.get("doc_id") for e in (risk.get("evidence") or []) if e.get("doc_id")})
@@ -745,6 +952,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
         "rule_checks": rule_checks,
         "energization_checklist": energization_checklist,
         "risk": risk,
+        "risk_trace": risk_trace,
         "provenance": {
             "doc_registry_count": len(load_doc_registry()),
             "graph_source": "graph/process_graph.yaml",

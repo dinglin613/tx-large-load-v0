@@ -17,10 +17,12 @@
         --good: #065f46;
         --warn: #92400e;
         --bad: #991b1b;
+        --accent: #2563eb;
       }
 
       body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; line-height: 1.45; background: var(--bg); color: var(--fg); }
       code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      a { color: var(--accent); }
 
       .layout { display: flex; gap: 18px; padding: 18px; max-width: 1240px; margin: 0 auto; }
       .sidebar { width: 280px; flex: 0 0 auto; position: sticky; top: 18px; align-self: flex-start; }
@@ -38,18 +40,32 @@
       .v { color: var(--fg); }
 
       .toc { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--soft2); }
+      .toc { max-height: calc(100vh - 36px); overflow: auto; }
       .toc h3 { font-size: 13px; margin: 0 0 8px 0; color: #111827; }
       .toc a { display: block; padding: 6px 8px; border-radius: 8px; color: #111827; text-decoration: none; font-size: 13px; }
       .toc a:hover { background: var(--soft); }
+      .toc a.active { background: rgba(37,99,235,.10); outline: 1px solid rgba(37,99,235,.22); }
       .toc .meta { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
 
       .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
       .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border); background: var(--soft2); font-size: 12px; }
+      .chip.good { color: var(--good); border-color: rgba(6,95,70,.25); background: rgba(6,95,70,.06); }
+      .chip.warn { color: var(--warn); border-color: rgba(146,64,14,.25); background: rgba(146,64,14,.06); }
+      .chip.bad { color: var(--bad); border-color: rgba(153,27,27,.25); background: rgba(153,27,27,.06); }
 
       .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0 6px 0; }
       .toolbar input[type="search"] { flex: 1 1 260px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
       .toolbar .btn { padding: 7px 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; cursor: pointer; }
       .toolbar .btn:hover { background: var(--soft); }
+      .toolbar .btn.active { background: rgba(37,99,235,.10); outline: 1px solid rgba(37,99,235,.22); }
+
+      .tab-panels .tab-panel { display: none; }
+      .tab-panels .tab-panel.active { display: block; }
+
+      /* Inline code styling for scanability */
+      code { color: var(--code); background: rgba(243,244,246,.75); border: 1px solid var(--border); padding: 1px 6px; border-radius: 8px; font-size: 12px; overflow-wrap: anywhere; }
+      pre code { background: transparent; border: 0; padding: 0; border-radius: 0; font-size: inherit; }
+      .chip code, .badge code { background: transparent; border: 0; padding: 0; border-radius: 0; }
 
       table { width: 100%; border-collapse: collapse; }
       th, td { border-top: 1px solid var(--border); padding: 10px 8px; vertical-align: top; }
@@ -59,6 +75,11 @@
       .small { font-size: 12px; }
       .wrap { word-break: break-word; }
       .row-muted { color: var(--muted); }
+      tbody tr:nth-child(even) { background: rgba(249,250,251,.9); }
+      tbody tr:hover { background: rgba(37,99,235,.06); }
+
+      .trace-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+      .trace-wrap code { background: #fff; }
 
       details > summary { cursor: pointer; user-select: none; }
       details summary { font-size: 13px; color: #111827; }
@@ -72,9 +93,45 @@
       .section-title { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
       .section-title .id { font-size: 12px; color: var(--muted); }
 
+      .graph-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--soft2); padding: 8px; }
+      svg.graph { display: block; }
+      svg.graph.fit { width: 100%; height: auto; }
+
+      /* Simple “graph view” for the selected path */
+      .path-graph { display: flex; align-items: center; gap: 10px; overflow-x: auto; padding: 10px; border: 1px dashed var(--border); border-radius: 12px; background: var(--soft2); }
+      .pnode { min-width: 170px; border: 1px solid var(--border); background: #fff; border-radius: 12px; padding: 10px; }
+      .pnode .t { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+      .pnode .s { font-size: 12px; color: var(--muted); }
+      .pedge { display: grid; grid-template-rows: auto auto; align-items: center; justify-items: center; min-width: 120px; }
+      .pedge .eid { font-size: 11px; color: var(--muted); white-space: nowrap; }
+      .pedge .eid code { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #fff; border: 1px solid var(--border); }
+      .pedge .arr { font-size: 18px; color: var(--muted); line-height: 1; }
+
+      .back-to-top {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 20;
+        display: none;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: #fff;
+        cursor: pointer;
+        box-shadow: 0 8px 24px rgba(17,24,39,.10);
+      }
+      .back-to-top:hover { background: var(--soft); }
+
       @media (max-width: 980px) {
         .layout { flex-direction: column; }
         .sidebar { width: auto; position: static; }
+      }
+
+      @media print {
+        .sidebar, .toolbar, .back-to-top { display: none !important; }
+        .layout { display: block; padding: 0; max-width: none; }
+        .card { break-inside: avoid; }
+        body { background: #fff; }
       }
     </style>
   </head>
@@ -84,18 +141,20 @@
         <div class="toc">
           <h3>Decision Memo (v0)</h3>
           <a href="#sec-summary">Summary</a>
+          <a href="#sec-scope">Scope & disclaimers</a>
           <a href="#sec-input">Input snapshot</a>
           <a href="#sec-path">Process path</a>
           <a href="#sec-missing">Missing inputs</a>
           <a href="#sec-levers">Levers</a>
+          <a href="#sec-options">Options comparison</a>
           <a href="#sec-flags">Parallel flags</a>
           <a href="#sec-checklist">Energization checklist</a>
           <a href="#sec-risk">Risk buckets & evidence</a>
           <a href="#sec-provenance">Provenance</a>
           <div class="meta">
             <div><span class="row-muted">Project</span>: <code>DC_ONCOR_200MW_Phased_2027Q2</code></div>
-            <div><span class="row-muted">Rendered</span>: <code>2026-02-13T20:41:13.303502+00:00</code></div>
-            <div style="margin-top:8px"><span class="row-muted">Evaluated</span>: <code>2026-02-13T20:41:13+00:00</code></div>
+            <div><span class="row-muted">Rendered</span>: <code>2026-02-13T22:52:05.384515+00:00</code></div>
+            <div style="margin-top:8px"><span class="row-muted">Evaluated</span>: <code>2026-02-13T22:06:32+00:00</code></div>
           </div>
         </div>
       </aside>
@@ -123,6 +182,22 @@
             <div class="k">Process path</div>
             <div class="v"><code>Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Phased plan → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</code></div>
           </div>
+        </div>
+
+        <div class="card" id="sec-scope">
+          <div class="section-title">
+            <h2>Scope & disclaimers</h2>
+            <div class="id">screening only</div>
+          </div>
+          <div class="muted small">
+            This memo is an <strong>audit-friendly screening artifact</strong>. It is not legal advice, and it does not replace ERCOT/TSP/TDSP engineering studies.
+          </div>
+          <ul class="small" style="margin:10px 0 0 18px">
+            <li><strong>Not a schedule commitment</strong>: risk buckets are qualitative and rule-driven; they do not guarantee COD or energization timelines.</li>
+            <li><strong>Not an interconnection determination</strong>: final requirements depend on studies, agreements, and stakeholder approvals (ERCOT / TSP / TDSP).</li>
+            <li><strong>Inputs matter</strong>: missing or incorrect request inputs can materially change the evaluated path and checklist outcomes.</li>
+            <li><strong>Evidence scope</strong>: citations reference public artifacts captured in the registry (doc_id + loc + sha256); interpretations may evolve as rules are updated.</li>
+          </ul>
         </div>
 
         <div class="card" id="sec-input">
@@ -178,28 +253,175 @@
             <h2>2) Process path (deterministic)</h2>
             <div class="id">first satisfied edge wins</div>
           </div>
-          <div class="muted small">Each edge shows predicate traces and citations (rule_ids) carried by that edge.</div>
-          <div style="overflow-x:auto;margin-top:10px">
-            <table>
-              <thead>
-                <tr>
-                  <th class="nowrap">edge_id</th>
-                  <th class="nowrap">from → to</th>
-                  <th>criteria traces</th>
-                  <th>rule_ids</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td class="nowrap"><code>E0</code></td><td class="nowrap"><code>N0</code> → <code>N1</code></td><td class="wrap"><span class="small">project_type==large_load (large_load)</span></td><td class="wrap"><span class="muted small">None</span></td></tr>
-<tr><td class="nowrap"><code>E1</code></td><td class="nowrap"><code>N1</code> → <code>N2</code></td><td class="wrap"><span class="small"></span></td><td class="wrap"><code>ERCOT_LLI_INTAKE_REQUIRED_DOCS</code> <code>LL_QA_003_TSP_INITIATION</code> <code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code> <code>LL_QA_005_APPLICATION_FEE</code></td></tr>
-<tr><td class="nowrap"><code>E2P</code></td><td class="nowrap"><code>N2</code> → <code>N3P</code></td><td class="wrap"><span class="small">exists(load_mw_total)=True | exists(tdsp_area)=True | energization_plan==phased (phased)</span></td><td class="wrap"><code>LL_QA_001_LARGE_LOAD_DEFINITION</code> <code>ONC_003_LOAD_PROJECTION</code> <code>ONC_004_ONE_LINE_DIAGRAM</code></td></tr>
-<tr><td class="nowrap"><code>E3P_BASE</code></td><td class="nowrap"><code>N3P</code> → <code>N3T</code></td><td class="wrap"><span class="small"></span></td><td class="wrap"><code>LL_QA_007_REQUIRED_STUDIES</code> <code>LL_QA_008_SSO_REQUIRED</code></td></tr>
-<tr><td class="nowrap"><code>E4_ONCOR</code></td><td class="nowrap"><code>N3T</code> → <code>N4</code></td><td class="wrap"><span class="small">tdsp_area==ONCOR (ONCOR)</span></td><td class="wrap"><code>LL_QA_007_REQUIRED_STUDIES</code> <code>LL_QA_008_SSO_REQUIRED</code></td></tr>
-<tr><td class="nowrap"><code>E5_ONCOR</code></td><td class="nowrap"><code>N4</code> → <code>N5</code></td><td class="wrap"><span class="small"></span></td><td class="wrap"><code>ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS</code> <code>ONC_001_TRANSMISSION_VOLTAGE_SCOPE</code> <code>ONC_010_NOMCR_APPROVAL</code></td></tr>
-<tr><td class="nowrap"><code>E6_FEASIBILITY</code></td><td class="nowrap"><code>N5</code> → <code>N6</code></td><td class="wrap"><span class="small"></span></td><td class="wrap"><code>LL_QA_014_365_DAY_RULE</code></td></tr>
-              </tbody>
-            </table>
+          <div class="muted small">Full process graph (from <code>graph/process_graph.yaml</code>) with the selected path highlighted.</div>
+          <div class="toolbar" style="margin-top:10px">
+            <span class="muted small">Zoom</span>
+            <button class="btn" data-graph-zoom="fit">Fit</button>
+            <button class="btn" data-graph-zoom="1">100%</button>
+            <button class="btn" data-graph-zoom="1.25">125%</button>
+            <button class="btn" data-graph-zoom="1.5">150%</button>
+            <button class="btn" data-graph-zoom="2">200%</button>
+            <button class="btn" data-graph-zoom="reset">Reset</button>
+            <span class="muted small">Tip: use scroll to pan</span>
           </div>
+          <div class="graph-wrap" id="fullGraphWrap">
+            <svg class="graph" width="3050" height="334" viewBox="0 0 3050 334" role="img" aria-label="process graph">
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9ca3af"></path></marker>
+<marker id="arrowSel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"></path></marker>
+</defs>
+<path d="M 860 149 L 872 149 L 905 149 L 905 245 L 938 245 L 950 245" fill="none" stroke="#9ca3af" stroke-opacity="0.45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"><title>E2S: N2 -&gt; N3S</title></path>
+<path d="M 860 149 L 872 149 L 905 149 L 905 53 L 938 53 L 950 53" fill="none" stroke="#9ca3af" stroke-opacity="0.45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"><title>E2X: N2 -&gt; N2X</title></path>
+<path d="M 1170 53 L 1182 53 L 1182 8 L 2798 8 L 2798 149 L 2810 149" fill="none" stroke="#9ca3af" stroke-opacity="0.45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"><title>E2X_END: N2X -&gt; N6</title></path>
+<path d="M 1170 149 L 1260 149" fill="none" stroke="#9ca3af" stroke-opacity="0.45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"><title>E3P_RESTUDY: N3P -&gt; N3R</title></path>
+<path d="M 1170 245 L 1182 245 L 1215 245 L 1215 149 L 1248 149 L 1260 149" fill="none" stroke="#9ca3af" stroke-opacity="0.45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"><title>E3S_RESTUDY: N3S -&gt; N3R</title></path>
+<path d="M 1170 245 L 1182 245 L 1182 290 L 1558 290 L 1558 149 L 1570 149" fill="none" stroke="#9ca3af" stroke-opacity="0.45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"><title>E3S_BASE: N3S -&gt; N3T</title></path>
+<path d="M 1480 149 L 1570 149" fill="none" stroke="#9ca3af" stroke-opacity="0.45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"><title>E3R_TO_TDSP: N3R -&gt; N3T</title></path>
+<path d="M 1790 149 L 1802 149 L 1835 149 L 1835 197 L 1868 197 L 1880 197" fill="none" stroke="#9ca3af" stroke-opacity="0.45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"><title>E4_GENERIC: N3T -&gt; N4G</title></path>
+<path d="M 2100 197 L 2112 197 L 2145 197 L 2145 149 L 2178 149 L 2190 149" fill="none" stroke="#9ca3af" stroke-opacity="0.45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"><title>E5_GENERIC: N4G -&gt; N5</title></path>
+<path d="M 2410 149 L 2500 149" fill="none" stroke="#9ca3af" stroke-opacity="0.45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"><title>E6_ENERGIZATION: N5 -&gt; N5E</title></path>
+<path d="M 2720 149 L 2810 149" fill="none" stroke="#9ca3af" stroke-opacity="0.45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"><title>E6E_TO_MEMO: N5E -&gt; N6</title></path>
+<path d="M 240 149 L 330 149" fill="none" stroke="#2563eb" stroke-opacity="1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowSel)"><title>E0: N0 -&gt; N1</title></path>
+<path d="M 550 149 L 640 149" fill="none" stroke="#2563eb" stroke-opacity="1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowSel)"><title>E1: N1 -&gt; N2</title></path>
+<path d="M 860 149 L 950 149" fill="none" stroke="#2563eb" stroke-opacity="1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowSel)"><title>E2P: N2 -&gt; N3P</title></path>
+<path d="M 1170 149 L 1182 149 L 1182 290 L 1558 290 L 1558 149 L 1570 149" fill="none" stroke="#2563eb" stroke-opacity="1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowSel)"><title>E3P_BASE: N3P -&gt; N3T</title></path>
+<path d="M 1790 149 L 1802 149 L 1835 149 L 1835 101 L 1868 101 L 1880 101" fill="none" stroke="#2563eb" stroke-opacity="1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowSel)"><title>E4_ONCOR: N3T -&gt; N4</title></path>
+<path d="M 2100 101 L 2112 101 L 2145 101 L 2145 149 L 2178 149 L 2190 149" fill="none" stroke="#2563eb" stroke-opacity="1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowSel)"><title>E5_ONCOR: N4 -&gt; N5</title></path>
+<path d="M 2410 149 L 2422 149 L 2422 290 L 2798 290 L 2798 149 L 2810 149" fill="none" stroke="#2563eb" stroke-opacity="1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowSel)"><title>E6_FEASIBILITY: N5 -&gt; N6</title></path>
+<rect x="20" y="112" width="220" height="74" rx="12" ry="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"></rect>
+<text x="32" y="134" font-size="12" fill="#111827">
+<tspan x="32" dy="0">Intake</tspan>
+</text>
+<text x="32" y="174" font-size="11" fill="#6b7280"><tspan>N0</tspan></text>
+<rect x="330" y="112" width="220" height="74" rx="12" ry="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"></rect>
+<text x="342" y="134" font-size="12" fill="#111827">
+<tspan x="342" dy="0">Large Load Intake</tspan>
+<tspan x="342" dy="14">(ERCOT)</tspan>
+</text>
+<text x="342" y="174" font-size="11" fill="#6b7280"><tspan>N1</tspan></text>
+<rect x="640" y="112" width="220" height="74" rx="12" ry="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"></rect>
+<text x="652" y="134" font-size="12" fill="#111827">
+<tspan x="652" dy="0">Completeness Check</tspan>
+</text>
+<text x="652" y="174" font-size="11" fill="#6b7280"><tspan>N2</tspan></text>
+<rect x="950" y="16" width="220" height="74" rx="12" ry="12" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"></rect>
+<text x="962" y="38" font-size="12" fill="#111827">
+<tspan x="962" dy="0">Intake Incomplete (v0:</tspan>
+<tspan x="962" dy="14">stop and request missing</tspan>
+<tspan x="962" dy="14">inputs)</tspan>
+</text>
+<text x="962" y="78" font-size="11" fill="#6b7280"><tspan>N2X</tspan></text>
+<rect x="950" y="112" width="220" height="74" rx="12" ry="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"></rect>
+<text x="962" y="134" font-size="12" fill="#111827">
+<tspan x="962" dy="0">Study Path (ERCOT) —</tspan>
+<tspan x="962" dy="14">Phased plan</tspan>
+</text>
+<text x="962" y="174" font-size="11" fill="#6b7280"><tspan>N3P</tspan></text>
+<rect x="950" y="208" width="220" height="74" rx="12" ry="12" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"></rect>
+<text x="962" y="230" font-size="12" fill="#111827">
+<tspan x="962" dy="0">Study Path (ERCOT) —</tspan>
+<tspan x="962" dy="14">Single plan</tspan>
+</text>
+<text x="962" y="270" font-size="11" fill="#6b7280"><tspan>N3S</tspan></text>
+<rect x="1260" y="112" width="220" height="74" rx="12" ry="12" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"></rect>
+<text x="1272" y="134" font-size="12" fill="#111827">
+<tspan x="1272" dy="0">Material Change /</tspan>
+<tspan x="1272" dy="14">Re-study Screening</tspan>
+</text>
+<text x="1272" y="174" font-size="11" fill="#6b7280"><tspan>N3R</tspan></text>
+<rect x="1570" y="112" width="220" height="74" rx="12" ry="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"></rect>
+<text x="1582" y="134" font-size="12" fill="#111827">
+<tspan x="1582" dy="0">TDSP Routing</tspan>
+</text>
+<text x="1582" y="174" font-size="11" fill="#6b7280"><tspan>N3T</tspan></text>
+<rect x="1880" y="64" width="220" height="74" rx="12" ry="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"></rect>
+<text x="1892" y="86" font-size="12" fill="#111827">
+<tspan x="1892" dy="0">Facility Review (TDSP)</tspan>
+</text>
+<text x="1892" y="126" font-size="11" fill="#6b7280"><tspan>N4</tspan></text>
+<rect x="1880" y="160" width="220" height="74" rx="12" ry="12" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"></rect>
+<text x="1892" y="182" font-size="12" fill="#111827">
+<tspan x="1892" dy="0">Facility Review (TDSP -</tspan>
+<tspan x="1892" dy="14">Generic/Other)</tspan>
+</text>
+<text x="1892" y="222" font-size="11" fill="#6b7280"><tspan>N4G</tspan></text>
+<rect x="2190" y="112" width="220" height="74" rx="12" ry="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"></rect>
+<text x="2202" y="134" font-size="12" fill="#111827">
+<tspan x="2202" dy="0">Risk Flags</tspan>
+</text>
+<text x="2202" y="174" font-size="11" fill="#6b7280"><tspan>N5</tspan></text>
+<rect x="2500" y="112" width="220" height="74" rx="12" ry="12" fill="#ffffff" stroke="#d1d5db" stroke-width="1.2"></rect>
+<text x="2512" y="134" font-size="12" fill="#111827">
+<tspan x="2512" dy="0">Energization Readiness</tspan>
+<tspan x="2512" dy="14">(gate evaluation)</tspan>
+</text>
+<text x="2512" y="174" font-size="11" fill="#6b7280"><tspan>N5E</tspan></text>
+<rect x="2810" y="112" width="220" height="74" rx="12" ry="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"></rect>
+<text x="2822" y="134" font-size="12" fill="#111827">
+<tspan x="2822" dy="0">Decision Memo</tspan>
+</text>
+<text x="2822" y="174" font-size="11" fill="#6b7280"><tspan>N6</tspan></text>
+<text x="285" y="139" text-anchor="middle" font-size="11" fill="#6b7280" style="paint-order:stroke;stroke:#ffffff;stroke-width:6;stroke-linejoin:round"><tspan>E0</tspan></text>
+<text x="595" y="139" text-anchor="middle" font-size="11" fill="#6b7280" style="paint-order:stroke;stroke:#ffffff;stroke-width:6;stroke-linejoin:round"><tspan>E1</tspan></text>
+<text x="905" y="139" text-anchor="middle" font-size="11" fill="#6b7280" style="paint-order:stroke;stroke:#ffffff;stroke-width:6;stroke-linejoin:round"><tspan>E2P</tspan></text>
+<text x="1370" y="284" text-anchor="middle" font-size="11" fill="#6b7280" style="paint-order:stroke;stroke:#ffffff;stroke-width:6;stroke-linejoin:round"><tspan>E3P_BASE</tspan></text>
+<text x="1835" y="117" text-anchor="middle" font-size="11" fill="#6b7280" style="paint-order:stroke;stroke:#ffffff;stroke-width:6;stroke-linejoin:round"><tspan>E4_ONCOR</tspan></text>
+<text x="2145" y="117" text-anchor="middle" font-size="11" fill="#6b7280" style="paint-order:stroke;stroke:#ffffff;stroke-width:6;stroke-linejoin:round"><tspan>E5_ONCOR</tspan></text>
+<text x="2610" y="284" text-anchor="middle" font-size="11" fill="#6b7280" style="paint-order:stroke;stroke:#ffffff;stroke-width:6;stroke-linejoin:round"><tspan>E6_FEASIBILITY</tspan></text>
+<g transform="translate(20,304)">
+<rect x="0" y="-12" width="12" height="12" rx="3" fill="#eff6ff" stroke="#2563eb" stroke-width="2"></rect>
+<text x="18" y="-2" font-size="12" fill="#6b7280">selected path node</text>
+<line x1="170" y1="-6" x2="210" y2="-6" stroke="#2563eb" stroke-width="3" marker-end="url(#arrowSel)"></line>
+<text x="218" y="-2" font-size="12" fill="#6b7280">selected path edge</text>
+</g>
+</svg>
+          </div>
+
+          <details style="margin-top:10px">
+            <summary>Show selected path (compact)</summary>
+            <div class="path-graph" aria-label="selected process path">
+<div class="pnode"><div class="t">Intake</div><div class="s"><code>N0</code></div></div>
+<div class="pedge"><div class="eid"><code>E0</code></div><div class="arr">→</div></div>
+<div class="pnode"><div class="t">Large Load Intake (ERCOT)</div><div class="s"><code>N1</code></div></div>
+<div class="pedge"><div class="eid"><code>E1</code></div><div class="arr">→</div></div>
+<div class="pnode"><div class="t">Completeness Check</div><div class="s"><code>N2</code></div></div>
+<div class="pedge"><div class="eid"><code>E2P</code></div><div class="arr">→</div></div>
+<div class="pnode"><div class="t">Study Path (ERCOT) — Phased plan</div><div class="s"><code>N3P</code></div></div>
+<div class="pedge"><div class="eid"><code>E3P_BASE</code></div><div class="arr">→</div></div>
+<div class="pnode"><div class="t">TDSP Routing</div><div class="s"><code>N3T</code></div></div>
+<div class="pedge"><div class="eid"><code>E4_ONCOR</code></div><div class="arr">→</div></div>
+<div class="pnode"><div class="t">Facility Review (TDSP)</div><div class="s"><code>N4</code></div></div>
+<div class="pedge"><div class="eid"><code>E5_ONCOR</code></div><div class="arr">→</div></div>
+<div class="pnode"><div class="t">Risk Flags</div><div class="s"><code>N5</code></div></div>
+<div class="pedge"><div class="eid"><code>E6_FEASIBILITY</code></div><div class="arr">→</div></div>
+<div class="pnode"><div class="t">Decision Memo</div><div class="s"><code>N6</code></div></div>
+</div>
+          </details>
+
+          <details style="margin-top:10px">
+            <summary>Show edge audit log (predicate traces + citations)</summary>
+            <div style="overflow-x:auto;margin-top:10px">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="nowrap">edge_id</th>
+                    <th class="nowrap">from → to</th>
+                    <th>criteria traces</th>
+                    <th>rule_ids</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td class="nowrap"><code>E0</code></td><td class="nowrap"><code>N0</code> → <code>N1</code></td><td class="wrap"><span class="trace-wrap"><code>project_type==large_load (large_load)</code></span></td><td class="wrap"><span class="muted small">None</span></td></tr>
+<tr><td class="nowrap"><code>E1</code></td><td class="nowrap"><code>N1</code> → <code>N2</code></td><td class="wrap"><span class="muted small">None</span></td><td class="wrap"><code>ERCOT_LLI_INTAKE_REQUIRED_DOCS</code> <code>PG9_001_LLIS_APPLICABILITY_SUBJECT_TO_LLIS</code> <code>LL_QA_003_TSP_INITIATION</code> <code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code> <code>LL_QA_005_APPLICATION_FEE</code> <code>PG9_005_LLIS_PREINIT_PRELIM_LCP_REQUIRED</code> <code>PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED</code> <code>PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED</code> <code>PG9_008_LLIS_PREINIT_APPLICATION_FEE_REQUIRED</code></td></tr>
+<tr><td class="nowrap"><code>E2P</code></td><td class="nowrap"><code>N2</code> → <code>N3P</code></td><td class="wrap"><span class="trace-wrap"><code>exists(load_mw_total)=True</code><code>exists(tdsp_area)=True</code><code>energization_plan==phased (phased)</code></span></td><td class="wrap"><code>LL_QA_001_LARGE_LOAD_DEFINITION</code> <code>ONC_003_LOAD_PROJECTION</code> <code>ONC_004_ONE_LINE_DIAGRAM</code></td></tr>
+<tr><td class="nowrap"><code>E3P_BASE</code></td><td class="nowrap"><code>N3P</code> → <code>N3T</code></td><td class="wrap"><span class="muted small">None</span></td><td class="wrap"><code>LL_QA_007_REQUIRED_STUDIES</code> <code>LL_QA_008_SSO_REQUIRED</code> <code>PG9_016_STEADY_STATE_ANALYSIS_ELEMENT</code> <code>PG9_017_SYSTEM_PROTECTION_SHORT_CIRCUIT_ELEMENT</code> <code>PG9_018_DYNAMIC_TRANSIENT_STABILITY_ELEMENT</code></td></tr>
+<tr><td class="nowrap"><code>E4_ONCOR</code></td><td class="nowrap"><code>N3T</code> → <code>N4</code></td><td class="wrap"><span class="trace-wrap"><code>tdsp_area==ONCOR (ONCOR)</code></span></td><td class="wrap"><code>LL_QA_007_REQUIRED_STUDIES</code> <code>LL_QA_008_SSO_REQUIRED</code></td></tr>
+<tr><td class="nowrap"><code>E5_ONCOR</code></td><td class="nowrap"><code>N4</code> → <code>N5</code></td><td class="wrap"><span class="muted small">None</span></td><td class="wrap"><code>ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS</code> <code>ONC_001_TRANSMISSION_VOLTAGE_SCOPE</code> <code>ONC_010_NOMCR_APPROVAL</code></td></tr>
+<tr><td class="nowrap"><code>E6_FEASIBILITY</code></td><td class="nowrap"><code>N5</code> → <code>N6</code></td><td class="wrap"><span class="muted small">None</span></td><td class="wrap"><code>LL_QA_014_365_DAY_RULE</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
         </div>
 
         <div class="card" id="sec-missing">
@@ -212,7 +434,8 @@
             <span class="muted small">These are the fastest “next actions” to reduce uncertainty.</span>
           </div>
           <div class="chips" id="missingChips">
-            <span class="muted small">None</span>
+            <span class="chip"><code>ack_change_notification_obligation</code></span>
+<span class="chip"><code>llis_formal_request_submitted</code></span>
           </div>
         </div>
 
@@ -221,7 +444,7 @@
             <h2>4) Levers detected</h2>
             <div class="id">structural hints</div>
           </div>
-          <div class="muted small">Levers are options present in the request (v0 does not simulate alternatives).</div>
+          <div class="muted small">Levers are configurable inputs. See “Options comparison” for lightweight what-if variants when available.</div>
           <div style="overflow-x:auto;margin-top:10px">
             <table>
               <thead>
@@ -233,6 +456,39 @@
               <tbody>
                 <tr><td class="nowrap"><code>phased_energization</code></td><td class="wrap">Request includes a phased energization plan (can be used as an option lever).</td></tr>
 <tr><td class="nowrap"><code>voltage_level_choice</code></td><td class="wrap">Request includes multiple voltage options (can be evaluated as alternative options).</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" id="sec-options">
+          <div class="section-title">
+            <h2>4a) Options comparison</h2>
+            <div class="id">lever variants</div>
+          </div>
+          <div class="muted small">
+            v0 can generate lightweight “what-if” variants for certain levers (e.g., voltage choice, phased vs single). These are comparative screenings, not final determinations.
+          </div>
+          <div class="toolbar">
+            <input id="optionsFilter" type="search" placeholder="Filter options by lever, option, risk bucket, missing field..." />
+            <button class="btn" data-clear="optionsFilter">Clear</button>
+          </div>
+          <div style="overflow-x:auto;margin-top:8px">
+            <table id="optionsTable">
+              <thead>
+                <tr>
+                  <th class="nowrap">option_id</th>
+                  <th class="nowrap">lever</th>
+                  <th>patch</th>
+                  <th>path</th>
+                  <th class="nowrap">missing</th>
+                  <th class="nowrap">risk</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td class="nowrap"><code>voltage_138</code></td><td class="nowrap"><code>voltage_level_choice</code></td><td class="wrap"><span class="small"><code>{&quot;voltage_options_kv&quot;: [138.0]}</code></span></td><td class="wrap"><span class="small">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Phased plan → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>2</code> <code>ack_change_notification_obligation</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td></tr>
+<tr><td class="nowrap"><code>voltage_345</code></td><td class="nowrap"><code>voltage_level_choice</code></td><td class="wrap"><span class="small"><code>{&quot;voltage_options_kv&quot;: [345.0]}</code></span></td><td class="wrap"><span class="small">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Phased plan → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>2</code> <code>ack_change_notification_obligation</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td></tr>
+<tr><td class="nowrap"><code>energization_plan_single</code></td><td class="nowrap"><code>phased_energization</code></td><td class="wrap"><span class="small"><code>{&quot;energization_plan&quot;: &quot;single&quot;}</code></span></td><td class="wrap"><span class="small">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>2</code> <code>ack_change_notification_obligation</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td></tr>
               </tbody>
             </table>
           </div>
@@ -259,10 +515,10 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td class="nowrap"><code>LL_QA_002_SECTION9_APPLICABILITY</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.4, Section 9.2.1 Applicability</span></td><td class="wrap"><code>process_trigger</code> <code>modification_trigger</code></td><td class="wrap"><span class="small">load_mw_total&gt;=75 (200) | is_new_interconnection==True (True)</span></td></tr>
-<tr><td class="nowrap"><code>ONC_002_VOLTAGE_AVAILABILITY</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.4.1, p.3</span></td><td class="wrap"><code>voltage_selection_risk</code></td><td class="wrap"><span class="small">tdsp_area==ONCOR (ONCOR) | exists(voltage_options_kv)=True</span></td></tr>
-<tr><td class="nowrap"><code>ONC_005_FAULT_INTERRUPT_RATING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 5.2.1, p.7</span></td><td class="wrap"><code>short_circuit</code> <code>protection</code> <code>upgrade_exposure</code></td><td class="wrap"><span class="small">tdsp_area==ONCOR (ONCOR)</span></td></tr>
-<tr><td class="nowrap"><code>ONC_009_REVENUE_METERING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.6.1, p.3–4</span></td><td class="wrap"><code>metering_requirement</code></td><td class="wrap"><span class="small">tdsp_area==ONCOR (ONCOR)</span></td></tr>
+                <tr><td class="nowrap"><code>LL_QA_002_SECTION9_APPLICABILITY</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.4, Section 9.2.1 Applicability</span></td><td class="wrap"><code>process_trigger</code> <code>modification_trigger</code></td><td class="wrap"><span class="trace-wrap"><code>load_mw_total&gt;=75 (200)</code><code>is_new_interconnection==True (True)</code></span></td></tr>
+<tr><td class="nowrap"><code>ONC_002_VOLTAGE_AVAILABILITY</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.4.1, p.3</span></td><td class="wrap"><code>voltage_selection_risk</code></td><td class="wrap"><span class="trace-wrap"><code>tdsp_area==ONCOR (ONCOR)</code><code>exists(voltage_options_kv)=True</code></span></td></tr>
+<tr><td class="nowrap"><code>ONC_005_FAULT_INTERRUPT_RATING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 5.2.1, p.7</span></td><td class="wrap"><code>short_circuit</code> <code>protection</code> <code>upgrade_exposure</code></td><td class="wrap"><span class="trace-wrap"><code>tdsp_area==ONCOR (ONCOR)</code></span></td></tr>
+<tr><td class="nowrap"><code>ONC_009_REVENUE_METERING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.6.1, p.3–4</span></td><td class="wrap"><code>metering_requirement</code></td><td class="wrap"><span class="trace-wrap"><code>tdsp_area==ONCOR (ONCOR)</code></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -274,6 +530,9 @@
             <div class="id">tri-state gates</div>
           </div>
           <div class="muted small">Shown when <code>is_requesting_energization=true</code>. Status: <code>satisfied</code> / <code>missing</code> / <code>not_satisfied</code>.</div>
+          <div class="chips" style="margin-top:10px">
+            <span class="muted small">Not requested (no checklist rows)</span>
+          </div>
           <div class="toolbar">
             <input id="checklistFilter" type="search" placeholder="Filter checklist by status, rule_id, missing field..." />
             <button class="btn" data-clear="checklistFilter">Clear</button>
@@ -318,35 +577,65 @@
           </div>
 
           <div class="section-title" style="margin-top:14px">
-            <h2 style="margin:0">Evidence (rule citations)</h2>
-            <div class="id">rule_id → doc_id/loc</div>
+            <h2 style="margin:0">Evidence (rules + heuristics)</h2>
+            <div class="id">rule_id → doc_id/loc (heuristics are explicitly marked)</div>
           </div>
-          <div class="toolbar">
-            <input id="evidenceFilter" type="search" placeholder="Filter evidence by rule_id, tags, doc_id, loc..." />
-            <button class="btn" data-clear="evidenceFilter">Clear</button>
+          <div class="chips" style="margin-top:10px">
+            <span class="chip good"><span class="small">satisfied</span> <code>13</code></span>
+<span class="chip warn"><span class="small">missing</span> <code>2</code></span>
+<span class="chip bad"><span class="small">not_satisfied</span> <code>0</code></span>
+<span class="chip"><span class="small">unknown</span> <code>5</code></span>
+<span class="chip"><span class="small">not_applicable</span> <code>2</code></span>
+<span class="chip"><span class="small">heuristics</span> <code>2</code></span>
+<span class="chip"><span class="small">evidence items</span> <code>27</code></span>
           </div>
-          <div style="overflow-x:auto;margin-top:8px">
-            <table id="evidenceTable">
-              <thead>
-                <tr>
-                  <th class="nowrap">rule_id</th>
-                  <th class="nowrap">doc_id</th>
-                  <th>loc</th>
-                  <th>tags</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td class="nowrap"><code>ERCOT_LLI_INTAKE_REQUIRED_DOCS</code></td><td class="nowrap"><code>ERCOT_LLI_ENERGIZATION_REQUEST</code></td><td class="wrap"><span class="muted">p.1, Instructions (&quot;All fields must be completed... returned to ERCOT, and approved before the Large Load may be...&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>process_latency</code></td></tr>
-<tr><td class="nowrap"><code>LL_QA_003_TSP_INITIATION</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.6, &quot;How does a customer initiate?&quot;</span></td><td class="wrap"><code>intake_gate</code> <code>process_latency</code></td></tr>
+
+          <details style="margin-top:10px">
+            <summary>Show evidence (grouped + filterable)</summary>
+            <div class="hint muted small">
+              Tip: use “Group by doc/tag” for scanning; use “Flat table” + filter for precise lookup.
+            </div>
+            <div class="toolbar">
+              <button class="btn active" data-tab-group="evidence" data-tab-target="evidenceFlat">Flat table</button>
+              <button class="btn" data-tab-group="evidence" data-tab-target="evidenceByDoc">Group by doc</button>
+              <button class="btn" data-tab-group="evidence" data-tab-target="evidenceByTag">Group by tag</button>
+              <span class="muted small">Total: <code>27</code></span>
+            </div>
+
+            <div class="tab-panels" data-tab-panels="evidence">
+              <div class="tab-panel active" id="evidenceFlat">
+                <div class="toolbar">
+                  <input id="evidenceFilter" type="search" placeholder="Filter evidence by rule_id, tags, doc_id, loc..." />
+                  <button class="btn" data-clear="evidenceFilter">Clear</button>
+                </div>
+                <div style="overflow-x:auto;margin-top:8px">
+                  <table id="evidenceTable">
+                    <thead>
+                      <tr>
+                        <th class="nowrap">rule_id</th>
+                        <th class="nowrap">doc_id</th>
+                        <th>loc</th>
+                        <th>tags</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td class="nowrap"><code>ERCOT_LLI_INTAKE_REQUIRED_DOCS</code></td><td class="nowrap"><code>ERCOT_LLI_ENERGIZATION_REQUEST</code></td><td class="wrap"><span class="muted">p.1, Instructions (&quot;All fields must be completed unless otherwise noted&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>process_latency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_001_LLIS_APPLICABILITY_SUBJECT_TO_LLIS</code></td><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.1 (&quot;following criteria shall be subject to the Large Load Interconnection Study (LLIS)&quot;)</span></td><td class="wrap"><code>process_trigger</code></td></tr>
+<tr><td class="nowrap"><code>LL_QA_003_TSP_INITIATION</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.6, &quot;initiate the Large Load Interconnection Process?&quot;</span></td><td class="wrap"><code>intake_gate</code> <code>process_latency</code></td></tr>
 <tr><td class="nowrap"><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2</span></td><td class="wrap"><code>commissioning_plan</code> <code>data_completeness</code> <code>timeline_dependency</code></td></tr>
 <tr><td class="nowrap"><code>LL_QA_005_APPLICATION_FEE</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2 fee requirement</span></td><td class="wrap"><code>fee_requirement</code> <code>process_latency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_005_LLIS_PREINIT_PRELIM_LCP_REQUIRED</code></td><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(b) (&quot;Submission of a preliminary Load Commissioning Plan (LCP)&quot;)</span></td><td class="wrap"><code>commissioning_plan</code> <code>data_completeness</code> <code>process_latency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED</code></td><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(c) (&quot;Written acknowledgement from the Interconnecting Large Load Entity (ILLE)&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>process_latency</code> <code>re_study</code></td></tr>
+<tr><td class="nowrap"><code>PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED</code></td><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(d) (&quot;A formal request to initiate the LLIS process&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>intake_gate</code> <code>process_latency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_008_LLIS_PREINIT_APPLICATION_FEE_REQUIRED</code></td><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="wrap"><span class="muted">p.130, Section 9.2.2(1)(e) (&quot;Payment of the LLIS Application Fee&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>fee_requirement</code> <code>process_latency</code></td></tr>
 <tr><td class="nowrap"><code>LL_QA_001_LARGE_LOAD_DEFINITION</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.3, &quot;How does ERCOT define a large load?&quot;</span></td><td class="wrap"><code>process_trigger</code></td></tr>
 <tr><td class="nowrap"><code>ONC_003_LOAD_PROJECTION</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 4.1.8, p.6</span></td><td class="wrap"><code>data_completeness</code> <code>process_latency</code> <code>timeline_dependency</code></td></tr>
 <tr><td class="nowrap"><code>ONC_004_ONE_LINE_DIAGRAM</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 4.1.6, p.6</span></td><td class="wrap"><code>data_completeness</code> <code>engineering_review</code> <code>process_latency</code></td></tr>
 <tr><td class="nowrap"><code>LL_QA_007_REQUIRED_STUDIES</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.8–9, &quot;What types of reliability studies are required?&quot;</span></td><td class="wrap"><code>dynamic_stability</code> <code>short_circuit</code> <code>steady_state</code> <code>study_dependency</code></td></tr>
-<tr><td class="nowrap"><code>LL_QA_008_SSO_REQUIRED</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.8, SSO discussion</span></td><td class="wrap"><code>dynamic_study</code> <code>energization_gate</code> <code>sso</code> <code>study_dependency</code></td></tr>
-<tr><td class="nowrap"><code>LL_QA_007_REQUIRED_STUDIES</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.8–9, &quot;What types of reliability studies are required?&quot;</span></td><td class="wrap"><code>dynamic_stability</code> <code>short_circuit</code> <code>steady_state</code> <code>study_dependency</code></td></tr>
-<tr><td class="nowrap"><code>LL_QA_008_SSO_REQUIRED</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.8, SSO discussion</span></td><td class="wrap"><code>dynamic_study</code> <code>energization_gate</code> <code>sso</code> <code>study_dependency</code></td></tr>
+<tr><td class="nowrap"><code>LL_QA_008_SSO_REQUIRED</code></td><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap"><span class="muted">p.8, &quot;Subsynchronous Oscillation study (SSO study)&quot;</span></td><td class="wrap"><code>dynamic_study</code> <code>energization_gate</code> <code>sso</code> <code>study_dependency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_016_STEADY_STATE_ANALYSIS_ELEMENT</code></td><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="wrap"><span class="muted">p.135, Section 9.3.4.1 (&quot;9.3.4.1 Steady-State Analysis&quot;)</span></td><td class="wrap"><code>steady_state</code> <code>study_dependency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_017_SYSTEM_PROTECTION_SHORT_CIRCUIT_ELEMENT</code></td><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.2 (&quot;System Protection (Short-Circuit) Analysis&quot;)</span></td><td class="wrap"><code>protection</code> <code>short_circuit</code> <code>study_dependency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_018_DYNAMIC_TRANSIENT_STABILITY_ELEMENT</code></td><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.3 (&quot;Dynamic and Transient Stability Analysis&quot;)</span></td><td class="wrap"><code>dynamic_stability</code> <code>study_dependency</code></td></tr>
 <tr><td class="nowrap"><code>ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">p.8, Sec 6.0 &quot;System Protection Requirements&quot; (protection requirements depend on POD/location/line protection)</span></td><td class="wrap"><code>protection</code> <code>upgrade_exposure</code></td></tr>
 <tr><td class="nowrap"><code>ONC_001_TRANSMISSION_VOLTAGE_SCOPE</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 1.1, p.1</span></td><td class="wrap"><code>transmission_scope</code></td></tr>
 <tr><td class="nowrap"><code>ONC_010_NOMCR_APPROVAL</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.3.2, p.3</span></td><td class="wrap"><code>energization_gate</code> <code>modeling_requirement</code> <code>process_latency</code></td></tr>
@@ -355,9 +644,663 @@
 <tr><td class="nowrap"><code>ONC_002_VOLTAGE_AVAILABILITY</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.4.1, p.3</span></td><td class="wrap"><code>voltage_selection_risk</code></td></tr>
 <tr><td class="nowrap"><code>ONC_005_FAULT_INTERRUPT_RATING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 5.2.1, p.7</span></td><td class="wrap"><code>protection</code> <code>short_circuit</code> <code>upgrade_exposure</code></td></tr>
 <tr><td class="nowrap"><code>ONC_009_REVENUE_METERING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.6.1, p.3–4</span></td><td class="wrap"><code>metering_requirement</code></td></tr>
-              </tbody>
-            </table>
-          </div>
+<tr><td class="nowrap"><code>HEUR_PHASED_PLAN_REDUCES_UPGRADE_PRESSURE</code></td><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="wrap"><span class="muted">non-cited heuristic: phased energization plan can reduce upgrade exposure pressure in screening</span></td><td class="wrap"><code>non_cited_heuristic</code> <code>phased_plan</code> <code>upgrade_exposure</code></td></tr>
+<tr><td class="nowrap"><code>HEUR_MISSING_INPUTS_PRESENT_INCREASES_WAIT_PRESSURE</code></td><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="wrap"><span class="muted">non-cited heuristic: missing inputs increase process waiting/latency pressure</span></td><td class="wrap"><code>data_completeness</code> <code>non_cited_heuristic</code> <code>process_latency</code></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="tab-panel" id="evidenceByDoc">
+                <details style="margin-top:8px"><summary><code>ERCOT_LARGE_LOAD_QA</code> <span class="muted small">(8)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">rule_id</th><th>loc</th><th>tags</th></tr></thead><tbody><tr><td class="nowrap"><code>LL_QA_001_LARGE_LOAD_DEFINITION</code></td><td class="wrap"><span class="muted">p.3, &quot;How does ERCOT define a large load?&quot;</span></td><td class="wrap"><code>process_trigger</code></td></tr>
+<tr><td class="nowrap"><code>LL_QA_002_SECTION9_APPLICABILITY</code></td><td class="wrap"><span class="muted">p.4, Section 9.2.1 Applicability</span></td><td class="wrap"><code>modification_trigger</code> <code>process_trigger</code></td></tr>
+<tr><td class="nowrap"><code>LL_QA_003_TSP_INITIATION</code></td><td class="wrap"><span class="muted">p.6, &quot;initiate the Large Load Interconnection Process?&quot;</span></td><td class="wrap"><code>intake_gate</code> <code>process_latency</code></td></tr>
+<tr><td class="nowrap"><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2</span></td><td class="wrap"><code>commissioning_plan</code> <code>data_completeness</code> <code>timeline_dependency</code></td></tr>
+<tr><td class="nowrap"><code>LL_QA_005_APPLICATION_FEE</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2 fee requirement</span></td><td class="wrap"><code>fee_requirement</code> <code>process_latency</code></td></tr>
+<tr><td class="nowrap"><code>LL_QA_007_REQUIRED_STUDIES</code></td><td class="wrap"><span class="muted">p.8–9, &quot;What types of reliability studies are required?&quot;</span></td><td class="wrap"><code>dynamic_stability</code> <code>short_circuit</code> <code>steady_state</code> <code>study_dependency</code></td></tr>
+<tr><td class="nowrap"><code>LL_QA_008_SSO_REQUIRED</code></td><td class="wrap"><span class="muted">p.8, &quot;Subsynchronous Oscillation study (SSO study)&quot;</span></td><td class="wrap"><code>dynamic_study</code> <code>energization_gate</code> <code>sso</code> <code>study_dependency</code></td></tr>
+<tr><td class="nowrap"><code>LL_QA_014_365_DAY_RULE</code></td><td class="wrap"><span class="muted">p.15, Planning Guide Section 9.4(10)</span></td><td class="wrap"><code>re_study</code> <code>timeline_risk</code></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>ERCOT_LLI_ENERGIZATION_REQUEST</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">rule_id</th><th>loc</th><th>tags</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LLI_INTAKE_REQUIRED_DOCS</code></td><td class="wrap"><span class="muted">p.1, Instructions (&quot;All fields must be completed unless otherwise noted&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>process_latency</code></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>ERCOT_PLANNING_GUIDE</code> <span class="muted small">(8)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">rule_id</th><th>loc</th><th>tags</th></tr></thead><tbody><tr><td class="nowrap"><code>PG9_001_LLIS_APPLICABILITY_SUBJECT_TO_LLIS</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.1 (&quot;following criteria shall be subject to the Large Load Interconnection Study (LLIS)&quot;)</span></td><td class="wrap"><code>process_trigger</code></td></tr>
+<tr><td class="nowrap"><code>PG9_005_LLIS_PREINIT_PRELIM_LCP_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(b) (&quot;Submission of a preliminary Load Commissioning Plan (LCP)&quot;)</span></td><td class="wrap"><code>commissioning_plan</code> <code>data_completeness</code> <code>process_latency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(c) (&quot;Written acknowledgement from the Interconnecting Large Load Entity (ILLE)&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>process_latency</code> <code>re_study</code></td></tr>
+<tr><td class="nowrap"><code>PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(d) (&quot;A formal request to initiate the LLIS process&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>intake_gate</code> <code>process_latency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_008_LLIS_PREINIT_APPLICATION_FEE_REQUIRED</code></td><td class="wrap"><span class="muted">p.130, Section 9.2.2(1)(e) (&quot;Payment of the LLIS Application Fee&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>fee_requirement</code> <code>process_latency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_016_STEADY_STATE_ANALYSIS_ELEMENT</code></td><td class="wrap"><span class="muted">p.135, Section 9.3.4.1 (&quot;9.3.4.1 Steady-State Analysis&quot;)</span></td><td class="wrap"><code>steady_state</code> <code>study_dependency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_017_SYSTEM_PROTECTION_SHORT_CIRCUIT_ELEMENT</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.2 (&quot;System Protection (Short-Circuit) Analysis&quot;)</span></td><td class="wrap"><code>protection</code> <code>short_circuit</code> <code>study_dependency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_018_DYNAMIC_TRANSIENT_STABILITY_ELEMENT</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.3 (&quot;Dynamic and Transient Stability Analysis&quot;)</span></td><td class="wrap"><code>dynamic_stability</code> <code>study_dependency</code></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>NON_CITED_HEURISTIC</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">rule_id</th><th>loc</th><th>tags</th></tr></thead><tbody><tr><td class="nowrap"><code>HEUR_MISSING_INPUTS_PRESENT_INCREASES_WAIT_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: missing inputs increase process waiting/latency pressure</span></td><td class="wrap"><code>data_completeness</code> <code>non_cited_heuristic</code> <code>process_latency</code></td></tr>
+<tr><td class="nowrap"><code>HEUR_PHASED_PLAN_REDUCES_UPGRADE_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: phased energization plan can reduce upgrade exposure pressure in screening</span></td><td class="wrap"><code>non_cited_heuristic</code> <code>phased_plan</code> <code>upgrade_exposure</code></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>ONCOR_STD_520_106</code> <span class="muted small">(8)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">rule_id</th><th>loc</th><th>tags</th></tr></thead><tbody><tr><td class="nowrap"><code>ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS</code></td><td class="wrap"><span class="muted">p.8, Sec 6.0 &quot;System Protection Requirements&quot; (protection requirements depend on POD/location/line protection)</span></td><td class="wrap"><code>protection</code> <code>upgrade_exposure</code></td></tr>
+<tr><td class="nowrap"><code>ONC_001_TRANSMISSION_VOLTAGE_SCOPE</code></td><td class="wrap"><span class="muted">Section 1.1, p.1</span></td><td class="wrap"><code>transmission_scope</code></td></tr>
+<tr><td class="nowrap"><code>ONC_002_VOLTAGE_AVAILABILITY</code></td><td class="wrap"><span class="muted">Section 3.4.1, p.3</span></td><td class="wrap"><code>voltage_selection_risk</code></td></tr>
+<tr><td class="nowrap"><code>ONC_003_LOAD_PROJECTION</code></td><td class="wrap"><span class="muted">Section 4.1.8, p.6</span></td><td class="wrap"><code>data_completeness</code> <code>process_latency</code> <code>timeline_dependency</code></td></tr>
+<tr><td class="nowrap"><code>ONC_004_ONE_LINE_DIAGRAM</code></td><td class="wrap"><span class="muted">Section 4.1.6, p.6</span></td><td class="wrap"><code>data_completeness</code> <code>engineering_review</code> <code>process_latency</code></td></tr>
+<tr><td class="nowrap"><code>ONC_005_FAULT_INTERRUPT_RATING</code></td><td class="wrap"><span class="muted">Section 5.2.1, p.7</span></td><td class="wrap"><code>protection</code> <code>short_circuit</code> <code>upgrade_exposure</code></td></tr>
+<tr><td class="nowrap"><code>ONC_009_REVENUE_METERING</code></td><td class="wrap"><span class="muted">Section 3.6.1, p.3–4</span></td><td class="wrap"><code>metering_requirement</code></td></tr>
+<tr><td class="nowrap"><code>ONC_010_NOMCR_APPROVAL</code></td><td class="wrap"><span class="muted">Section 3.3.2, p.3</span></td><td class="wrap"><code>energization_gate</code> <code>modeling_requirement</code> <code>process_latency</code></td></tr></tbody></table></div></details>
+              </div>
+
+              <div class="tab-panel" id="evidenceByTag">
+                <details style="margin-top:8px"><summary><code>commissioning_plan</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_005_LLIS_PREINIT_PRELIM_LCP_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(b) (&quot;Submission of a preliminary Load Commissioning Plan (LCP)&quot;)</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>data_completeness</code> <span class="muted small">(9)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_LLI_ENERGIZATION_REQUEST</code></td><td class="nowrap"><code>ERCOT_LLI_INTAKE_REQUIRED_DOCS</code></td><td class="wrap"><span class="muted">p.1, Instructions (&quot;All fields must be completed unless otherwise noted&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_005_LLIS_PREINIT_PRELIM_LCP_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(b) (&quot;Submission of a preliminary Load Commissioning Plan (LCP)&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(c) (&quot;Written acknowledgement from the Interconnecting Large Load Entity (ILLE)&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(d) (&quot;A formal request to initiate the LLIS process&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_008_LLIS_PREINIT_APPLICATION_FEE_REQUIRED</code></td><td class="wrap"><span class="muted">p.130, Section 9.2.2(1)(e) (&quot;Payment of the LLIS Application Fee&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="nowrap"><code>HEUR_MISSING_INPUTS_PRESENT_INCREASES_WAIT_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: missing inputs increase process waiting/latency pressure</span></td></tr>
+<tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_003_LOAD_PROJECTION</code></td><td class="wrap"><span class="muted">Section 4.1.8, p.6</span></td></tr>
+<tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_004_ONE_LINE_DIAGRAM</code></td><td class="wrap"><span class="muted">Section 4.1.6, p.6</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>dynamic_stability</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_007_REQUIRED_STUDIES</code></td><td class="wrap"><span class="muted">p.8–9, &quot;What types of reliability studies are required?&quot;</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_018_DYNAMIC_TRANSIENT_STABILITY_ELEMENT</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.3 (&quot;Dynamic and Transient Stability Analysis&quot;)</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>dynamic_study</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_008_SSO_REQUIRED</code></td><td class="wrap"><span class="muted">p.8, &quot;Subsynchronous Oscillation study (SSO study)&quot;</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>energization_gate</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_008_SSO_REQUIRED</code></td><td class="wrap"><span class="muted">p.8, &quot;Subsynchronous Oscillation study (SSO study)&quot;</span></td></tr>
+<tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_010_NOMCR_APPROVAL</code></td><td class="wrap"><span class="muted">Section 3.3.2, p.3</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>engineering_review</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_004_ONE_LINE_DIAGRAM</code></td><td class="wrap"><span class="muted">Section 4.1.6, p.6</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>fee_requirement</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_005_APPLICATION_FEE</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2 fee requirement</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_008_LLIS_PREINIT_APPLICATION_FEE_REQUIRED</code></td><td class="wrap"><span class="muted">p.130, Section 9.2.2(1)(e) (&quot;Payment of the LLIS Application Fee&quot;)</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>intake_gate</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_003_TSP_INITIATION</code></td><td class="wrap"><span class="muted">p.6, &quot;initiate the Large Load Interconnection Process?&quot;</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(d) (&quot;A formal request to initiate the LLIS process&quot;)</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>metering_requirement</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_009_REVENUE_METERING</code></td><td class="wrap"><span class="muted">Section 3.6.1, p.3–4</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>modeling_requirement</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_010_NOMCR_APPROVAL</code></td><td class="wrap"><span class="muted">Section 3.3.2, p.3</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>modification_trigger</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_002_SECTION9_APPLICABILITY</code></td><td class="wrap"><span class="muted">p.4, Section 9.2.1 Applicability</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>non_cited_heuristic</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="nowrap"><code>HEUR_MISSING_INPUTS_PRESENT_INCREASES_WAIT_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: missing inputs increase process waiting/latency pressure</span></td></tr>
+<tr><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="nowrap"><code>HEUR_PHASED_PLAN_REDUCES_UPGRADE_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: phased energization plan can reduce upgrade exposure pressure in screening</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>phased_plan</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="nowrap"><code>HEUR_PHASED_PLAN_REDUCES_UPGRADE_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: phased energization plan can reduce upgrade exposure pressure in screening</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>process_latency</code> <span class="muted small">(11)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_003_TSP_INITIATION</code></td><td class="wrap"><span class="muted">p.6, &quot;initiate the Large Load Interconnection Process?&quot;</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_005_APPLICATION_FEE</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2 fee requirement</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_LLI_ENERGIZATION_REQUEST</code></td><td class="nowrap"><code>ERCOT_LLI_INTAKE_REQUIRED_DOCS</code></td><td class="wrap"><span class="muted">p.1, Instructions (&quot;All fields must be completed unless otherwise noted&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_005_LLIS_PREINIT_PRELIM_LCP_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(b) (&quot;Submission of a preliminary Load Commissioning Plan (LCP)&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(c) (&quot;Written acknowledgement from the Interconnecting Large Load Entity (ILLE)&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(d) (&quot;A formal request to initiate the LLIS process&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_008_LLIS_PREINIT_APPLICATION_FEE_REQUIRED</code></td><td class="wrap"><span class="muted">p.130, Section 9.2.2(1)(e) (&quot;Payment of the LLIS Application Fee&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="nowrap"><code>HEUR_MISSING_INPUTS_PRESENT_INCREASES_WAIT_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: missing inputs increase process waiting/latency pressure</span></td></tr>
+<tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_003_LOAD_PROJECTION</code></td><td class="wrap"><span class="muted">Section 4.1.8, p.6</span></td></tr>
+<tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_004_ONE_LINE_DIAGRAM</code></td><td class="wrap"><span class="muted">Section 4.1.6, p.6</span></td></tr>
+<tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_010_NOMCR_APPROVAL</code></td><td class="wrap"><span class="muted">Section 3.3.2, p.3</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>process_trigger</code> <span class="muted small">(3)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_001_LARGE_LOAD_DEFINITION</code></td><td class="wrap"><span class="muted">p.3, &quot;How does ERCOT define a large load?&quot;</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_002_SECTION9_APPLICABILITY</code></td><td class="wrap"><span class="muted">p.4, Section 9.2.1 Applicability</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_001_LLIS_APPLICABILITY_SUBJECT_TO_LLIS</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.1 (&quot;following criteria shall be subject to the Large Load Interconnection Study (LLIS)&quot;)</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>protection</code> <span class="muted small">(3)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_017_SYSTEM_PROTECTION_SHORT_CIRCUIT_ELEMENT</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.2 (&quot;System Protection (Short-Circuit) Analysis&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS</code></td><td class="wrap"><span class="muted">p.8, Sec 6.0 &quot;System Protection Requirements&quot; (protection requirements depend on POD/location/line protection)</span></td></tr>
+<tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_005_FAULT_INTERRUPT_RATING</code></td><td class="wrap"><span class="muted">Section 5.2.1, p.7</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>re_study</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_014_365_DAY_RULE</code></td><td class="wrap"><span class="muted">p.15, Planning Guide Section 9.4(10)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(c) (&quot;Written acknowledgement from the Interconnecting Large Load Entity (ILLE)&quot;)</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>short_circuit</code> <span class="muted small">(3)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_007_REQUIRED_STUDIES</code></td><td class="wrap"><span class="muted">p.8–9, &quot;What types of reliability studies are required?&quot;</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_017_SYSTEM_PROTECTION_SHORT_CIRCUIT_ELEMENT</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.2 (&quot;System Protection (Short-Circuit) Analysis&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_005_FAULT_INTERRUPT_RATING</code></td><td class="wrap"><span class="muted">Section 5.2.1, p.7</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>sso</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_008_SSO_REQUIRED</code></td><td class="wrap"><span class="muted">p.8, &quot;Subsynchronous Oscillation study (SSO study)&quot;</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>steady_state</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_007_REQUIRED_STUDIES</code></td><td class="wrap"><span class="muted">p.8–9, &quot;What types of reliability studies are required?&quot;</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_016_STEADY_STATE_ANALYSIS_ELEMENT</code></td><td class="wrap"><span class="muted">p.135, Section 9.3.4.1 (&quot;9.3.4.1 Steady-State Analysis&quot;)</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>study_dependency</code> <span class="muted small">(5)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_007_REQUIRED_STUDIES</code></td><td class="wrap"><span class="muted">p.8–9, &quot;What types of reliability studies are required?&quot;</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_008_SSO_REQUIRED</code></td><td class="wrap"><span class="muted">p.8, &quot;Subsynchronous Oscillation study (SSO study)&quot;</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_016_STEADY_STATE_ANALYSIS_ELEMENT</code></td><td class="wrap"><span class="muted">p.135, Section 9.3.4.1 (&quot;9.3.4.1 Steady-State Analysis&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_017_SYSTEM_PROTECTION_SHORT_CIRCUIT_ELEMENT</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.2 (&quot;System Protection (Short-Circuit) Analysis&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_018_DYNAMIC_TRANSIENT_STABILITY_ELEMENT</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.3 (&quot;Dynamic and Transient Stability Analysis&quot;)</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>timeline_dependency</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2</span></td></tr>
+<tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_003_LOAD_PROJECTION</code></td><td class="wrap"><span class="muted">Section 4.1.8, p.6</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>timeline_risk</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_014_365_DAY_RULE</code></td><td class="wrap"><span class="muted">p.15, Planning Guide Section 9.4(10)</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>transmission_scope</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_001_TRANSMISSION_VOLTAGE_SCOPE</code></td><td class="wrap"><span class="muted">Section 1.1, p.1</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>upgrade_exposure</code> <span class="muted small">(3)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="nowrap"><code>HEUR_PHASED_PLAN_REDUCES_UPGRADE_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: phased energization plan can reduce upgrade exposure pressure in screening</span></td></tr>
+<tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS</code></td><td class="wrap"><span class="muted">p.8, Sec 6.0 &quot;System Protection Requirements&quot; (protection requirements depend on POD/location/line protection)</span></td></tr>
+<tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_005_FAULT_INTERRUPT_RATING</code></td><td class="wrap"><span class="muted">Section 5.2.1, p.7</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>voltage_selection_risk</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_002_VOLTAGE_AVAILABILITY</code></td><td class="wrap"><span class="muted">Section 3.4.1, p.3</span></td></tr></tbody></table></div></details>
+              </div>
+            </div>
+          </details>
+
+          <details style="margin-top:10px">
+            <summary>Show risk trace (reproducible scoring)</summary>
+            <div class="hint muted small">This is a machine-readable trace of per-rule/heuristic score contributions and final bucket assignment.</div>
+            <pre>[
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;ERCOT_LLI_INTAKE_REQUIRED_DOCS&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_LLI_ENERGIZATION_REQUEST&quot;,
+    &quot;loc&quot;: &quot;p.1, Instructions (\&quot;All fields must be completed unless otherwise noted\&quot;)&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;data_completeness&quot;,
+      &quot;process_latency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:process_latency =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;PG9_001_LLIS_APPLICABILITY_SUBJECT_TO_LLIS&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_PLANNING_GUIDE&quot;,
+    &quot;loc&quot;: &quot;p.129, Section 9.2.1 (\&quot;following criteria shall be subject to the Large Load Interconnection Study (LLIS)\&quot;)&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;process_trigger&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.0,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: []
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;LL_QA_003_TSP_INITIATION&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_LARGE_LOAD_QA&quot;,
+    &quot;loc&quot;: &quot;p.6, \&quot;initiate the Large Load Interconnection Process?\&quot;&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;intake_gate&quot;,
+      &quot;process_latency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:process_latency =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;LL_QA_004_LOAD_COMMISSIONING_PLAN&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_LARGE_LOAD_QA&quot;,
+    &quot;loc&quot;: &quot;p.7, Planning Guide Section 9.2.2&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;commissioning_plan&quot;,
+      &quot;data_completeness&quot;,
+      &quot;timeline_dependency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.0,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: []
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;LL_QA_005_APPLICATION_FEE&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_LARGE_LOAD_QA&quot;,
+    &quot;loc&quot;: &quot;p.7, Planning Guide Section 9.2.2 fee requirement&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;fee_requirement&quot;,
+      &quot;process_latency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:process_latency =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;PG9_005_LLIS_PREINIT_PRELIM_LCP_REQUIRED&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_PLANNING_GUIDE&quot;,
+    &quot;loc&quot;: &quot;p.129, Section 9.2.2(1)(b) (\&quot;Submission of a preliminary Load Commissioning Plan (LCP)\&quot;)&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;commissioning_plan&quot;,
+      &quot;data_completeness&quot;,
+      &quot;process_latency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:process_latency =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_PLANNING_GUIDE&quot;,
+    &quot;loc&quot;: &quot;p.129, Section 9.2.2(1)(c) (\&quot;Written acknowledgement from the Interconnecting Large Load Entity (ILLE)\&quot;)&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;data_completeness&quot;,
+      &quot;process_latency&quot;,
+      &quot;re_study&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 4.0,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:process_latency =&gt; wait +0.5&quot;,
+      &quot;tag:re_study =&gt; wait +1.5&quot;,
+      &quot;data_completeness missing=[&#x27;ack_change_notification_obligation&#x27;] =&gt; wait +2.0&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_PLANNING_GUIDE&quot;,
+    &quot;loc&quot;: &quot;p.129, Section 9.2.2(1)(d) (\&quot;A formal request to initiate the LLIS process\&quot;)&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;data_completeness&quot;,
+      &quot;intake_gate&quot;,
+      &quot;process_latency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 2.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:process_latency =&gt; wait +0.5&quot;,
+      &quot;data_completeness missing=[&#x27;llis_formal_request_submitted&#x27;] =&gt; wait +2.0&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;PG9_008_LLIS_PREINIT_APPLICATION_FEE_REQUIRED&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_PLANNING_GUIDE&quot;,
+    &quot;loc&quot;: &quot;p.130, Section 9.2.2(1)(e) (\&quot;Payment of the LLIS Application Fee\&quot;)&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;data_completeness&quot;,
+      &quot;fee_requirement&quot;,
+      &quot;process_latency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:process_latency =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;LL_QA_001_LARGE_LOAD_DEFINITION&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_LARGE_LOAD_QA&quot;,
+    &quot;loc&quot;: &quot;p.3, \&quot;How does ERCOT define a large load?\&quot;&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;process_trigger&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.0,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: []
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;ONC_003_LOAD_PROJECTION&quot;,
+    &quot;doc_id&quot;: &quot;ONCOR_STD_520_106&quot;,
+    &quot;loc&quot;: &quot;Section 4.1.8, p.6&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;data_completeness&quot;,
+      &quot;process_latency&quot;,
+      &quot;timeline_dependency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:process_latency =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;ONC_004_ONE_LINE_DIAGRAM&quot;,
+    &quot;doc_id&quot;: &quot;ONCOR_STD_520_106&quot;,
+    &quot;loc&quot;: &quot;Section 4.1.6, p.6&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;data_completeness&quot;,
+      &quot;engineering_review&quot;,
+      &quot;process_latency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:process_latency =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;LL_QA_007_REQUIRED_STUDIES&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_LARGE_LOAD_QA&quot;,
+    &quot;loc&quot;: &quot;p.8–9, \&quot;What types of reliability studies are required?\&quot;&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;dynamic_stability&quot;,
+      &quot;short_circuit&quot;,
+      &quot;steady_state&quot;,
+      &quot;study_dependency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 2.0,
+      &quot;wait&quot;: 0.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:dynamic_stability =&gt; upgrade +1&quot;,
+      &quot;tag:short_circuit =&gt; upgrade +1&quot;,
+      &quot;tag:study_dependency =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;LL_QA_008_SSO_REQUIRED&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_LARGE_LOAD_QA&quot;,
+    &quot;loc&quot;: &quot;p.8, \&quot;Subsynchronous Oscillation study (SSO study)\&quot;&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;dynamic_study&quot;,
+      &quot;energization_gate&quot;,
+      &quot;sso&quot;,
+      &quot;study_dependency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 2.0,
+      &quot;wait&quot;: 0.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:dynamic_study =&gt; upgrade +1&quot;,
+      &quot;tag:sso =&gt; upgrade +1&quot;,
+      &quot;tag:study_dependency =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;PG9_016_STEADY_STATE_ANALYSIS_ELEMENT&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_PLANNING_GUIDE&quot;,
+    &quot;loc&quot;: &quot;p.135, Section 9.3.4.1 (\&quot;9.3.4.1 Steady-State Analysis\&quot;)&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;steady_state&quot;,
+      &quot;study_dependency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:study_dependency =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;PG9_017_SYSTEM_PROTECTION_SHORT_CIRCUIT_ELEMENT&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_PLANNING_GUIDE&quot;,
+    &quot;loc&quot;: &quot;p.136, Section 9.3.4.2 (\&quot;System Protection (Short-Circuit) Analysis\&quot;)&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;protection&quot;,
+      &quot;short_circuit&quot;,
+      &quot;study_dependency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 2.0,
+      &quot;wait&quot;: 0.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:protection =&gt; upgrade +1&quot;,
+      &quot;tag:short_circuit =&gt; upgrade +1&quot;,
+      &quot;tag:study_dependency =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;PG9_018_DYNAMIC_TRANSIENT_STABILITY_ELEMENT&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_PLANNING_GUIDE&quot;,
+    &quot;loc&quot;: &quot;p.136, Section 9.3.4.3 (\&quot;Dynamic and Transient Stability Analysis\&quot;)&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;dynamic_stability&quot;,
+      &quot;study_dependency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 1.0,
+      &quot;wait&quot;: 0.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:dynamic_stability =&gt; upgrade +1&quot;,
+      &quot;tag:study_dependency =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS&quot;,
+    &quot;doc_id&quot;: &quot;ONCOR_STD_520_106&quot;,
+    &quot;loc&quot;: &quot;p.8, Sec 6.0 \&quot;System Protection Requirements\&quot; (protection requirements depend on POD/location/line protection)&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;protection&quot;,
+      &quot;upgrade_exposure&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 1.5,
+      &quot;wait&quot;: 0.0,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:protection =&gt; upgrade +1&quot;,
+      &quot;tag:upgrade_exposure =&gt; upgrade +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;ONC_001_TRANSMISSION_VOLTAGE_SCOPE&quot;,
+    &quot;doc_id&quot;: &quot;ONCOR_STD_520_106&quot;,
+    &quot;loc&quot;: &quot;Section 1.1, p.1&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;transmission_scope&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.0,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: []
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;ONC_010_NOMCR_APPROVAL&quot;,
+    &quot;doc_id&quot;: &quot;ONCOR_STD_520_106&quot;,
+    &quot;loc&quot;: &quot;Section 3.3.2, p.3&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;energization_gate&quot;,
+      &quot;modeling_requirement&quot;,
+      &quot;process_latency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 1.0,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:modeling_requirement =&gt; wait +0.5&quot;,
+      &quot;tag:process_latency =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;LL_QA_014_365_DAY_RULE&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_LARGE_LOAD_QA&quot;,
+    &quot;loc&quot;: &quot;p.15, Planning Guide Section 9.4(10)&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;re_study&quot;,
+      &quot;timeline_risk&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 2.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:re_study =&gt; wait +1.5&quot;,
+      &quot;tag:timeline_risk =&gt; wait +1&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;LL_QA_002_SECTION9_APPLICABILITY&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_LARGE_LOAD_QA&quot;,
+    &quot;loc&quot;: &quot;p.4, Section 9.2.1 Applicability&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;modification_trigger&quot;,
+      &quot;process_trigger&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.0,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: []
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;ONC_002_VOLTAGE_AVAILABILITY&quot;,
+    &quot;doc_id&quot;: &quot;ONCOR_STD_520_106&quot;,
+    &quot;loc&quot;: &quot;Section 3.4.1, p.3&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;voltage_selection_risk&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.0,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: []
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;ONC_005_FAULT_INTERRUPT_RATING&quot;,
+    &quot;doc_id&quot;: &quot;ONCOR_STD_520_106&quot;,
+    &quot;loc&quot;: &quot;Section 5.2.1, p.7&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;protection&quot;,
+      &quot;short_circuit&quot;,
+      &quot;upgrade_exposure&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 2.5,
+      &quot;wait&quot;: 0.0,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:protection =&gt; upgrade +1&quot;,
+      &quot;tag:short_circuit =&gt; upgrade +1&quot;,
+      &quot;tag:upgrade_exposure =&gt; upgrade +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;ONC_009_REVENUE_METERING&quot;,
+    &quot;doc_id&quot;: &quot;ONCOR_STD_520_106&quot;,
+    &quot;loc&quot;: &quot;Section 3.6.1, p.3–4&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;metering_requirement&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.0,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: []
+  },
+  {
+    &quot;kind&quot;: &quot;heuristic&quot;,
+    &quot;source&quot;: &quot;non_cited_heuristic&quot;,
+    &quot;rule_id&quot;: &quot;HEUR_PHASED_PLAN_REDUCES_UPGRADE_PRESSURE&quot;,
+    &quot;doc_id&quot;: &quot;NON_CITED_HEURISTIC&quot;,
+    &quot;loc&quot;: &quot;non-cited heuristic: phased energization plan can reduce upgrade exposure pressure in screening&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;non_cited_heuristic&quot;,
+      &quot;phased_plan&quot;,
+      &quot;upgrade_exposure&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: -0.5,
+      &quot;wait&quot;: 0.0,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;energization_plan=phased =&gt; upgrade -0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;heuristic&quot;,
+    &quot;source&quot;: &quot;non_cited_heuristic&quot;,
+    &quot;rule_id&quot;: &quot;HEUR_MISSING_INPUTS_PRESENT_INCREASES_WAIT_PRESSURE&quot;,
+    &quot;doc_id&quot;: &quot;NON_CITED_HEURISTIC&quot;,
+    &quot;loc&quot;: &quot;non-cited heuristic: missing inputs increase process waiting/latency pressure&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;data_completeness&quot;,
+      &quot;non_cited_heuristic&quot;,
+      &quot;process_latency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 0.5,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;missing_inputs_count=2 =&gt; wait +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;summary&quot;,
+    &quot;upgrade_score&quot;: 10.5,
+    &quot;wait_score&quot;: 16.5,
+    &quot;ops_score&quot;: 0.0,
+    &quot;status&quot;: &quot;rule_driven_v0&quot;,
+    &quot;timeline_buckets&quot;: {
+      &quot;le_12_months&quot;: &quot;down&quot;,
+      &quot;m12_24_months&quot;: &quot;up&quot;,
+      &quot;gt_24_months&quot;: &quot;up&quot;
+    },
+    &quot;upgrade_exposure_bucket&quot;: &quot;high&quot;,
+    &quot;operational_exposure_bucket&quot;: &quot;low&quot;,
+    &quot;reasoning&quot;: [
+      &quot;upgrade_score=10.5 &gt;= 3 =&gt; upgrade_exposure_bucket=high, shift to &gt;24 and 12–24&quot;,
+      &quot;wait_score=16.5 &gt;= 2 =&gt; additional shift away from ≤12 into 12–24&quot;,
+      &quot;ops_score=0 =&gt; operational_exposure_bucket=low&quot;
+    ]
+  }
+]</pre>
+          </details>
         </div>
 
         <div class="card" id="sec-provenance">
@@ -369,12 +1312,35 @@
             <div class="k">Graph version</div>
             <div class="v"><code>0.1</code></div>
             <div class="k">Graph sha256</div>
-            <div class="v"><code>e763ffc2399deebc82f31432b2bf561269e0d554d7579cd5403571e4f9026997</code></div>
+            <div class="v"><code>68651d2190c00239a7ff16c435ec6b8b157e0e57807a1d933495fcdfb0c3d611</code></div>
             <div class="k">Rules source</div>
             <div class="v"><code>rules/published.jsonl</code></div>
             <div class="k">Rules sha256</div>
-            <div class="v"><code>78c957965dcfabbf6d37ed535a1f98e15048aa940433bbc184eb310dd3a716e3</code></div>
+            <div class="v"><code>6d7b4f4c4795355b9beac8adb37399fac4e275823fea75b90905121c728239d4</code></div>
+            <div class="k">Citation audit (PDF)</div>
+            <div class="v"><code>strict</code> / <code>True</code> (errors: <code>0</code>, warns: <code>0</code>)</div>
           </div>
+          <details style="margin-top:10px">
+            <summary>Show citation audit findings</summary>
+            <div class="hint muted small">This audit checks PDF sha256, loc page range, and loc anchor matches for published rules.</div>
+            <div style="overflow-x:auto;margin-top:8px">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="nowrap">status</th>
+                    <th class="nowrap">rule_id</th>
+                    <th class="nowrap">doc_id</th>
+                    <th>loc</th>
+                    <th class="nowrap">anchor</th>
+                    <th>message</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="6" class="muted">No issues (all ok)</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
           <div class="muted small" style="margin-top:10px">Document artifacts referenced by this evaluation.</div>
           <div style="overflow-x:auto;margin-top:8px">
             <table>
@@ -390,6 +1356,7 @@
               <tbody>
                 <tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="wrap">ERCOT Large Load Interconnection Process Q&amp;A</td><td class="nowrap"><code>2025-06-01</code></td><td class="wrap"><code>docs/raw/ERCOT_LARGE_LOAD_QA__2025-06-01.pdf</code></td><td class="wrap"><code>e1fba2a7986a8de346331fb6dbc28897b3371d96e621e0a3e69ca90fc14d22f0</code></td></tr>
 <tr><td class="nowrap"><code>ERCOT_LLI_ENERGIZATION_REQUEST</code></td><td class="wrap">ERCOT Large Load Integration - Standalone Energization Request</td><td class="nowrap"><code>2025-07-07</code></td><td class="wrap"><code>docs/raw/ERCOT_LLI_ENERGIZATION_REQUEST__2025-07-07.pdf</code></td><td class="wrap"><code>86f5154a132c060ae9164d0dacf327f8a2b3daead289c9e03c2f099ddd66d87e</code></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="wrap">ERCOT Planning Guide</td><td class="nowrap"><code>2025-12-15</code></td><td class="wrap"><code>docs/raw/ERCOT_PLANNING_GUIDE__2025-12-15.pdf</code></td><td class="wrap"><code>bc7cc96c6937ef96345c0f2c1dda1033864f4ccb225b00e7d2ca9c2f4d1164e4</code></td></tr>
 <tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap">Oncor Standard 520-106 (Retail Customer Connection Requirements)</td><td class="nowrap"><code></code></td><td class="wrap"><code>docs/raw/ONCOR_STD_520_106__2023-01-01.pdf</code></td><td class="wrap"><code>eca927c9faad4bd6d77bcf95b5179e7b00ec42f24ed28c38b0e9782977dc022d</code></td></tr>
               </tbody>
             </table>
@@ -398,8 +1365,40 @@
       </main>
     </div>
 
+    <button class="back-to-top" id="backToTop" type="button" title="Back to top">↑ Top</button>
+
     <script>
       (function () {
+        function bindScrollSpy() {
+          var links = document.querySelectorAll(".toc a[href^='#']");
+          if (!links || !links.length) return;
+          var sections = [];
+          for (var i = 0; i < links.length; i++) {
+            var id = (links[i].getAttribute("href") || "").slice(1);
+            var el = document.getElementById(id);
+            if (el) sections.push({ id: id, el: el, link: links[i] });
+          }
+          if (!sections.length || !window.IntersectionObserver) return;
+          var obs = new IntersectionObserver(function (entries) {
+            var best = null;
+            for (var j = 0; j < entries.length; j++) {
+              var ent = entries[j];
+              if (!ent.isIntersecting) continue;
+              if (!best) best = ent;
+              else if (ent.intersectionRatio > best.intersectionRatio) best = ent;
+            }
+            if (!best) return;
+            var activeId = best.target && best.target.id;
+            for (var k = 0; k < sections.length; k++) {
+              var s = sections[k];
+              if (!s.link || !s.el) continue;
+              if (s.id === activeId) s.link.classList.add("active");
+              else s.link.classList.remove("active");
+            }
+          }, { root: null, rootMargin: "-20% 0px -70% 0px", threshold: [0.05, 0.1, 0.2, 0.4, 0.6] });
+          for (var t = 0; t < sections.length; t++) obs.observe(sections[t].el);
+        }
+
         function textContentOfRow(tr) {
           return (tr.innerText || tr.textContent || "").toLowerCase();
         }
@@ -455,10 +1454,43 @@
         bindFilter("evidenceFilter", "evidenceTable");
         bindFilter("flagsFilter", "flagsTable");
         bindFilter("checklistFilter", "checklistTable");
+        bindFilter("optionsFilter", "optionsTable");
 
         document.addEventListener("click", function (ev) {
           var t = ev.target;
           if (!t) return;
+          var zoom = t.getAttribute && t.getAttribute("data-graph-zoom");
+          if (zoom) {
+            var wrap = document.getElementById("fullGraphWrap");
+            var svg = wrap && wrap.querySelector && wrap.querySelector("svg.graph");
+            if (!wrap || !svg) return;
+            var baseW = parseFloat(svg.getAttribute("width") || "0");
+            var baseH = parseFloat(svg.getAttribute("height") || "0");
+            if (!baseW || !baseH) return;
+            var defaultZoom = 1.25;
+
+            function applyZoom(z) {
+              svg.classList.remove("fit");
+              svg.style.width = String(baseW * z) + "px";
+              svg.style.height = String(baseH * z) + "px";
+            }
+
+            function applyFit() {
+              svg.classList.add("fit");
+              svg.style.width = "";
+              svg.style.height = "";
+            }
+
+            if (zoom === "fit") {
+              applyFit();
+            } else if (zoom === "reset") {
+              applyZoom(defaultZoom);
+            } else {
+              var z = parseFloat(zoom);
+              if (!isNaN(z)) applyZoom(z);
+            }
+            return;
+          }
           var clear = t.getAttribute && t.getAttribute("data-clear");
           if (clear) {
             clearInput(clear);
@@ -469,7 +1501,56 @@
             copyTextFromElementId(copyTarget);
             return;
           }
+          if (t && t.id === "backToTop") {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+          }
+
+          var tabGroup = t.getAttribute && t.getAttribute("data-tab-group");
+          var tabTarget = t.getAttribute && t.getAttribute("data-tab-target");
+          if (tabGroup && tabTarget) {
+            var btns = document.querySelectorAll('[data-tab-group="' + tabGroup + '"][data-tab-target]');
+            for (var bi = 0; bi < btns.length; bi++) {
+              btns[bi].classList.remove("active");
+            }
+            t.classList.add("active");
+            var panelsWrap = document.querySelector('[data-tab-panels="' + tabGroup + '"]');
+            if (!panelsWrap) return;
+            var panels = panelsWrap.querySelectorAll(".tab-panel");
+            for (var pi = 0; pi < panels.length; pi++) {
+              panels[pi].classList.remove("active");
+            }
+            var target = document.getElementById(tabTarget);
+            if (target) target.classList.add("active");
+            return;
+          }
         });
+
+        (function bindBackToTop() {
+          var btn = document.getElementById("backToTop");
+          if (!btn) return;
+          function onScroll() {
+            btn.style.display = (window.scrollY || 0) > 600 ? "inline-flex" : "none";
+          }
+          window.addEventListener("scroll", onScroll, { passive: true });
+          onScroll();
+        })();
+
+        // Default: enlarge the full graph for readability (can be overridden by buttons).
+        (function initDefaultGraphZoom() {
+          var wrap = document.getElementById("fullGraphWrap");
+          var svg = wrap && wrap.querySelector && wrap.querySelector("svg.graph");
+          if (!wrap || !svg) return;
+          var baseW = parseFloat(svg.getAttribute("width") || "0");
+          var baseH = parseFloat(svg.getAttribute("height") || "0");
+          if (!baseW || !baseH) return;
+          var z = 1.25;
+          svg.classList.remove("fit");
+          svg.style.width = String(baseW * z) + "px";
+          svg.style.height = String(baseH * z) + "px";
+        })();
+
+        bindScrollSpy();
       })();
     </script>
   </body>

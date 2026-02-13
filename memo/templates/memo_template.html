@@ -17,10 +17,12 @@
         --good: #065f46;
         --warn: #92400e;
         --bad: #991b1b;
+        --accent: #2563eb;
       }
 
       body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; line-height: 1.45; background: var(--bg); color: var(--fg); }
       code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      a { color: var(--accent); }
 
       .layout { display: flex; gap: 18px; padding: 18px; max-width: 1240px; margin: 0 auto; }
       .sidebar { width: 280px; flex: 0 0 auto; position: sticky; top: 18px; align-self: flex-start; }
@@ -38,18 +40,32 @@
       .v { color: var(--fg); }
 
       .toc { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--soft2); }
+      .toc { max-height: calc(100vh - 36px); overflow: auto; }
       .toc h3 { font-size: 13px; margin: 0 0 8px 0; color: #111827; }
       .toc a { display: block; padding: 6px 8px; border-radius: 8px; color: #111827; text-decoration: none; font-size: 13px; }
       .toc a:hover { background: var(--soft); }
+      .toc a.active { background: rgba(37,99,235,.10); outline: 1px solid rgba(37,99,235,.22); }
       .toc .meta { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
 
       .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
       .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border); background: var(--soft2); font-size: 12px; }
+      .chip.good { color: var(--good); border-color: rgba(6,95,70,.25); background: rgba(6,95,70,.06); }
+      .chip.warn { color: var(--warn); border-color: rgba(146,64,14,.25); background: rgba(146,64,14,.06); }
+      .chip.bad { color: var(--bad); border-color: rgba(153,27,27,.25); background: rgba(153,27,27,.06); }
 
       .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0 6px 0; }
       .toolbar input[type="search"] { flex: 1 1 260px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
       .toolbar .btn { padding: 7px 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; cursor: pointer; }
       .toolbar .btn:hover { background: var(--soft); }
+      .toolbar .btn.active { background: rgba(37,99,235,.10); outline: 1px solid rgba(37,99,235,.22); }
+
+      .tab-panels .tab-panel { display: none; }
+      .tab-panels .tab-panel.active { display: block; }
+
+      /* Inline code styling for scanability */
+      code { color: var(--code); background: rgba(243,244,246,.75); border: 1px solid var(--border); padding: 1px 6px; border-radius: 8px; font-size: 12px; overflow-wrap: anywhere; }
+      pre code { background: transparent; border: 0; padding: 0; border-radius: 0; font-size: inherit; }
+      .chip code, .badge code { background: transparent; border: 0; padding: 0; border-radius: 0; }
 
       table { width: 100%; border-collapse: collapse; }
       th, td { border-top: 1px solid var(--border); padding: 10px 8px; vertical-align: top; }
@@ -59,6 +75,11 @@
       .small { font-size: 12px; }
       .wrap { word-break: break-word; }
       .row-muted { color: var(--muted); }
+      tbody tr:nth-child(even) { background: rgba(249,250,251,.9); }
+      tbody tr:hover { background: rgba(37,99,235,.06); }
+
+      .trace-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+      .trace-wrap code { background: #fff; }
 
       details > summary { cursor: pointer; user-select: none; }
       details summary { font-size: 13px; color: #111827; }
@@ -72,9 +93,45 @@
       .section-title { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
       .section-title .id { font-size: 12px; color: var(--muted); }
 
+      .graph-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--soft2); padding: 8px; }
+      svg.graph { display: block; }
+      svg.graph.fit { width: 100%; height: auto; }
+
+      /* Simple “graph view” for the selected path */
+      .path-graph { display: flex; align-items: center; gap: 10px; overflow-x: auto; padding: 10px; border: 1px dashed var(--border); border-radius: 12px; background: var(--soft2); }
+      .pnode { min-width: 170px; border: 1px solid var(--border); background: #fff; border-radius: 12px; padding: 10px; }
+      .pnode .t { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+      .pnode .s { font-size: 12px; color: var(--muted); }
+      .pedge { display: grid; grid-template-rows: auto auto; align-items: center; justify-items: center; min-width: 120px; }
+      .pedge .eid { font-size: 11px; color: var(--muted); white-space: nowrap; }
+      .pedge .eid code { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #fff; border: 1px solid var(--border); }
+      .pedge .arr { font-size: 18px; color: var(--muted); line-height: 1; }
+
+      .back-to-top {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 20;
+        display: none;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: #fff;
+        cursor: pointer;
+        box-shadow: 0 8px 24px rgba(17,24,39,.10);
+      }
+      .back-to-top:hover { background: var(--soft); }
+
       @media (max-width: 980px) {
         .layout { flex-direction: column; }
         .sidebar { width: auto; position: static; }
+      }
+
+      @media print {
+        .sidebar, .toolbar, .back-to-top { display: none !important; }
+        .layout { display: block; padding: 0; max-width: none; }
+        .card { break-inside: avoid; }
+        body { background: #fff; }
       }
     </style>
   </head>
@@ -141,9 +198,6 @@
             <li><strong>Inputs matter</strong>: missing or incorrect request inputs can materially change the evaluated path and checklist outcomes.</li>
             <li><strong>Evidence scope</strong>: citations reference public artifacts captured in the registry (doc_id + loc + sha256); interpretations may evolve as rules are updated.</li>
           </ul>
-          <div class="muted small" style="margin-top:8px">
-            中文提示：本 Memo 仅用于流程筛查/准备度评估（screening/process-readiness），不构成工程结论或工期承诺。
-          </div>
         </div>
 
         <div class="card" id="sec-input">
@@ -163,22 +217,44 @@
             <h2>2) Process path (deterministic)</h2>
             <div class="id">first satisfied edge wins</div>
           </div>
-          <div class="muted small">Each edge shows predicate traces and citations (rule_ids) carried by that edge.</div>
-          <div style="overflow-x:auto;margin-top:10px">
-            <table>
-              <thead>
-                <tr>
-                  <th class="nowrap">edge_id</th>
-                  <th class="nowrap">from → to</th>
-                  <th>criteria traces</th>
-                  <th>rule_ids</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{edges_rows}}
-              </tbody>
-            </table>
+          <div class="muted small">Full process graph (from <code>graph/process_graph.yaml</code>) with the selected path highlighted.</div>
+          <div class="toolbar" style="margin-top:10px">
+            <span class="muted small">Zoom</span>
+            <button class="btn" data-graph-zoom="fit">Fit</button>
+            <button class="btn" data-graph-zoom="1">100%</button>
+            <button class="btn" data-graph-zoom="1.25">125%</button>
+            <button class="btn" data-graph-zoom="1.5">150%</button>
+            <button class="btn" data-graph-zoom="2">200%</button>
+            <button class="btn" data-graph-zoom="reset">Reset</button>
+            <span class="muted small">Tip: use scroll to pan</span>
           </div>
+          <div class="graph-wrap" id="fullGraphWrap">
+            {{full_graph_svg}}
+          </div>
+
+          <details style="margin-top:10px">
+            <summary>Show selected path (compact)</summary>
+            {{path_graph}}
+          </details>
+
+          <details style="margin-top:10px">
+            <summary>Show edge audit log (predicate traces + citations)</summary>
+            <div style="overflow-x:auto;margin-top:10px">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="nowrap">edge_id</th>
+                    <th class="nowrap">from → to</th>
+                    <th>criteria traces</th>
+                    <th>rule_ids</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{edges_rows}}
+                </tbody>
+              </table>
+            </div>
+          </details>
         </div>
 
         <div class="card" id="sec-missing">
@@ -280,6 +356,9 @@
             <div class="id">tri-state gates</div>
           </div>
           <div class="muted small">Shown when <code>is_requesting_energization=true</code>. Status: <code>satisfied</code> / <code>missing</code> / <code>not_satisfied</code>.</div>
+          <div class="chips" style="margin-top:10px">
+            {{checklist_stats_chips}}
+          </div>
           <div class="toolbar">
             <input id="checklistFilter" type="search" placeholder="Filter checklist by status, rule_id, missing field..." />
             <button class="btn" data-clear="checklistFilter">Clear</button>
@@ -324,28 +403,63 @@
           </div>
 
           <div class="section-title" style="margin-top:14px">
-            <h2 style="margin:0">Evidence (rule citations)</h2>
-            <div class="id">rule_id → doc_id/loc</div>
+            <h2 style="margin:0">Evidence (rules + heuristics)</h2>
+            <div class="id">rule_id → doc_id/loc (heuristics are explicitly marked)</div>
           </div>
-          <div class="toolbar">
-            <input id="evidenceFilter" type="search" placeholder="Filter evidence by rule_id, tags, doc_id, loc..." />
-            <button class="btn" data-clear="evidenceFilter">Clear</button>
+          <div class="chips" style="margin-top:10px">
+            {{evidence_stats_chips}}
           </div>
-          <div style="overflow-x:auto;margin-top:8px">
-            <table id="evidenceTable">
-              <thead>
-                <tr>
-                  <th class="nowrap">rule_id</th>
-                  <th class="nowrap">doc_id</th>
-                  <th>loc</th>
-                  <th>tags</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{evidence_rows}}
-              </tbody>
-            </table>
-          </div>
+
+          <details style="margin-top:10px">
+            <summary>Show evidence (grouped + filterable)</summary>
+            <div class="hint muted small">
+              Tip: use “Group by doc/tag” for scanning; use “Flat table” + filter for precise lookup.
+            </div>
+            <div class="toolbar">
+              <button class="btn active" data-tab-group="evidence" data-tab-target="evidenceFlat">Flat table</button>
+              <button class="btn" data-tab-group="evidence" data-tab-target="evidenceByDoc">Group by doc</button>
+              <button class="btn" data-tab-group="evidence" data-tab-target="evidenceByTag">Group by tag</button>
+              <span class="muted small">Total: <code>{{evidence_total_count}}</code></span>
+            </div>
+
+            <div class="tab-panels" data-tab-panels="evidence">
+              <div class="tab-panel active" id="evidenceFlat">
+                <div class="toolbar">
+                  <input id="evidenceFilter" type="search" placeholder="Filter evidence by rule_id, tags, doc_id, loc..." />
+                  <button class="btn" data-clear="evidenceFilter">Clear</button>
+                </div>
+                <div style="overflow-x:auto;margin-top:8px">
+                  <table id="evidenceTable">
+                    <thead>
+                      <tr>
+                        <th class="nowrap">rule_id</th>
+                        <th class="nowrap">doc_id</th>
+                        <th>loc</th>
+                        <th>tags</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {{evidence_rows}}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="tab-panel" id="evidenceByDoc">
+                {{evidence_grouped_by_doc}}
+              </div>
+
+              <div class="tab-panel" id="evidenceByTag">
+                {{evidence_grouped_by_tag}}
+              </div>
+            </div>
+          </details>
+
+          <details style="margin-top:10px">
+            <summary>Show risk trace (reproducible scoring)</summary>
+            <div class="hint muted small">This is a machine-readable trace of per-rule/heuristic score contributions and final bucket assignment.</div>
+            <pre>{{risk_trace_json}}</pre>
+          </details>
         </div>
 
         <div class="card" id="sec-provenance">
@@ -407,8 +521,40 @@
       </main>
     </div>
 
+    <button class="back-to-top" id="backToTop" type="button" title="Back to top">↑ Top</button>
+
     <script>
       (function () {
+        function bindScrollSpy() {
+          var links = document.querySelectorAll(".toc a[href^='#']");
+          if (!links || !links.length) return;
+          var sections = [];
+          for (var i = 0; i < links.length; i++) {
+            var id = (links[i].getAttribute("href") || "").slice(1);
+            var el = document.getElementById(id);
+            if (el) sections.push({ id: id, el: el, link: links[i] });
+          }
+          if (!sections.length || !window.IntersectionObserver) return;
+          var obs = new IntersectionObserver(function (entries) {
+            var best = null;
+            for (var j = 0; j < entries.length; j++) {
+              var ent = entries[j];
+              if (!ent.isIntersecting) continue;
+              if (!best) best = ent;
+              else if (ent.intersectionRatio > best.intersectionRatio) best = ent;
+            }
+            if (!best) return;
+            var activeId = best.target && best.target.id;
+            for (var k = 0; k < sections.length; k++) {
+              var s = sections[k];
+              if (!s.link || !s.el) continue;
+              if (s.id === activeId) s.link.classList.add("active");
+              else s.link.classList.remove("active");
+            }
+          }, { root: null, rootMargin: "-20% 0px -70% 0px", threshold: [0.05, 0.1, 0.2, 0.4, 0.6] });
+          for (var t = 0; t < sections.length; t++) obs.observe(sections[t].el);
+        }
+
         function textContentOfRow(tr) {
           return (tr.innerText || tr.textContent || "").toLowerCase();
         }
@@ -469,6 +615,38 @@
         document.addEventListener("click", function (ev) {
           var t = ev.target;
           if (!t) return;
+          var zoom = t.getAttribute && t.getAttribute("data-graph-zoom");
+          if (zoom) {
+            var wrap = document.getElementById("fullGraphWrap");
+            var svg = wrap && wrap.querySelector && wrap.querySelector("svg.graph");
+            if (!wrap || !svg) return;
+            var baseW = parseFloat(svg.getAttribute("width") || "0");
+            var baseH = parseFloat(svg.getAttribute("height") || "0");
+            if (!baseW || !baseH) return;
+            var defaultZoom = 1.25;
+
+            function applyZoom(z) {
+              svg.classList.remove("fit");
+              svg.style.width = String(baseW * z) + "px";
+              svg.style.height = String(baseH * z) + "px";
+            }
+
+            function applyFit() {
+              svg.classList.add("fit");
+              svg.style.width = "";
+              svg.style.height = "";
+            }
+
+            if (zoom === "fit") {
+              applyFit();
+            } else if (zoom === "reset") {
+              applyZoom(defaultZoom);
+            } else {
+              var z = parseFloat(zoom);
+              if (!isNaN(z)) applyZoom(z);
+            }
+            return;
+          }
           var clear = t.getAttribute && t.getAttribute("data-clear");
           if (clear) {
             clearInput(clear);
@@ -479,7 +657,56 @@
             copyTextFromElementId(copyTarget);
             return;
           }
+          if (t && t.id === "backToTop") {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+          }
+
+          var tabGroup = t.getAttribute && t.getAttribute("data-tab-group");
+          var tabTarget = t.getAttribute && t.getAttribute("data-tab-target");
+          if (tabGroup && tabTarget) {
+            var btns = document.querySelectorAll('[data-tab-group="' + tabGroup + '"][data-tab-target]');
+            for (var bi = 0; bi < btns.length; bi++) {
+              btns[bi].classList.remove("active");
+            }
+            t.classList.add("active");
+            var panelsWrap = document.querySelector('[data-tab-panels="' + tabGroup + '"]');
+            if (!panelsWrap) return;
+            var panels = panelsWrap.querySelectorAll(".tab-panel");
+            for (var pi = 0; pi < panels.length; pi++) {
+              panels[pi].classList.remove("active");
+            }
+            var target = document.getElementById(tabTarget);
+            if (target) target.classList.add("active");
+            return;
+          }
         });
+
+        (function bindBackToTop() {
+          var btn = document.getElementById("backToTop");
+          if (!btn) return;
+          function onScroll() {
+            btn.style.display = (window.scrollY || 0) > 600 ? "inline-flex" : "none";
+          }
+          window.addEventListener("scroll", onScroll, { passive: true });
+          onScroll();
+        })();
+
+        // Default: enlarge the full graph for readability (can be overridden by buttons).
+        (function initDefaultGraphZoom() {
+          var wrap = document.getElementById("fullGraphWrap");
+          var svg = wrap && wrap.querySelector && wrap.querySelector("svg.graph");
+          if (!wrap || !svg) return;
+          var baseW = parseFloat(svg.getAttribute("width") || "0");
+          var baseH = parseFloat(svg.getAttribute("height") || "0");
+          if (!baseW || !baseH) return;
+          var z = 1.25;
+          svg.classList.remove("fit");
+          svg.style.width = String(baseW * z) + "px";
+          svg.style.height = String(baseH * z) + "px";
+        })();
+
+        bindScrollSpy();
       })();
     </script>
   </body>
