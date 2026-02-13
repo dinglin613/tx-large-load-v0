@@ -1,0 +1,30 @@
+[
+    {
+      "doc_id": "ERCOT_PLANNING_GUIDE",
+      "title": "ERCOT Planning Guide",
+      "source_url": "https://www.ercot.com/files/docs/2025/01/31/February%201%2C%202025%20Planning%20Guide.pdf",
+      "retrieved_date": "",
+      "effective_date": "",
+      "hash": "",
+      "scope_tags": ["ERCOT", "planning", "interconnection"]
+    },
+    {
+      "doc_id": "ERCOT_LARGE_LOAD",
+      "title": "ERCOT Large Load Integration",
+      "source_url": "https://www.ercot.com/services/rq/large-load-integration",
+      "retrieved_date": "",
+      "effective_date": "",
+      "hash": "",
+      "scope_tags": ["ERCOT", "large_load"]
+    },
+    {
+      "doc_id": "ONCOR_STD_520_106",
+      "title": "Oncor Standard 520-106 (Retail Customer Connection Requirements)",
+      "source_url": "https://www.oncor.com/content/dam/oncorwww/documents/about-us/transmission-system/determining-the-need-for-new-lines/transmission-facility-connection-requirements/Retail%20Customer%20-%20Oncor%20Standard%20520-106%20%28formerly%20500-251%29.pdf.coredownload.pdf",
+      "retrieved_date": "",
+      "effective_date": "",
+      "hash": "",
+      "scope_tags": ["ONCOR", "TDSP", "requirements", "interconnection"]
+    }
+  ]
+  
