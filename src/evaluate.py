@@ -356,6 +356,10 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
     required = required_fields_from_rule(rule)
     dsl = ((rule.get("criteria") or {}).get("dsl") or {})
     is_completeness = dsl.get("kind") == "completeness_check"
+    dsl_kind = str(dsl.get("kind") or "")
+    applicability_fields = dsl.get("applicability_fields") or []
+    if not isinstance(applicability_fields, list):
+        applicability_fields = []
 
     # If rule is explicitly gated on energization, treat it as not applicable unless requesting energization.
     if has_gate_predicate(rule, field="is_requesting_energization", value=True) and req.get("is_requesting_energization") is not True:
@@ -364,6 +368,10 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
             "doc_id": rule.get("doc_id"),
             "loc": rule.get("loc"),
             "trigger_tags": rule.get("trigger_tags") or [],
+            "confidence": rule.get("confidence"),
+            "dsl_kind": dsl_kind,
+            "required_fields": required,
+            "applicability_fields": applicability_fields,
             "status": "not_applicable",
             "missing_fields": [],
             "traces": [],
@@ -384,6 +392,10 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
                         "doc_id": rule.get("doc_id"),
                         "loc": rule.get("loc"),
                         "trigger_tags": rule.get("trigger_tags") or [],
+                        "confidence": rule.get("confidence"),
+                        "dsl_kind": dsl_kind,
+                        "required_fields": required,
+                        "applicability_fields": applicability_fields,
                         "status": "not_applicable",
                         "missing_fields": [],
                         "traces": [f"{field}==True (False) => not_applicable"],
@@ -419,6 +431,10 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
             "doc_id": rule.get("doc_id"),
             "loc": rule.get("loc"),
             "trigger_tags": rule.get("trigger_tags") or [],
+            "confidence": rule.get("confidence"),
+            "dsl_kind": dsl_kind,
+            "required_fields": required,
+            "applicability_fields": applicability_fields,
             "status": "missing" if missing_required else "unknown",
             "missing_fields": missing_required,
             "traces": [],
@@ -437,10 +453,75 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
         "doc_id": rule.get("doc_id"),
         "loc": rule.get("loc"),
         "trigger_tags": rule.get("trigger_tags") or [],
+        "confidence": rule.get("confidence"),
+        "dsl_kind": dsl_kind,
+        "required_fields": required,
+        "applicability_fields": applicability_fields,
         "status": status,
         "missing_fields": missing_all,
         "traces": traces,
     }
+
+
+def dedupe_checklist(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Keep the checklist compact and credible:
+    - Drop rows that don't add actionable requirements (e.g., only gated on is_requesting_energization)
+    - Deduplicate equivalent requirements across docs by preferring Planning Guide citations
+    """
+    doc_pref = {
+        "ERCOT_PLANNING_GUIDE": 0,
+        "ERCOT_LLI_ENERGIZATION_REQUEST": 1,
+        "ERCOT_LARGE_LOAD_QA": 2,
+        "ONCOR_STD_520_106": 3,
+    }
+
+    def _key(it: Dict[str, Any]) -> Tuple[str, Tuple[str, ...], Tuple[str, ...]]:
+        kind = str(it.get("dsl_kind") or "")
+        req_fields = tuple(sorted([str(x) for x in (it.get("required_fields") or []) if x]))
+        app_fields = tuple(sorted([str(x) for x in (it.get("applicability_fields") or []) if x]))
+        return kind, app_fields, req_fields
+
+    def _score(it: Dict[str, Any]) -> Tuple[int, float]:
+        doc = str(it.get("doc_id") or "")
+        pref = doc_pref.get(doc, 99)
+        try:
+            conf = float(it.get("confidence") or 0.0)
+        except Exception:
+            conf = 0.0
+        # lower pref is better; higher confidence is better
+        return pref, -conf
+
+    toggles = {"is_requesting_energization", "sso_required", "dme_required", "is_large_electronic_load"}
+
+    def _is_actionable(it: Dict[str, Any]) -> bool:
+        kind = str(it.get("dsl_kind") or "")
+        req_fields = [str(x) for x in (it.get("required_fields") or []) if x]
+        app_fields = [str(x) for x in (it.get("applicability_fields") or []) if x]
+        if it.get("status") == "not_applicable":
+            return False
+        # Input confirmations are better represented as missing inputs, not checklist rows.
+        if kind == "input_confirmation":
+            return False
+        # Drop composite "roll-up" requirements to keep checklist concise.
+        if len(req_fields) > 3:
+            return False
+        # If it only checks toggles (no real completion/condition), it's not actionable.
+        non_toggle = [f for f in req_fields if f not in toggles and f not in app_fields]
+        return len(non_toggle) > 0
+
+    grouped: Dict[Tuple[str, Tuple[str, ...], Tuple[str, ...]], Dict[str, Any]] = {}
+    for it in items:
+        if not _is_actionable(it):
+            continue
+        k = _key(it)
+        cur = grouped.get(k)
+        if cur is None or _score(it) < _score(cur):
+            grouped[k] = it
+    # Stable output: by doc preference then rule_id.
+    out = list(grouped.values())
+    out.sort(key=lambda x: (doc_pref.get(str(x.get("doc_id") or ""), 99), str(x.get("rule_id") or "")))
+    return out
 
 
 def _summarize_option_eval(ev: Dict[str, Any]) -> Dict[str, Any]:
@@ -573,6 +654,8 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
             # OR when the rule isn't gated (rare).
             if req.get("is_requesting_energization") is True or not has_gate_predicate(r, field="is_requesting_energization", value=True):
                 energization_checklist.append(chk)
+
+    energization_checklist = dedupe_checklist(energization_checklist)
 
     # Missing inputs from completeness-check rules (published)
     for r in all_signal_rules:
