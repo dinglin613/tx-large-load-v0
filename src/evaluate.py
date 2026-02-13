@@ -67,14 +67,44 @@ def index_docs(registry: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
 def doc_provenance_entry(doc: Dict[str, Any]) -> Dict[str, Any]:
     arts = doc.get("artifacts") or []
     # keep it small: for v0 we only need path+sha for audit trail
+    #
+    # If multiple artifacts exist for the same doc_id (e.g., multiple Planning Guide versions),
+    # prefer the artifact that matches the doc-level hash (canonical version).
+    canonical_sha = str(doc.get("hash") or "").strip().lower()
+    if canonical_sha:
+        matched = [
+            a
+            for a in arts
+            if isinstance(a, dict)
+            and a.get("path")
+            and a.get("sha256")
+            and str(a.get("sha256")).strip().lower() == canonical_sha
+        ]
+    else:
+        matched = []
+
+    keep = matched or [
+        a
+        for a in arts
+        if isinstance(a, dict) and a.get("path") and a.get("sha256")
+    ]
+
+    # Stable order: most recent retrieved_date first (if present), then path
+    def _key(a: Dict[str, Any]) -> tuple[str, str]:
+        return (str(a.get("retrieved_date") or ""), str(a.get("path") or ""))
+
+    keep_sorted = sorted(keep, key=_key, reverse=True)
     return {
         "doc_id": doc.get("doc_id"),
         "title": doc.get("title"),
         "effective_date": doc.get("effective_date"),
         "artifacts": [
-            {"path": a.get("path"), "sha256": a.get("sha256")}
-            for a in arts
-            if a.get("path") and a.get("sha256")
+            {
+                "path": a.get("path"),
+                "sha256": a.get("sha256"),
+                "retrieved_date": a.get("retrieved_date"),
+            }
+            for a in keep_sorted
         ],
         "source_url": doc.get("source_url"),
     }
