@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Decision Memo - DC_ONCOR_300MW_Energization_Check_2026Q3</title>
+    <style>
+      body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; line-height: 1.45; }
+      code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .card { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin: 12px 0; }
+      .muted { color: #666; }
+      h1 { font-size: 20px; margin: 0 0 8px 0; }
+      h2 { font-size: 16px; margin: 0 0 10px 0; }
+      pre { background: #f7f7f7; padding: 12px; border-radius: 8px; overflow-x: auto; }
+      ul { margin: 8px 0 0 20px; }
+      .kv { display: grid; grid-template-columns: 220px 1fr; gap: 6px 12px; }
+      .k { color: #444; }
+      .v { color: #111; }
+    </style>
+  </head>
+  <body>
+    <h1>Decision Memo (v0) — DC_ONCOR_300MW_Energization_Check_2026Q3</h1>
+    <div class="muted">Rendered at: <code>2026-02-13T19:39:55.783619+00:00</code></div>
+
+    <div class="card">
+      <h2>1) Input snapshot</h2>
+      <pre>{
+  &quot;project_name&quot;: &quot;DC_ONCOR_300MW_Energization_Check_2026Q3&quot;,
+  &quot;project_type&quot;: &quot;large_load&quot;,
+  &quot;operator_area&quot;: &quot;ERCOT&quot;,
+  &quot;tdsp_area&quot;: &quot;ONCOR&quot;,
+  &quot;load_mw_total&quot;: 300,
+  &quot;energization_plan&quot;: &quot;phased&quot;,
+  &quot;phases&quot;: [
+    {
+      &quot;mw&quot;: 150,
+      &quot;target_window&quot;: &quot;2026Q3&quot;
+    },
+    {
+      &quot;mw&quot;: 150,
+      &quot;target_window&quot;: &quot;2026Q4&quot;
+    }
+  ],
+  &quot;poi_hint&quot;: &quot;Oncor area, new substation likely&quot;,
+  &quot;voltage_options&quot;: [
+    345
+  ],
+  &quot;cod_target_window&quot;: &quot;2026Q3&quot;,
+  &quot;load_profile_type&quot;: &quot;baseload&quot;,
+  &quot;is_new_interconnection&quot;: true,
+  &quot;one_line_diagram&quot;: true,
+  &quot;load_projection_5y&quot;: true,
+  &quot;peak_power_factor&quot;: 0.99,
+  &quot;is_requesting_energization&quot;: true,
+  &quot;llis_completed_and_ercot_approved&quot;: true,
+  &quot;agreements_executed&quot;: false,
+  &quot;financial_security_posted&quot;: false,
+  &quot;nom_included&quot;: false,
+  &quot;material_change_flags&quot;: [
+    &quot;timeline_accelerated&quot;
+  ],
+  &quot;voltage_options_kv&quot;: [
+    345
+  ]
+}</pre>
+    </div>
+
+    <div class="card">
+      <h2>2) Process path (deterministic)</h2>
+      <div class="kv">
+        <div class="k">Path</div>
+        <div class="v"><code>Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) → Facility Review (TDSP) → Risk Flags → Decision Memo</code></div>
+      </div>
+      <ul>
+        <li><code>E0</code>: N0 → N1<br/><small>project_type==large_load (large_load)</small></li>
+<li><code>E1</code>: N1 → N2<br/><small></small></li>
+<li><code>E2</code>: N2 → N3<br/><small>exists(load_mw_total)=True | exists(tdsp_area)=True</small></li>
+<li><code>E3</code>: N3 → N4<br/><small>tdsp_area==ONCOR (ONCOR)</small></li>
+<li><code>E4</code>: N4 → N5<br/><small></small></li>
+<li><code>E5</code>: N5 → N6<br/><small></small></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>3) Missing inputs</h2>
+      <ul>
+        <li>None</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>4) Action levers detected in request</h2>
+      <ul>
+        <li><code>phased_energization</code>: Request includes a phased energization plan (can be used as an option lever).</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>4b) Parallel flags (matched rules)</h2>
+      <p class="muted">These are rule matches that may apply in parallel to the main path (v0 uses simple request predicates).</p>
+      <ul>
+        <li><code>LL_QA_002_SECTION9_APPLICABILITY</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.4, Section 9.2.1 Applicability</span><br/><small>load_mw_total&gt;=75 (300) | is_new_interconnection==True (True)</small></li>
+<li><code>LL_QA_006_MATERIAL_CHANGE</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.7, Planning Guide Section 9.2.3</span><br/><small>any_true(material_change_flags in [&#x27;poi_changed&#x27;, &#x27;timeline_accelerated&#x27;, &#x27;load_type_changed&#x27;, &#x27;control_system_changed&#x27;]) ([&#x27;timeline_accelerated&#x27;])</small></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>4c) Energization readiness checklist</h2>
+      <p class="muted">Shown when <code>is_requesting_energization=true</code>. Statuses: <code>satisfied</code> / <code>missing</code> / <code>not_satisfied</code>.</p>
+      <ul>
+        <li><code>satisfied</code> — <code>LLI_EN_001_WRITTEN_APPROVAL_REQUIRED</code> — <code>ERCOT_LLI_ENERGIZATION_REQUEST</code> — <span class="muted">p.3, approval statement</span><br/><small>is_requesting_energization==True (True)</small></li>
+<li><code>satisfied</code> — <code>LLI_EN_003_LLIS_COMPLETE</code> — <code>ERCOT_LLI_ENERGIZATION_REQUEST</code> — <span class="muted">p.2, checklist item 2</span><br/><small>is_requesting_energization==True (True) | llis_completed_and_ercot_approved==True (True)</small></li>
+<li><code>not_satisfied</code> — <code>LLI_EN_006_AGREEMENTS_AND_SECURITY</code> — <code>ERCOT_LLI_ENERGIZATION_REQUEST</code> — <span class="muted">p.2, agreements checkbox</span><br/><small>is_requesting_energization==True (True) | agreements_executed==True (False)</small></li>
+<li><code>not_satisfied</code> — <code>LLI_EN_011_NETWORK_MODEL</code> — <code>ERCOT_LLI_ENERGIZATION_REQUEST</code> — <span class="muted">p.2, NOMCR section</span><br/><small>is_requesting_energization==True (True) | nom_included==True (False)</small></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>5) Risk buckets (rule-driven only)</h2>
+      <div class="kv">
+        <div class="k">Status</div>
+        <div class="v"><code>rule_driven_v0</code></div>
+        <div class="k">P(≤12 months)</div>
+        <div class="v"><code>down</code></div>
+        <div class="k">P(12–24 months)</div>
+        <div class="v"><code>up</code></div>
+        <div class="k">P(&gt;24 months)</div>
+        <div class="v"><code>up</code></div>
+        <div class="k">Upgrade exposure bucket</div>
+        <div class="v"><code>high</code></div>
+        <div class="k">Operational exposure bucket</div>
+        <div class="v"><code>low</code></div>
+      </div>
+      <p class="muted">
+        Note: v0 intentionally avoids “timeline fortune-telling”. These buckets should only become concrete after you publish a small set of reviewed rules.
+      </p>
+      <h3 style="font-size:14px;margin:12px 0 6px 0;">Evidence (rule citations)</h3>
+      <ul>
+        <li><code>ERCOT_LLI_INTAKE_REQUIRED_DOCS</code> — <code>ERCOT_LLI_ENERGIZATION_REQUEST</code> — <span class="muted">p.1, Instructions (&quot;All fields must be completed... returned to ERCOT, and approved before the Large Load may be...&quot;)</span><br/><small>data_completeness, process_latency</small></li>
+<li><code>LL_QA_003_TSP_INITIATION</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.6, &quot;How does a customer initiate?&quot;</span><br/><small>intake_gate, process_latency</small></li>
+<li><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.7, Planning Guide Section 9.2.2</span><br/><small>commissioning_plan, data_completeness, timeline_dependency</small></li>
+<li><code>LL_QA_005_APPLICATION_FEE</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.7, Planning Guide Section 9.2.2 fee requirement</span><br/><small>fee_requirement, process_latency</small></li>
+<li><code>LL_QA_001_LARGE_LOAD_DEFINITION</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.3, &quot;How does ERCOT define a large load?&quot;</span><br/><small>process_trigger</small></li>
+<li><code>ONC_003_LOAD_PROJECTION</code> — <code>ONCOR_STD_520_106</code> — <span class="muted">Section 4.1.8, p.6</span><br/><small>data_completeness, process_latency, timeline_dependency</small></li>
+<li><code>ONC_004_ONE_LINE_DIAGRAM</code> — <code>ONCOR_STD_520_106</code> — <span class="muted">Section 4.1.6, p.6</span><br/><small>data_completeness, engineering_review, process_latency</small></li>
+<li><code>LL_QA_007_REQUIRED_STUDIES</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.8–9, &quot;What types of reliability studies are required?&quot;</span><br/><small>dynamic_stability, short_circuit, steady_state, study_dependency</small></li>
+<li><code>LL_QA_008_SSO_REQUIRED</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.8, SSO discussion</span><br/><small>dynamic_study, energization_gate, sso, study_dependency</small></li>
+<li><code>ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS</code> — <code>ONCOR_STD_520_106</code> — <span class="muted">p.8, Sec 6.0 &quot;System Protection Requirements&quot; (protection requirements depend on POD/location/line protection)</span><br/><small>protection, upgrade_exposure</small></li>
+<li><code>ONC_001_TRANSMISSION_VOLTAGE_SCOPE</code> — <code>ONCOR_STD_520_106</code> — <span class="muted">Section 1.1, p.1</span><br/><small>transmission_scope</small></li>
+<li><code>ONC_010_NOMCR_APPROVAL</code> — <code>ONCOR_STD_520_106</code> — <span class="muted">Section 3.3.2, p.3</span><br/><small>energization_gate, modeling_requirement, process_latency</small></li>
+<li><code>LL_QA_011_ENERGIZATION_REQUIREMENTS</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.13, Planning Guide Sections 9.5–9.6</span><br/><small>commissioning_plan, energization_gate, financial_security, study_dependency</small></li>
+<li><code>LL_QA_014_365_DAY_RULE</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.15, Planning Guide Section 9.4(10)</span><br/><small>re_study, timeline_risk</small></li>
+<li><code>LLI_EN_001_WRITTEN_APPROVAL_REQUIRED</code> — <code>ERCOT_LLI_ENERGIZATION_REQUEST</code> — <span class="muted">p.3, approval statement</span><br/><small>energization_gate, process_latency</small></li>
+<li><code>LLI_EN_003_LLIS_COMPLETE</code> — <code>ERCOT_LLI_ENERGIZATION_REQUEST</code> — <span class="muted">p.2, checklist item 2</span><br/><small>energization_gate, study_dependency</small></li>
+<li><code>LLI_EN_006_AGREEMENTS_AND_SECURITY</code> — <code>ERCOT_LLI_ENERGIZATION_REQUEST</code> — <span class="muted">p.2, agreements checkbox</span><br/><small>energization_gate, financial_security, process_latency</small></li>
+<li><code>LLI_EN_011_NETWORK_MODEL</code> — <code>ERCOT_LLI_ENERGIZATION_REQUEST</code> — <span class="muted">p.2, NOMCR section</span><br/><small>energization_gate, modeling_requirement</small></li>
+<li><code>LL_QA_002_SECTION9_APPLICABILITY</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.4, Section 9.2.1 Applicability</span><br/><small>modification_trigger, process_trigger</small></li>
+<li><code>LL_QA_006_MATERIAL_CHANGE</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.7, Planning Guide Section 9.2.3</span><br/><small>re_study, timeline_risk</small></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>6) Provenance</h2>
+      <div class="kv">
+        <div class="k">Graph version</div>
+        <div class="v"><code>0.1</code></div>
+        <div class="k">Rules source</div>
+        <div class="v"><code>rules/published.jsonl</code></div>
+      </div>
+      <h3 style="font-size:14px;margin:12px 0 6px 0;">Document artifacts (path + sha256)</h3>
+      <ul>
+        <li><code>ERCOT_LARGE_LOAD_QA</code> — ERCOT Large Load Interconnection Process Q&amp;A <span class="muted">(2025-06-01)</span><br/><small class="muted">https://www.ercot.com/services/rq/large-load-integration</small><ul><li><code>docs/raw/ERCOT_LARGE_LOAD_QA__2025-06-01.pdf</code><br/><small>e1fba2a7986a8de346331fb6dbc28897b3371d96e621e0a3e69ca90fc14d22f0</small></li></ul></li>
+<li><code>ERCOT_LLI_ENERGIZATION_REQUEST</code> — ERCOT Large Load Integration - Standalone Energization Request <span class="muted">(2025-07-07)</span><br/><small class="muted">https://www.ercot.com/services/rq/large-load-integration</small><ul><li><code>docs/raw/ERCOT_LLI_ENERGIZATION_REQUEST__2025-07-07.pdf</code><br/><small>86f5154a132c060ae9164d0dacf327f8a2b3daead289c9e03c2f099ddd66d87e</small></li></ul></li>
+<li><code>ONCOR_STD_520_106</code> — Oncor Standard 520-106 (Retail Customer Connection Requirements) <span class="muted">()</span><br/><small class="muted">https://www.oncor.com/content/dam/oncorwww/documents/about-us/transmission-system/determining-the-need-for-new-lines/transmission-facility-connection-requirements/Retail%20Customer%20-%20Oncor%20Standard%20520-106%20%28formerly%20500-251%29.pdf.coredownload.pdf</small><ul><li><code>docs/raw/ONCOR_STD_520_106__2023-01-01.pdf</code><br/><small>eca927c9faad4bd6d77bcf95b5179e7b00ec42f24ed28c38b0e9782977dc022d</small></li></ul></li>
+      </ul>
+    </div>
+  </body>
+</html>
