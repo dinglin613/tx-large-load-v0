@@ -1,0 +1,81 @@
+version: "0.1"
+operator_stack:
+  - ERCOT
+  - TDSP
+  - POI
+
+nodes:
+  - id: N0
+    label: Intake
+  - id: N1
+    label: Large Load Intake (ERCOT)
+  - id: N2
+    label: Completeness Check
+  - id: N3
+    label: Study Path (ERCOT)
+  - id: N4
+    label: Facility Review (TDSP)
+  - id: N5
+    label: Risk Flags
+  - id: N6
+    label: Decision Memo
+
+edges:
+  - id: E0
+    from: N0
+    to: N1
+    criteria:
+      - op: equals
+        field: project_type
+        value: large_load
+    rule_ids: []
+
+  - id: E1
+    from: N1
+    to: N2
+    criteria: []
+    rule_ids:
+      - ERCOT_LLI_INTAKE_REQUIRED_DOCS_TBD
+
+  - id: E2
+    from: N2
+    to: N3
+    criteria:
+      - op: exists
+        field: load_mw_total
+      - op: exists
+        field: tdsp_area
+    rule_ids: []
+
+  - id: E3
+    from: N3
+    to: N4
+    criteria:
+      - op: equals
+        field: tdsp_area
+        value: ONCOR
+    rule_ids: []
+
+  - id: E4
+    from: N4
+    to: N5
+    criteria: []
+    rule_ids:
+      - ONCOR_520_106_PROTECTION_SHORT_CIRCUIT_TBD
+
+  - id: E5
+    from: N5
+    to: N6
+    criteria: []
+    rule_ids: []
+
+levers_catalog:
+  - lever_id: phased_energization
+    label: Phased energization plan
+    request_fields:
+      - energization_plan
+      - phases
+  - lever_id: voltage_level_choice
+    label: POI voltage level choice
+    request_fields:
+      - voltage_options_kv

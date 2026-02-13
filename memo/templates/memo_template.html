@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Decision Memo - {{project_name}}</title>
+    <style>
+      body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; line-height: 1.45; }
+      code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .card { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin: 12px 0; }
+      .muted { color: #666; }
+      h1 { font-size: 20px; margin: 0 0 8px 0; }
+      h2 { font-size: 16px; margin: 0 0 10px 0; }
+      pre { background: #f7f7f7; padding: 12px; border-radius: 8px; overflow-x: auto; }
+      ul { margin: 8px 0 0 20px; }
+      .kv { display: grid; grid-template-columns: 220px 1fr; gap: 6px 12px; }
+      .k { color: #444; }
+      .v { color: #111; }
+    </style>
+  </head>
+  <body>
+    <h1>Decision Memo (v0) — {{project_name}}</h1>
+    <div class="muted">Rendered at: <code>{{rendered_at}}</code></div>
+
+    <div class="card">
+      <h2>1) Input snapshot</h2>
+      <pre>{{request_json}}</pre>
+    </div>
+
+    <div class="card">
+      <h2>2) Process path (deterministic)</h2>
+      <div class="kv">
+        <div class="k">Path</div>
+        <div class="v"><code>{{path}}</code></div>
+      </div>
+      <ul>
+        {{edges_html}}
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>3) Missing inputs</h2>
+      <ul>
+        {{missing_html}}
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>4) Action levers detected in request</h2>
+      <ul>
+        {{levers_html}}
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>5) Risk buckets (rule-driven only)</h2>
+      <div class="kv">
+        <div class="k">Status</div>
+        <div class="v"><code>{{risk_status}}</code></div>
+        <div class="k">P(≤12 months)</div>
+        <div class="v"><code>{{bucket_le_12}}</code></div>
+        <div class="k">P(12–24 months)</div>
+        <div class="v"><code>{{bucket_12_24}}</code></div>
+        <div class="k">P(&gt;24 months)</div>
+        <div class="v"><code>{{bucket_gt_24}}</code></div>
+        <div class="k">Upgrade exposure bucket</div>
+        <div class="v"><code>{{upgrade_exposure}}</code></div>
+      </div>
+      <p class="muted">
+        Note: v0 intentionally avoids “timeline fortune-telling”. These buckets should only become concrete after you publish a small set of reviewed rules.
+      </p>
+      <h3 style="font-size:14px;margin:12px 0 6px 0;">Evidence (rule citations)</h3>
+      <ul>
+        {{evidence_html}}
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>6) Provenance</h2>
+      <div class="kv">
+        <div class="k">Graph version</div>
+        <div class="v"><code>{{graph_version}}</code></div>
+        <div class="k">Rules source</div>
+        <div class="v"><code>{{rules_source}}</code></div>
+      </div>
+    </div>
+  </body>
+</html>

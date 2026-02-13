@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rule Entry (v0)",
+  "type": "object",
+  "required": ["rule_id", "operator_stack", "doc_id", "loc", "stage", "criteria", "review_status", "version"],
+  "properties": {
+    "rule_id": { "type": "string", "minLength": 1 },
+    "operator_stack": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "doc_id": { "type": "string", "minLength": 1 },
+    "loc": { "type": "string", "minLength": 1 },
+    "stage": { "type": "string", "minLength": 1 },
+    "study_type": { "type": "string" },
+    "criteria": {
+      "type": "object",
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1 },
+        "dsl": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "trigger_tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "review_status": { "type": "string", "enum": ["draft", "reviewed", "published"] },
+    "review_notes": { "type": "string" },
+    "version": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": true
+}

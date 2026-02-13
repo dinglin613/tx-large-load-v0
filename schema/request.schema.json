@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Large Load Request (v0)",
+  "type": "object",
+  "required": ["project_name", "project_type", "operator_area", "tdsp_area", "load_mw_total"],
+  "properties": {
+    "project_name": { "type": "string", "minLength": 1 },
+    "project_type": { "type": "string", "enum": ["large_load"] },
+    "operator_area": { "type": "string", "enum": ["ERCOT"] },
+    "tdsp_area": { "type": "string", "minLength": 1 },
+    "load_mw_total": { "type": "number", "exclusiveMinimum": 0 },
+    "energization_plan": { "type": "string", "enum": ["single", "phased"] },
+    "phases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["mw", "target_window"],
+        "properties": {
+          "mw": { "type": "number", "exclusiveMinimum": 0 },
+          "target_window": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "poi_hint": { "type": "string" },
+    "voltage_options_kv": {
+      "type": "array",
+      "items": { "type": "number", "exclusiveMinimum": 0 }
+    },
+    "cod_target_window": { "type": "string" },
+    "load_profile_type": { "type": "string", "enum": ["baseload", "ramp", "variable", "unknown"] }
+  },
+  "additionalProperties": true
+}
