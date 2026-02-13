@@ -54,7 +54,12 @@ def doc_provenance_entry(doc: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def get_field(req: Dict[str, Any], field: str) -> Any:
-    return req.get(field)
+    # Backward/alias support for request fields
+    if field in req:
+        return req.get(field)
+    if field == "voltage_options_kv" and "voltage_options" in req:
+        return req.get("voltage_options")
+    return None
 
 
 def load_published_rules() -> Dict[str, Dict[str, Any]]:
@@ -74,10 +79,20 @@ def load_published_rules() -> Dict[str, Dict[str, Any]]:
 
 def required_fields_from_rule(rule: Dict[str, Any]) -> List[str]:
     dsl = ((rule.get("criteria") or {}).get("dsl") or {})
+    # Generic required_fields (works for any rule type)
+    generic = dsl.get("required_fields") or []
+    out: List[str] = [str(x) for x in generic] if isinstance(generic, list) else []
     if dsl.get("kind") == "completeness_check":
         rf = dsl.get("required_fields") or []
-        return [str(x) for x in rf]
-    return []
+        out.extend([str(x) for x in rf])
+    # dedupe while preserving order
+    seen = set()
+    uniq: List[str] = []
+    for x in out:
+        if x not in seen:
+            seen.add(x)
+            uniq.append(x)
+    return uniq
 
 
 def risk_from_matched_rules(req: Dict[str, Any], matched_rules: List[Dict[str, Any]], missing_inputs: List[str]) -> Dict[str, Any]:
@@ -196,50 +211,73 @@ def risk_from_matched_rules(req: Dict[str, Any], matched_rules: List[Dict[str, A
         "evidence": evidence,
     }
 
-def eval_pred(req: Dict[str, Any], pred: Dict[str, Any]) -> Tuple[bool, str]:
+def eval_pred(req: Dict[str, Any], pred: Dict[str, Any]) -> Tuple[bool, str, List[str]]:
     op = pred.get("op")
     field = pred.get("field")
     if not op:
-        return False, "missing op"
+        return False, "missing op", []
+    # aliases
+    if op == "eq":
+        op = "equals"
     if op == "exists":
         if not field:
-            return False, "missing field"
+            return False, "missing field", []
         v = get_field(req, field)
         ok = v is not None and v != "" and v != []
-        return ok, f"exists({field})={ok}"
+        missing = [field] if not ok else []
+        return ok, f"exists({field})={ok}", missing
     if op == "equals":
         if not field:
-            return False, "missing field"
+            return False, "missing field", []
         v = get_field(req, field)
+        if v is None:
+            return False, f"{field} missing", [field]
         ok = v == pred.get("value")
-        return ok, f"{field}=={pred.get('value')} ({v})"
+        return ok, f"{field}=={pred.get('value')} ({v})", []
     if op == "gte":
         if not field:
-            return False, "missing field"
+            return False, "missing field", []
         v = get_field(req, field)
+        if v is None:
+            return False, f"{field} missing", [field]
         try:
             ok = float(v) >= float(pred.get("value"))
         except Exception:
-            return False, f"gte({field}) invalid numeric"
-        return ok, f"{field}>={pred.get('value')} ({v})"
+            return False, f"gte({field}) invalid numeric", []
+        return ok, f"{field}>={pred.get('value')} ({v})", []
     if op == "any_of":
         if not field:
-            return False, "missing field"
+            return False, "missing field", []
         v = get_field(req, field)
-        options = pred.get("values") or []
+        if v is None:
+            return False, f"{field} missing", [field]
+        options = pred.get("values") or pred.get("value") or []
         ok = v in options
-        return ok, f"{field} in {options} ({v})"
-    return False, f"unknown op: {op}"
+        return ok, f"{field} in {options} ({v})", []
+    if op == "any_true":
+        if not field:
+            return False, "missing field", []
+        v = get_field(req, field)
+        if v is None:
+            return False, f"{field} missing", [field]
+        if not isinstance(v, list):
+            return False, f"{field} not a list", []
+        options = pred.get("value") or pred.get("values") or []
+        ok = any(x in options for x in v)
+        return ok, f"any_true({field} in {options}) ({v})", []
+    return False, f"unknown op: {op}", []
 
 
-def criteria_satisfied(req: Dict[str, Any], preds: List[Dict[str, Any]]) -> Tuple[bool, List[str]]:
+def criteria_satisfied(req: Dict[str, Any], preds: List[Dict[str, Any]]) -> Tuple[bool, List[str], List[str]]:
     traces: List[str] = []
+    missing: List[str] = []
     for p in preds or []:
-        ok, msg = eval_pred(req, p)
+        ok, msg, missing_fields = eval_pred(req, p)
         traces.append(msg)
+        missing.extend(missing_fields)
         if not ok:
-            return False, traces
-    return True, traces
+            return False, traces, sorted(set(missing))
+    return True, traces, sorted(set(missing))
 
 
 def rule_predicates(rule: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -254,10 +292,90 @@ def rule_matches_request(rule: Dict[str, Any], req: Dict[str, Any]) -> Tuple[boo
     preds = rule_predicates(rule)
     if not preds:
         return False, []
-    return criteria_satisfied(req, preds)
+    ok, traces, _missing = criteria_satisfied(req, preds)
+    return ok, traces
+
+
+def normalize_request(req: Dict[str, Any]) -> Dict[str, Any]:
+    # Make test/demo inputs forgiving.
+    r = dict(req)
+    if "project_type" not in r and r.get("operator_area") == "ERCOT":
+        r["project_type"] = "large_load"
+    if "voltage_options_kv" not in r and isinstance(r.get("voltage_options"), list):
+        r["voltage_options_kv"] = r["voltage_options"]
+    return r
+
+
+def has_gate_predicate(rule: Dict[str, Any], *, field: str, value: Any = True) -> bool:
+    for p in rule_predicates(rule):
+        op = p.get("op")
+        if op == "eq":
+            op = "equals"
+        if op == "equals" and p.get("field") == field and p.get("value") == value:
+            return True
+    return False
+
+
+def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Evaluate a rule with predicates into a tri-state:
+      - satisfied
+      - missing (some required fields absent)
+      - not_satisfied
+      - not_applicable (explicit gate predicate disables it)
+    """
+    rid = rule.get("rule_id")
+    preds = rule_predicates(rule)
+    required = required_fields_from_rule(rule)
+
+    # If rule is explicitly gated on energization, treat it as not applicable unless requesting energization.
+    if has_gate_predicate(rule, field="is_requesting_energization", value=True) and req.get("is_requesting_energization") is not True:
+        return {
+            "rule_id": rid,
+            "doc_id": rule.get("doc_id"),
+            "loc": rule.get("loc"),
+            "trigger_tags": rule.get("trigger_tags") or [],
+            "status": "not_applicable",
+            "missing_fields": [],
+            "traces": [],
+        }
+
+    # Missing required fields (generic + completeness_check)
+    missing_required = [f for f in required if req.get(f) in (None, "", [])]
+
+    if not preds:
+        # No predicates => cannot evaluate satisfied/not_satisfied; report missing if required fields exist.
+        return {
+            "rule_id": rid,
+            "doc_id": rule.get("doc_id"),
+            "loc": rule.get("loc"),
+            "trigger_tags": rule.get("trigger_tags") or [],
+            "status": "missing" if missing_required else "unknown",
+            "missing_fields": missing_required,
+            "traces": [],
+        }
+
+    ok, traces, missing_from_preds = criteria_satisfied(req, preds)
+    missing_all = sorted(set(missing_required + missing_from_preds))
+
+    if missing_all:
+        status = "missing"
+    else:
+        status = "satisfied" if ok else "not_satisfied"
+
+    return {
+        "rule_id": rid,
+        "doc_id": rule.get("doc_id"),
+        "loc": rule.get("loc"),
+        "trigger_tags": rule.get("trigger_tags") or [],
+        "status": status,
+        "missing_fields": missing_all,
+        "traces": traces,
+    }
 
 
 def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any]) -> Dict[str, Any]:
+    req = normalize_request(req)
     edges: List[Dict[str, Any]] = graph.get("edges") or []
     nodes_by_id = {n.get("id"): n for n in (graph.get("nodes") or [])}
     rules_by_id = load_published_rules()
@@ -277,15 +395,12 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any]) -> Dict[str, Any]
         chosen = None
         chosen_traces: List[str] = []
         for e in outgoing:
-            ok, traces = criteria_satisfied(req, e.get("criteria") or [])
+            ok, traces, missing_fields = criteria_satisfied(req, e.get("criteria") or [])
             if ok:
                 chosen = e
                 chosen_traces = traces
                 break
-            # collect missing fields for "exists" predicates that failed
-            for p in e.get("criteria") or []:
-                if p.get("op") == "exists" and p.get("field") and not get_field(req, p["field"]):
-                    missing_inputs.append(p["field"])
+            missing_inputs.extend(missing_fields)
         if chosen is None:
             break
 
@@ -352,9 +467,42 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any]) -> Dict[str, Any]
 
     all_signal_rules = matched_rules + flagged_rules
 
+    # Rule checks (predicate-backed), for memo-grade checklists.
+    rule_checks: List[Dict[str, Any]] = []
+    energization_checklist: List[Dict[str, Any]] = []
+
+    for rid, r in rules_by_id.items():
+        if not rule_predicates(r) and not required_fields_from_rule(r):
+            continue
+        chk = eval_rule_tri_state(r, req)
+        rule_checks.append(chk)
+
+        tags = set(r.get("trigger_tags") or [])
+        stage = str(r.get("stage") or "")
+        if ("energization_gate" in tags) or (stage.lower() == "energization"):
+            # Only show energization checklist when user is explicitly requesting energization,
+            # OR when the rule isn't gated (rare).
+            if req.get("is_requesting_energization") is True or not has_gate_predicate(r, field="is_requesting_energization", value=True):
+                energization_checklist.append(chk)
+
     # Missing inputs from completeness-check rules (published)
     for r in all_signal_rules:
-        for f in required_fields_from_rule(r):
+        rf = required_fields_from_rule(r)
+        if not rf:
+            continue
+
+        dsl = ((r.get("criteria") or {}).get("dsl") or {})
+        is_completeness = dsl.get("kind") == "completeness_check"
+        if not is_completeness:
+            # Only enforce non-completeness required_fields when the rule is "in play".
+            preds = rule_predicates(r)
+            if preds:
+                ok, _tr, _miss = criteria_satisfied(req, preds)
+                if not ok:
+                    # Special-case energization gates: only relevant when requesting energization.
+                    if has_gate_predicate(r, field="is_requesting_energization", value=True) and req.get("is_requesting_energization") is not True:
+                        continue
+        for f in rf:
             if req.get(f) in (None, "", []):
                 missing_inputs.append(f)
 
@@ -376,6 +524,8 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any]) -> Dict[str, Any]
         "missing_inputs": sorted(set(missing_inputs)),
         "levers": levers,
         "flags": flags,
+        "rule_checks": rule_checks,
+        "energization_checklist": energization_checklist,
         "risk": risk,
         "provenance": {
             "doc_registry_count": len(load_doc_registry()),

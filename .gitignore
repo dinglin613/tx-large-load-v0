@@ -8,10 +8,18 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Outputs
-memo/outputs/
-docs/raw/
-docs/snapshots/
+# Outputs (ignore generated data but keep publishable html)
+
+# ignore everything
+memo/outputs/*
+
+# keep folder structure
+!memo/outputs/
+!memo/outputs/**/
+
+# allow html reports to be shared
+!memo/outputs/**/*.html
+
 
 # Local notes
 *.log

@@ -27,6 +27,10 @@
       "type": "array",
       "items": { "type": "number", "exclusiveMinimum": 0 }
     },
+    "voltage_options": {
+      "type": "array",
+      "items": { "type": "number", "exclusiveMinimum": 0 }
+    },
     "cod_target_window": { "type": "string" },
     "load_profile_type": { "type": "string", "enum": ["baseload", "ramp", "variable", "unknown"] }
   },
