@@ -60,6 +60,27 @@ def promote(
     print(json.dumps({"moved": moved, "from": str(from_path), "to": str(to_path)}, ensure_ascii=False))
 
 
+def validate_for_publish(rule: Dict[str, Any]) -> List[str]:
+    errs: List[str] = []
+    loc = str(rule.get("loc", "")).strip()
+    if (not loc) or ("tbd" in loc.lower()):
+        errs.append("loc_missing_or_tbd")
+
+    conf = rule.get("confidence", None)
+    try:
+        conf_f = float(conf)
+    except Exception:
+        conf_f = -1.0
+    if conf_f < 0.7:
+        errs.append("confidence_lt_0_7")
+
+    tags = rule.get("trigger_tags") or []
+    if not isinstance(tags, list) or len(tags) == 0:
+        errs.append("trigger_tags_empty")
+
+    return errs
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Minimal rule review/publish gate")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -73,6 +94,18 @@ def main() -> int:
     p_pub.add_argument("--rule-id", action="append", required=True)
     p_pub.add_argument("--reviewer", default="unknown")
     p_pub.add_argument("--note", default="")
+    p_pub.add_argument("--allow-unsafe", action="store_true", help="Bypass v0 publish quality checks")
+
+    p_review_all = sub.add_parser("review-all", help="promote all drafts -> reviewed")
+    p_review_all.add_argument("--reviewer", default="unknown")
+    p_review_all.add_argument("--note", default="")
+
+    p_pub_all = sub.add_parser("publish-all", help="promote all reviewed -> published")
+    p_pub_all.add_argument("--reviewer", default="unknown")
+    p_pub_all.add_argument("--note", default="")
+    p_pub_all.add_argument("--allow-unsafe", action="store_true", help="Bypass v0 publish quality checks")
+
+    p_check = sub.add_parser("check-published", help="validate current published rule set")
 
     args = ap.parse_args()
 
@@ -88,6 +121,21 @@ def main() -> int:
         return 0
 
     if args.cmd == "publish":
+        if not args.allow_unsafe:
+            reviewed = read_jsonl(RULES_DIR / "reviewed.jsonl")
+            reviewed_by_id = index_by_rule_id(reviewed)
+            bad: Dict[str, List[str]] = {}
+            for rid in args.rule_id:
+                r = reviewed_by_id.get(rid)
+                if not r:
+                    continue
+                errs = validate_for_publish(r)
+                if errs:
+                    bad[rid] = errs
+            if bad:
+                print(json.dumps({"publish_blocked": bad}, ensure_ascii=False, indent=2))
+                return 3
+
         promote(
             from_path=RULES_DIR / "reviewed.jsonl",
             to_path=RULES_DIR / "published.jsonl",
@@ -96,6 +144,59 @@ def main() -> int:
             reviewer=args.reviewer,
             note=args.note,
         )
+        return 0
+
+    if args.cmd == "review-all":
+        drafts = read_jsonl(RULES_DIR / "drafts.jsonl")
+        rule_ids = {str(r.get("rule_id")) for r in drafts if r.get("rule_id")}
+        promote(
+            from_path=RULES_DIR / "drafts.jsonl",
+            to_path=RULES_DIR / "reviewed.jsonl",
+            rule_ids=rule_ids,
+            new_status="reviewed",
+            reviewer=args.reviewer,
+            note=args.note,
+        )
+        return 0
+
+    if args.cmd == "publish-all":
+        reviewed = read_jsonl(RULES_DIR / "reviewed.jsonl")
+        rule_ids = [str(r.get("rule_id")) for r in reviewed if r.get("rule_id")]
+        if not args.allow_unsafe:
+            bad: Dict[str, List[str]] = {}
+            for rid in rule_ids:
+                r = next((x for x in reviewed if str(x.get("rule_id")) == rid), None)
+                if not r:
+                    continue
+                errs = validate_for_publish(r)
+                if errs:
+                    bad[rid] = errs
+            if bad:
+                print(json.dumps({"publish_blocked": bad}, ensure_ascii=False, indent=2))
+                return 3
+
+        promote(
+            from_path=RULES_DIR / "reviewed.jsonl",
+            to_path=RULES_DIR / "published.jsonl",
+            rule_ids=set(rule_ids),
+            new_status="published",
+            reviewer=args.reviewer,
+            note=args.note,
+        )
+        return 0
+
+    if args.cmd == "check-published":
+        published = read_jsonl(RULES_DIR / "published.jsonl")
+        bad: Dict[str, List[str]] = {}
+        for r in published:
+            rid = str(r.get("rule_id", ""))
+            errs = validate_for_publish(r)
+            if rid and errs:
+                bad[rid] = errs
+        if bad:
+            print(json.dumps({"published_invalid": bad}, ensure_ascii=False, indent=2))
+            return 4
+        print(json.dumps({"published_ok": True, "count": len(published)}, ensure_ascii=False))
         return 0
 
     return 2

@@ -24,6 +24,14 @@ This scans `docs/raw/`, matches known filenames to the docs in `registry/doc_reg
 python src/ingest.py
 ```
 
+### Find page/loc fast (PDF search)
+
+Use this to locate keywords and get page numbers while writing rules:
+
+```bash
+python src/pdf_search.py --pdf "docs/raw/ERCOT_LARGE_LOAD_QA__2025-06-01.pdf" --re "Load Commissioning Plan|Survey"
+```
+
 ### Evaluate + render memo (v0)
 
 ```bash

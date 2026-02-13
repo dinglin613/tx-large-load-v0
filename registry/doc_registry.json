@@ -14,7 +14,7 @@
     "artifacts": [
       {
         "kind": "pdf",
-        "path": "docs/raw/February 1, 2025 Planning Guide.pdf",
+        "path": "docs/raw/ERCOT_PLANNING_GUIDE__2025-02-01.pdf",
         "sha256": "6f47851f6a8fdca83f286675b5269894e7a6345279cb386ca2e0123a11718564",
         "size_bytes": 910500,
         "retrieved_date": "2026-02-12"
@@ -22,11 +22,11 @@
     ]
   },
   {
-    "doc_id": "ERCOT_LARGE_LOAD",
-    "title": "ERCOT Large Load Integration",
+    "doc_id": "ERCOT_LARGE_LOAD_QA",
+    "title": "ERCOT Large Load Interconnection Process Q&A",
     "source_url": "https://www.ercot.com/services/rq/large-load-integration",
     "retrieved_date": "2026-02-12",
-    "effective_date": "",
+    "effective_date": "2025-06-01",
     "hash": "E1FBA2A7986A8DE346331FB6DBC28897B3371D96E621E0A3E69CA90FC14D22F0",
     "scope_tags": [
       "ERCOT",
@@ -35,16 +35,54 @@
     "artifacts": [
       {
         "kind": "pdf",
-        "path": "docs/raw/Large-Load-Interconnection-Process-Q-A.pdf",
+        "path": "docs/raw/ERCOT_LARGE_LOAD_QA__2025-06-01.pdf",
         "sha256": "e1fba2a7986a8de346331fb6dbc28897b3371d96e621e0a3e69ca90fc14d22f0",
         "size_bytes": 246070,
         "retrieved_date": "2026-02-12"
-      },
+      }
+    ]
+  },
+  {
+    "doc_id": "ERCOT_LLI_ENERGIZATION_REQUEST",
+    "title": "ERCOT Large Load Integration - Standalone Energization Request",
+    "source_url": "https://www.ercot.com/services/rq/large-load-integration",
+    "retrieved_date": "2026-02-12",
+    "effective_date": "2025-07-07",
+    "hash": "86F5154A132C060AE9164D0DACF327F8A2B3DAEAD289C9E03C2F099DDD66D87E",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "energization"
+    ],
+    "artifacts": [
       {
         "kind": "pdf",
-        "path": "docs/raw/LLI_Standalone_Energization_Request_20250707.pdf",
+        "path": "docs/raw/ERCOT_LLI_ENERGIZATION_REQUEST__2025-07-07.pdf",
         "sha256": "86f5154a132c060ae9164d0dacf327f8a2b3daead289c9e03c2f099ddd66d87e",
         "size_bytes": 101153,
+        "retrieved_date": "2026-02-12"
+      }
+    ]
+  },
+  {
+    "doc_id": "ERCOT_DWG_PROCEDURE_MANUAL",
+    "title": "ERCOT DWG Procedure Manual",
+    "source_url": "",
+    "retrieved_date": "2026-02-12",
+    "effective_date": "Rev22",
+    "hash": "ae06a6e49db4fc29ff3cc211461c6173a234d14c8ae9a56d31014a025b7e29d0",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "dwg",
+      "procedure_manual"
+    ],
+    "artifacts": [
+      {
+        "kind": "pdf",
+        "path": "docs/raw/ERCOT_DWG_PROCEDURE_MANUAL__Rev22.pdf",
+        "sha256": "ae06a6e49db4fc29ff3cc211461c6173a234d14c8ae9a56d31014a025b7e29d0",
+        "size_bytes": 1108920,
         "retrieved_date": "2026-02-12"
       }
     ]
@@ -65,7 +103,7 @@
     "artifacts": [
       {
         "kind": "pdf",
-        "path": "docs/raw/Retail Customer - Oncor Standard 520-106 (formerly 500-251).pdf",
+        "path": "docs/raw/ONCOR_STD_520_106__2023-01-01.pdf",
         "sha256": "eca927c9faad4bd6d77bcf95b5179e7b00ec42f24ed28c38b0e9782977dc022d",
         "size_bytes": 601808,
         "retrieved_date": "2026-02-13"

@@ -35,7 +35,10 @@ edges:
     to: N2
     criteria: []
     rule_ids:
-      - ERCOT_LLI_INTAKE_REQUIRED_DOCS_TBD
+      - ERCOT_LLI_INTAKE_REQUIRED_DOCS
+      - LL_QA_003_TSP_INITIATION
+      - LL_QA_004_LOAD_COMMISSIONING_PLAN
+      - LL_QA_005_APPLICATION_FEE
 
   - id: E2
     from: N2
@@ -45,7 +48,10 @@ edges:
         field: load_mw_total
       - op: exists
         field: tdsp_area
-    rule_ids: []
+    rule_ids:
+      - LL_QA_001_LARGE_LOAD_DEFINITION
+      - ONC_003_LOAD_PROJECTION
+      - ONC_004_ONE_LINE_DIAGRAM
 
   - id: E3
     from: N3
@@ -54,20 +60,30 @@ edges:
       - op: equals
         field: tdsp_area
         value: ONCOR
-    rule_ids: []
+    rule_ids:
+      - LL_QA_007_REQUIRED_STUDIES
+      - LL_QA_008_SSO_REQUIRED
 
   - id: E4
     from: N4
     to: N5
     criteria: []
     rule_ids:
-      - ONCOR_520_106_PROTECTION_SHORT_CIRCUIT_TBD
+      - ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS
+      - ONC_001_TRANSMISSION_VOLTAGE_SCOPE
+      - ONC_010_NOMCR_APPROVAL
 
   - id: E5
     from: N5
     to: N6
     criteria: []
-    rule_ids: []
+    rule_ids:
+      - LL_QA_011_ENERGIZATION_REQUIREMENTS
+      - LL_QA_014_365_DAY_RULE
+      - LLI_EN_001_WRITTEN_APPROVAL_REQUIRED
+      - LLI_EN_003_LLIS_COMPLETE
+      - LLI_EN_006_AGREEMENTS_AND_SECURITY
+      - LLI_EN_011_NETWORK_MODEL
 
 levers_catalog:
   - lever_id: phased_energization

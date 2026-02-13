@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -29,16 +28,11 @@ def sha256_file(p: Path, chunk_size: int = 1024 * 1024) -> str:
     return h.hexdigest()
 
 
-@dataclass(frozen=True)
-class MatchRule:
-    doc_id: str
-    filename_contains: Tuple[str, ...]
-
-
-DEFAULT_MATCH_RULES: List[MatchRule] = [
-    MatchRule("ERCOT_PLANNING_GUIDE", ("Planning Guide",)),
-    MatchRule("ERCOT_LARGE_LOAD", ("Large-Load-Interconnection-Process", "LLI_Standalone_Energization_Request")),
-    MatchRule("ONCOR_STD_520_106", ("Oncor Standard 520-106", "520-106", "500-251")),
+LEGACY_FILENAME_CONTAINS: List[Tuple[str, Tuple[str, ...]]] = [
+    ("ERCOT_PLANNING_GUIDE", ("Planning Guide",)),
+    ("ERCOT_LARGE_LOAD_QA", ("Large-Load-Interconnection-Process",)),
+    ("ERCOT_LLI_ENERGIZATION_REQUEST", ("LLI_Standalone_Energization_Request",)),
+    ("ONCOR_STD_520_106", ("Oncor Standard 520-106", "520-106", "500-251")),
 ]
 
 
@@ -91,11 +85,23 @@ def upsert_artifact(doc: Dict[str, Any], *, kind: str, path: Path) -> None:
     a["retrieved_date"] = a.get("retrieved_date") or _iso_date_from_mtime(path)
 
 
-def match_doc_id(filename: str, match_rules: List[MatchRule]) -> Optional[str]:
+def doc_id_from_filename_prefix(filename: str) -> str:
+    # Convention: DOC_ID__YYYY-MM-DD.pdf or DOC_ID__RevXX.pdf
+    stem = Path(filename).stem
+    return stem.split("__", 1)[0]
+
+
+def match_doc_id(filename: str, known_doc_ids: Set[str]) -> Optional[str]:
+    # 1) Preferred: exact prefix match to doc_id
+    prefix = doc_id_from_filename_prefix(filename)
+    if prefix in known_doc_ids:
+        return prefix
+
+    # 2) Fallback: legacy token match
     name = filename.lower()
-    for r in match_rules:
-        if any(token.lower() in name for token in r.filename_contains):
-            return r.doc_id
+    for doc_id, tokens in LEGACY_FILENAME_CONTAINS:
+        if doc_id in known_doc_ids and any(t.lower() in name for t in tokens):
+            return doc_id
     return None
 
 
@@ -107,6 +113,7 @@ def main() -> int:
 
     registry = load_registry()
     by_id = index_registry(registry)
+    known_doc_ids = set(by_id.keys())
 
     raw_files = sorted([p for p in DOCS_RAW_DIR.glob("**/*") if p.is_file()])
     if not raw_files:
@@ -117,7 +124,7 @@ def main() -> int:
     updated_docs: set[str] = set()
 
     for p in raw_files:
-        doc_id = match_doc_id(p.name, DEFAULT_MATCH_RULES)
+        doc_id = match_doc_id(p.name, known_doc_ids)
         if doc_id is None or doc_id not in by_id:
             unregistered.append(p)
             continue

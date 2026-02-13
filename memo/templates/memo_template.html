@@ -53,6 +53,14 @@
     </div>
 
     <div class="card">
+      <h2>4b) Parallel flags (matched rules)</h2>
+      <p class="muted">These are rule matches that may apply in parallel to the main path (v0 uses simple request predicates).</p>
+      <ul>
+        {{flags_html}}
+      </ul>
+    </div>
+
+    <div class="card">
       <h2>5) Risk buckets (rule-driven only)</h2>
       <div class="kv">
         <div class="k">Status</div>
@@ -65,6 +73,8 @@
         <div class="v"><code>{{bucket_gt_24}}</code></div>
         <div class="k">Upgrade exposure bucket</div>
         <div class="v"><code>{{upgrade_exposure}}</code></div>
+        <div class="k">Operational exposure bucket</div>
+        <div class="v"><code>{{operational_exposure}}</code></div>
       </div>
       <p class="muted">
         Note: v0 intentionally avoids “timeline fortune-telling”. These buckets should only become concrete after you publish a small set of reviewed rules.
@@ -83,6 +93,10 @@
         <div class="k">Rules source</div>
         <div class="v"><code>{{rules_source}}</code></div>
       </div>
+      <h3 style="font-size:14px;margin:12px 0 6px 0;">Document artifacts (path + sha256)</h3>
+      <ul>
+        {{docs_html}}
+      </ul>
     </div>
   </body>
 </html>

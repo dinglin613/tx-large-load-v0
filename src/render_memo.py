@@ -42,6 +42,17 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any]) -> str:
         f"<li><code>{esc(l.get('lever_id'))}</code>: {esc(l.get('note'))}</li>" for l in (ev.get("levers") or [])
     ) or "<li>None detected in request</li>"
 
+    flags = ev.get("flags") or []
+    flags_html = "\n".join(
+        "<li>"
+        f"<code>{esc(f.get('rule_id'))}</code>"
+        f" — <code>{esc(f.get('doc_id'))}</code>"
+        f" — <span class=\"muted\">{esc(f.get('loc'))}</span>"
+        f"<br/><small>{esc(' | '.join(f.get('match_traces') or []))}</small>"
+        "</li>"
+        for f in flags
+    ) or "<li>None</li>"
+
     risk_status = risk.get("status", "unknown")
     tb = (risk.get("timeline_buckets") or {})
 
@@ -64,15 +75,42 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any]) -> str:
         .replace("{{edges_html}}", edges_html or "<li>None</li>")
         .replace("{{missing_html}}", missing_html)
         .replace("{{levers_html}}", levers_html)
+        .replace("{{flags_html}}", flags_html)
         .replace("{{risk_status}}", esc(risk_status))
         .replace("{{bucket_le_12}}", esc(tb.get("le_12_months", "unknown")))
         .replace("{{bucket_12_24}}", esc(tb.get("m12_24_months", "unknown")))
         .replace("{{bucket_gt_24}}", esc(tb.get("gt_24_months", "unknown")))
         .replace("{{upgrade_exposure}}", esc(risk.get("upgrade_exposure_bucket", "unknown")))
+        .replace("{{operational_exposure}}", esc(risk.get("operational_exposure_bucket", "unknown")))
         .replace("{{evidence_html}}", evidence_html)
         .replace("{{graph_version}}", esc(graph.get("graph_version")))
         .replace("{{rules_source}}", esc((ev.get("provenance") or {}).get("rules_source")))
+        .replace("{{docs_html}}", render_docs_html(ev.get("provenance") or {}))
     )
+
+
+def render_docs_html(prov: Dict[str, Any]) -> str:
+    docs = prov.get("docs") or []
+    if not docs:
+        return "<li>None</li>"
+    lis = []
+    for d in docs:
+        doc_id = esc(d.get("doc_id"))
+        title = esc(d.get("title"))
+        eff = esc(d.get("effective_date"))
+        src = esc(d.get("source_url"))
+        arts = d.get("artifacts") or []
+        arts_html = "".join(
+            f"<li><code>{esc(a.get('path'))}</code><br/><small>{esc(a.get('sha256'))}</small></li>" for a in arts
+        ) or "<li>None</li>"
+        lis.append(
+            "<li>"
+            f"<code>{doc_id}</code> — {title} <span class=\"muted\">({eff})</span>"
+            + (f"<br/><small class=\"muted\">{src}</small>" if src else "")
+            + f"<ul>{arts_html}</ul>"
+            "</li>"
+        )
+    return "\n".join(lis)
 
 
 def safe_filename(s: str) -> str:

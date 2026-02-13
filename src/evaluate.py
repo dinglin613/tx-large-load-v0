@@ -37,6 +37,22 @@ def index_docs(registry: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
     return {d.get("doc_id"): d for d in registry if d.get("doc_id")}
 
 
+def doc_provenance_entry(doc: Dict[str, Any]) -> Dict[str, Any]:
+    arts = doc.get("artifacts") or []
+    # keep it small: for v0 we only need path+sha for audit trail
+    return {
+        "doc_id": doc.get("doc_id"),
+        "title": doc.get("title"),
+        "effective_date": doc.get("effective_date"),
+        "artifacts": [
+            {"path": a.get("path"), "sha256": a.get("sha256")}
+            for a in arts
+            if a.get("path") and a.get("sha256")
+        ],
+        "source_url": doc.get("source_url"),
+    }
+
+
 def get_field(req: Dict[str, Any], field: str) -> Any:
     return req.get(field)
 
@@ -68,6 +84,7 @@ def risk_from_matched_rules(req: Dict[str, Any], matched_rules: List[Dict[str, A
     # v0: qualitative, rule-driven knobs only (no numeric "probabilities")
     upgrade_score = 0.0
     wait_score = 0.0
+    ops_score = 0.0
     evidence: List[Dict[str, Any]] = []
 
     for r in matched_rules:
@@ -88,12 +105,30 @@ def risk_from_matched_rules(req: Dict[str, Any], matched_rules: List[Dict[str, A
                 wait_score += 2.0
         if "process_latency" in tags:
             wait_score += 0.5
+        if "timeline_risk" in tags:
+            wait_score += 1.0
+        if "re_study" in tags:
+            wait_score += 1.5
+        if "queue_density" in tags or "queue_dependency" in tags or "must_study" in tags:
+            wait_score += 1.0
+        if "study_dependency" in tags:
+            wait_score += 0.5
+        if "financial_security" in tags:
+            wait_score += 0.5
+        if "modeling_requirement" in tags or "telemetry_requirement" in tags:
+            wait_score += 0.5
         if "protection" in tags or "short_circuit" in tags:
             upgrade_score += 1.0
         if "upgrade_exposure" in tags:
             upgrade_score += 0.5
         if "new_substation" in tags or "new_line" in tags:
             upgrade_score += 3.0
+        if "dynamic_stability" in tags or "dynamic_study" in tags or "sso" in tags:
+            upgrade_score += 1.0
+        if "curtailment_risk" in tags:
+            ops_score += 2.0
+        if "operational_constraint" in tags or "commissioning_limit" in tags:
+            ops_score += 1.0
 
     # request-level heuristics (still explainable, but not tied to specific clause)
     try:
@@ -117,6 +152,7 @@ def risk_from_matched_rules(req: Dict[str, Any], matched_rules: List[Dict[str, A
     m12_24 = "unknown"
     gt_24 = "unknown"
     exposure = "unknown"
+    operational_exposure = "unknown"
 
     if matched_rules:
         if upgrade_score >= 3:
@@ -140,6 +176,14 @@ def risk_from_matched_rules(req: Dict[str, Any], matched_rules: List[Dict[str, A
     else:
         status = "insufficient_rule_coverage"
 
+    if matched_rules:
+        if ops_score >= 2:
+            operational_exposure = "high"
+        elif ops_score >= 1:
+            operational_exposure = "medium"
+        else:
+            operational_exposure = "low"
+
     return {
         "timeline_buckets": {
             "le_12_months": le_12,
@@ -147,6 +191,7 @@ def risk_from_matched_rules(req: Dict[str, Any], matched_rules: List[Dict[str, A
             "gt_24_months": gt_24,
         },
         "upgrade_exposure_bucket": exposure,
+        "operational_exposure_bucket": operational_exposure,
         "status": status,
         "evidence": evidence,
     }
@@ -197,10 +242,26 @@ def criteria_satisfied(req: Dict[str, Any], preds: List[Dict[str, Any]]) -> Tupl
     return True, traces
 
 
+def rule_predicates(rule: Dict[str, Any]) -> List[Dict[str, Any]]:
+    dsl = ((rule.get("criteria") or {}).get("dsl") or {})
+    preds = dsl.get("predicates")
+    if isinstance(preds, list):
+        return [p for p in preds if isinstance(p, dict)]
+    return []
+
+
+def rule_matches_request(rule: Dict[str, Any], req: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    preds = rule_predicates(rule)
+    if not preds:
+        return False, []
+    return criteria_satisfied(req, preds)
+
+
 def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any]) -> Dict[str, Any]:
     edges: List[Dict[str, Any]] = graph.get("edges") or []
     nodes_by_id = {n.get("id"): n for n in (graph.get("nodes") or [])}
     rules_by_id = load_published_rules()
+    docs_by_id = index_docs(load_doc_registry())
 
     current = "N0"
     path_nodes: List[str] = [current]
@@ -268,7 +329,40 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any]) -> Dict[str, Any]
             }
         )
 
-    risk = risk_from_matched_rules(req, matched_rules, missing_inputs=sorted(set(missing_inputs)))
+    # Parallel flags: rules that match request but are not necessarily on the main path
+    matched_rule_ids = {r.get("rule_id") for r in matched_rules if r.get("rule_id")}
+    flags: List[Dict[str, Any]] = []
+    flagged_rules: List[Dict[str, Any]] = []
+
+    for rid, r in rules_by_id.items():
+        if rid in matched_rule_ids:
+            continue
+        ok, traces = rule_matches_request(r, req)
+        if ok:
+            flagged_rules.append(r)
+            flags.append(
+                {
+                    "rule_id": rid,
+                    "doc_id": r.get("doc_id"),
+                    "loc": r.get("loc"),
+                    "trigger_tags": r.get("trigger_tags") or [],
+                    "match_traces": traces,
+                }
+            )
+
+    all_signal_rules = matched_rules + flagged_rules
+
+    # Missing inputs from completeness-check rules (published)
+    for r in all_signal_rules:
+        for f in required_fields_from_rule(r):
+            if req.get(f) in (None, "", []):
+                missing_inputs.append(f)
+
+    risk = risk_from_matched_rules(req, all_signal_rules, missing_inputs=sorted(set(missing_inputs)))
+
+    # Attach provenance for any docs referenced by evidence
+    used_doc_ids = sorted({e.get("doc_id") for e in (risk.get("evidence") or []) if e.get("doc_id")})
+    used_docs = [doc_provenance_entry(docs_by_id[d]) for d in used_doc_ids if d in docs_by_id]
 
     return {
         "evaluated_at": now_iso(),
@@ -281,10 +375,12 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any]) -> Dict[str, Any]
         },
         "missing_inputs": sorted(set(missing_inputs)),
         "levers": levers,
+        "flags": flags,
         "risk": risk,
         "provenance": {
             "doc_registry_count": len(load_doc_registry()),
             "rules_source": "rules/published.jsonl",
+            "docs": used_docs,
         },
     }
 
