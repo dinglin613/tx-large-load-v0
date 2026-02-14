@@ -62,6 +62,7 @@
 
     "ack_change_notification_obligation": { "type": "boolean", "description": "v0 input representing written acknowledgement of change-notification obligation (Planning Guide Section 9.2.2/9.2.3)." },
     "llis_formal_request_submitted": { "type": "boolean", "description": "v0 input representing that a formal request to initiate LLIS has been submitted (Planning Guide Section 9.2.2)." },
+    "llis_data_package_submitted": { "type": "boolean", "description": "v0 intake input representing submission of the LLIS study data package (steady state, short-circuit, motor start, stability inputs) required to initiate studies (Planning Guide Section 9.2.2(1)(a))." },
 
     "is_large_electronic_load": { "type": "boolean", "description": "Applicability toggle for LEL-specific energization gates and curtailment risk signals." },
     "lel_interim_assessment_complete": { "type": "boolean", "description": "If is_large_electronic_load=true, whether the interim ride-through assessment is complete." },
@@ -69,6 +70,8 @@
     "telemetry_operational_and_accurate": { "type": "boolean", "description": "Energization gate input: required telemetry is operational and accurate." },
     "dme_installed_and_operational": { "type": "boolean", "description": "If dme_required=true, whether Disturbance Monitoring Equipment is installed and operational." },
     "sso_complete_and_mitigation_in_place": { "type": "boolean", "description": "If sso_required=true, whether the SSO study is complete and mitigation is in place." },
+    "ercot_quarterly_stability_assessment_complete": { "type": "boolean", "description": "Energization readiness input (v0): completion of ERCOT Quarterly Stability Assessment requirements referenced by Planning Guide Section 9.6(1)(c)." },
+    "notice_to_proceed_received": { "type": "boolean", "description": "Energization readiness input (v0): whether the interconnecting TSP has received notice to proceed with construction of required interconnection facilities (Planning Guide Section 9.5.1(iii))." },
 
     "sso_required": { "type": "boolean", "description": "Applicability toggle for conditional energization gate: whether SSO is required for this project." },
     "dme_required": { "type": "boolean", "description": "Applicability toggle for conditional energization gate: whether DME is required for this project." }

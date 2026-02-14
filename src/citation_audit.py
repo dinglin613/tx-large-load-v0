@@ -59,12 +59,24 @@ def pick_pdf_artifact(doc: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if not arts:
         return None
 
+    # Prefer canonical artifact (matches doc-level hash) when available.
+    canonical_sha = str(doc.get("hash") or "").strip().lower()
+    if canonical_sha:
+        matched = [
+            a
+            for a in arts
+            if a.get("sha256") and str(a.get("sha256") or "").strip().lower() == canonical_sha
+        ]
+    else:
+        matched = []
+
     # Prefer the most recently retrieved artifact when multiple versions exist.
     def _key(a: Dict[str, Any]) -> tuple[str, str]:
         # ISO dates sort lexicographically
         return (str(a.get("retrieved_date") or ""), str(a.get("path") or ""))
 
-    return sorted(arts, key=_key)[-1]
+    pool = matched or arts
+    return sorted(pool, key=_key)[-1]
 
 
 def normalize_text(s: str) -> str:

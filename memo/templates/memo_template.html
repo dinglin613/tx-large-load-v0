@@ -145,6 +145,7 @@
           <a href="#sec-input">Input snapshot</a>
           <a href="#sec-path">Process path</a>
           <a href="#sec-missing">Missing inputs</a>
+          <a href="#sec-uncertainty">Uncertainty & dependencies</a>
           <a href="#sec-levers">Levers</a>
           <a href="#sec-options">Options comparison</a>
           <a href="#sec-flags">Parallel flags</a>
@@ -271,12 +272,34 @@
           </div>
         </div>
 
+        <div class="card" id="sec-uncertainty">
+          <div class="section-title">
+            <h2>3a) Uncertainty & dependencies</h2>
+            <div class="id">v0: compact</div>
+          </div>
+          <div class="muted small">
+            This section separates <code>missing</code> vs explicit <code>unknown</code> inputs, and highlights non-cited assumptions and external dependencies.
+          </div>
+          <div style="margin-top:10px">
+            {{uncertainty_html}}
+          </div>
+        </div>
+
         <div class="card" id="sec-levers">
           <div class="section-title">
             <h2>4) Levers detected</h2>
             <div class="id">structural hints</div>
           </div>
           <div class="muted small">Levers are configurable inputs. See “Options comparison” for lightweight what-if variants when available.</div>
+
+          <details style="margin-top:10px" open>
+            <summary>Top levers to decide next (v0)</summary>
+            <div class="hint muted small">
+              This is a compact, evidence-backed guide: which lever matters, what to ask next, and which rule checks will be unblocked.
+            </div>
+            {{lever_next_actions_html}}
+          </details>
+
           <div style="overflow-x:auto;margin-top:10px">
             <table>
               <thead>
@@ -290,6 +313,14 @@
               </tbody>
             </table>
           </div>
+
+          <details style="margin-top:10px">
+            <summary>Show lever coverage (rules referencing lever fields)</summary>
+            <div class="hint muted small">
+              This helps prioritize rule clusters: levers with low coverage are good candidates for targeted, high-signal rules.
+            </div>
+            {{levers_catalog_html}}
+          </details>
         </div>
 
         <div class="card" id="sec-options">
@@ -313,6 +344,7 @@
                   <th>patch</th>
                   <th>path</th>
                   <th class="nowrap">missing</th>
+                  <th class="nowrap">delta</th>
                   <th class="nowrap">risk</th>
                 </tr>
               </thead>

@@ -10,6 +10,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 import yaml
 from jsonschema import Draft202012Validator
 
+from tag_taxonomy import ALL_KNOWN_TAGS, TAG_RISK_CONTRIB
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = REPO_ROOT / "schema"
@@ -374,6 +375,7 @@ def main() -> int:
 
         # Additional lint: rule_id uniqueness, doc_id existence, DSL field references.
         seen_rule_ids: Set[str] = set()
+        published_tags_used: Set[str] = set()
         for line_no, r in rule_rows:
             rid = r.get("rule_id")
             where = f"{rules_path}:L{line_no}:{rid or 'rule'}"
@@ -399,6 +401,45 @@ def main() -> int:
                     allow_field_aliases=allow_field_aliases,
                 )
             )
+            # trigger_tags taxonomy warnings (published rules only)
+            if r.get("review_status") == "published":
+                tags = r.get("trigger_tags") or []
+                if isinstance(tags, list):
+                    for t in tags:
+                        if t:
+                            published_tags_used.add(str(t))
+
+        # Summarize tag taxonomy compliance (keep warnings compact).
+        if published_tags_used:
+            unknown_tags = sorted(published_tags_used - set(ALL_KNOWN_TAGS))
+            if unknown_tags:
+                preview = unknown_tags[:30]
+                more = f" (+{len(unknown_tags) - len(preview)} more)" if len(unknown_tags) > len(preview) else ""
+                issues.append(
+                    Issue(
+                        kind="warn",
+                        code="trigger_tag_unknown",
+                        where=str(rules_path),
+                        message=f"Published rules contain trigger_tags not in taxonomy: {preview}{more}",
+                    )
+                )
+
+            # Tags not in risk mapping do not contribute to v0 bucket scoring (they may still be useful for evidence).
+            non_contrib = sorted(published_tags_used - set(TAG_RISK_CONTRIB.keys()))
+            if non_contrib:
+                preview2 = non_contrib[:30]
+                more2 = f" (+{len(non_contrib) - len(preview2)} more)" if len(non_contrib) > len(preview2) else ""
+                issues.append(
+                    Issue(
+                        kind="warn",
+                        code="trigger_tag_not_in_risk_mapping",
+                        where=str(rules_path),
+                        message=(
+                            "Published rules contain trigger_tags that do not contribute to v0 risk buckets "
+                            f"(evidence-only unless mapped): {preview2}{more2}"
+                        ),
+                    )
+                )
 
     # Requests
     if args.only in {"all", "requests"} and requests_path is not None:

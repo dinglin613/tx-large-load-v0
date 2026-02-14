@@ -145,6 +145,7 @@
           <a href="#sec-input">Input snapshot</a>
           <a href="#sec-path">Process path</a>
           <a href="#sec-missing">Missing inputs</a>
+          <a href="#sec-uncertainty">Uncertainty & dependencies</a>
           <a href="#sec-levers">Levers</a>
           <a href="#sec-options">Options comparison</a>
           <a href="#sec-flags">Parallel flags</a>
@@ -153,8 +154,8 @@
           <a href="#sec-provenance">Provenance</a>
           <div class="meta">
             <div><span class="row-muted">Project</span>: <code>DC_ONCOR_200MW_Phased_2027Q2</code></div>
-            <div><span class="row-muted">Rendered</span>: <code>2026-02-13T22:52:05.384515+00:00</code></div>
-            <div style="margin-top:8px"><span class="row-muted">Evaluated</span>: <code>2026-02-13T22:06:32+00:00</code></div>
+            <div><span class="row-muted">Rendered</span>: <code>2026-02-14T02:27:58.720532+00:00</code></div>
+            <div style="margin-top:8px"><span class="row-muted">Evaluated</span>: <code>2026-02-14T02:27:54+00:00</code></div>
           </div>
         </div>
       </aside>
@@ -435,7 +436,39 @@
           </div>
           <div class="chips" id="missingChips">
             <span class="chip"><code>ack_change_notification_obligation</code></span>
+<span class="chip"><code>llis_data_package_submitted</code></span>
 <span class="chip"><code>llis_formal_request_submitted</code></span>
+          </div>
+        </div>
+
+        <div class="card" id="sec-uncertainty">
+          <div class="section-title">
+            <h2>3a) Uncertainty & dependencies</h2>
+            <div class="id">v0: compact</div>
+          </div>
+          <div class="muted small">
+            This section separates <code>missing</code> vs explicit <code>unknown</code> inputs, and highlights non-cited assumptions and external dependencies.
+          </div>
+          <div style="margin-top:10px">
+            <div class="chips"><span class="chip warn"><span class="small">missing</span> <code>3</code></span>
+<span class="chip"><span class="small">assumptions</span> <code>2</code></span>
+<span class="chip"><span class="small">operator discretion</span> <code>2</code></span></div>
+<div class="muted small" style="margin-top:10px">Missing breakdown</div>
+<div class="chips"><span class="chip"><span class="small">absent</span> <code>3</code></span></div>
+<details style="margin-top:10px"><summary>Show non-cited assumptions (heuristics)</summary>
+<div class="hint muted small">Heuristics are explicitly labeled and contribute to v0 risk buckets; they are not backed by PDF citations.</div>
+<div style="overflow-x:auto;margin-top:8px"><table>
+<thead><tr><th class="nowrap">rule_id</th><th>loc</th><th>note</th></tr></thead>
+<tbody><tr><td class="nowrap"><code>HEUR_MISSING_INPUTS_PRESENT_INCREASES_WAIT_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: missing inputs increase process waiting/latency pressure</span></td><td class="wrap"><span class="small">missing_inputs_count=3 =&gt; wait +0.5</span></td></tr>
+<tr><td class="nowrap"><code>HEUR_PHASED_PLAN_REDUCES_UPGRADE_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: phased energization plan can reduce upgrade exposure pressure in screening</span></td><td class="wrap"><span class="small">energization_plan=phased =&gt; upgrade -0.5</span></td></tr></tbody>
+</table></div></details>
+<details style="margin-top:10px"><summary>Show operator discretion signals</summary>
+<div class="hint muted small">These signals indicate engineering / operator judgement may materially affect outcomes.</div>
+<div style="overflow-x:auto;margin-top:8px"><table>
+<thead><tr><th class="nowrap">rule_id</th><th class="nowrap">doc_id</th><th>loc</th><th>tags</th></tr></thead>
+<tbody><tr><td class="nowrap"><code>ONC_002_VOLTAGE_AVAILABILITY</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.4.1, p.3</span></td><td class="wrap"><code>voltage_selection_risk</code></td></tr>
+<tr><td class="nowrap"><code>ONC_004_ONE_LINE_DIAGRAM</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 4.1.6, p.6</span></td><td class="wrap"><code>data_completeness</code> <code>engineering_review</code> <code>process_latency</code></td></tr></tbody>
+</table></div></details>
           </div>
         </div>
 
@@ -445,6 +478,19 @@
             <div class="id">structural hints</div>
           </div>
           <div class="muted small">Levers are configurable inputs. See “Options comparison” for lightweight what-if variants when available.</div>
+
+          <details style="margin-top:10px" open>
+            <summary>Top levers to decide next (v0)</summary>
+            <div class="hint muted small">
+              This is a compact, evidence-backed guide: which lever matters, what to ask next, and which rule checks will be unblocked.
+            </div>
+            <div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">lever</th><th>label</th><th>ask next (fields)</th><th class="nowrap">observed delta</th><th class="nowrap">rule refs</th><th>rule checks unblocked</th></tr></thead><tbody><tr><td class="nowrap"><code>phased_energization</code></td><td class="wrap"><span class="small">Phased energization plan</span></td><td class="wrap"><span class="muted small">None</span></td><td class="wrap"><span class="small"><code>options=1 | path_changed | missingΔ[+0,+0]</code></span></td><td class="wrap"><code>2</code></td><td class="wrap"><span class="muted small">None</span></td></tr>
+<tr><td class="nowrap"><code>agreements_security_ntp</code></td><td class="wrap"><span class="small">Agreements, financial security &amp; notice-to-proceed</span></td><td class="wrap"><code>llis_completed_and_ercot_approved</code> <code>agreements_executed</code> <code>financial_security_posted</code> <code>notice_to_proceed_received</code></td><td class="wrap"><span class="small"><code>no_options_generated</code></span></td><td class="wrap"><code>9</code></td><td class="wrap"><code>LL_QA_009_MUST_STUDY</code> <code>PG9_029B_CANCELLATION_RISK_IF_SECTION_9_5_NOT_SATISFIED_180_DAYS_FINANCIAL_SECURITY</code> <code>PG9_029_CANCELLATION_RISK_IF_SECTION_9_5_NOT_SATISFIED_180_DAYS_AGREEMENTS</code></td></tr>
+<tr><td class="nowrap"><code>energization_posture_timing</code></td><td class="wrap"><span class="small">Energization posture &amp; timing</span></td><td class="wrap"><code>requested_energization_window</code></td><td class="wrap"><span class="small"><code>no_options_generated</code></span></td><td class="wrap"><code>27</code></td><td class="wrap"><span class="muted small">None</span></td></tr>
+<tr><td class="nowrap"><code>change_control_restudy</code></td><td class="wrap"><span class="small">Change control / re-study triggers</span></td><td class="wrap"><code>material_change_flags</code></td><td class="wrap"><span class="small"><code>no_options_generated</code></span></td><td class="wrap"><code>5</code></td><td class="wrap"><span class="muted small">None</span></td></tr>
+<tr><td class="nowrap"><code>llis_data_package_readiness</code></td><td class="wrap"><span class="small">LLIS study data package readiness</span></td><td class="wrap"><code>llis_data_package_submitted</code></td><td class="wrap"><span class="small"><code>no_options_generated</code></span></td><td class="wrap"><code>1</code></td><td class="wrap"><code>PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED</code></td></tr></tbody></table></div>
+          </details>
+
           <div style="overflow-x:auto;margin-top:10px">
             <table>
               <thead>
@@ -459,6 +505,20 @@
               </tbody>
             </table>
           </div>
+
+          <details style="margin-top:10px">
+            <summary>Show lever coverage (rules referencing lever fields)</summary>
+            <div class="hint muted small">
+              This helps prioritize rule clusters: levers with low coverage are good candidates for targeted, high-signal rules.
+            </div>
+            <div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">lever_id</th><th>label</th><th>present fields</th><th>missing fields</th><th class="nowrap">rule refs</th><th>example rule_ids</th></tr></thead><tbody><tr><td class="nowrap"><code>phased_energization</code></td><td class="wrap"><span class="small">Phased energization plan</span></td><td class="wrap"><code>energization_plan</code> <code>phases</code></td><td class="wrap"><span class="muted small">None</span></td><td class="nowrap"><code>2</code></td><td class="wrap"><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code> <code>PG9_028_LCP_PHASES_REQUIRED_IF_PHASED_PLAN</code></td></tr>
+<tr><td class="nowrap"><code>voltage_level_choice</code></td><td class="wrap"><span class="small">POI voltage level choice</span></td><td class="wrap"><code>voltage_options_kv</code></td><td class="wrap"><span class="muted small">None</span></td><td class="nowrap"><code>2</code></td><td class="wrap"><code>ONC_001_TRANSMISSION_VOLTAGE_SCOPE</code> <code>ONC_002_VOLTAGE_AVAILABILITY</code></td></tr>
+<tr><td class="nowrap"><code>energization_posture_timing</code></td><td class="wrap"><span class="small">Energization posture &amp; timing</span></td><td class="wrap"><code>is_requesting_energization</code></td><td class="wrap"><code>requested_energization_window</code></td><td class="nowrap"><code>27</code></td><td class="wrap"><code>LLI_EN_001_WRITTEN_APPROVAL_REQUIRED</code> <code>LLI_EN_002_NEW_ONLY</code> <code>LLI_EN_003_LLIS_COMPLETE</code> <code>LLI_EN_004_SSO_APPLICABILITY</code> <code>LLI_EN_004_SSO_COMPLETE</code> <code>LLI_EN_005_LEL_INTERIM_ASSESSMENT</code> <code>LLI_EN_006_AGREEMENTS_AND_SECURITY</code> <code>LLI_EN_007_MODEL_CONSISTENCY</code> <span class="muted small">…</span></td></tr>
+<tr><td class="nowrap"><code>change_control_restudy</code></td><td class="wrap"><span class="small">Change control / re-study triggers</span></td><td class="wrap"><span class="muted small">None</span></td><td class="wrap"><code>material_change_flags</code></td><td class="nowrap"><code>5</code></td><td class="wrap"><code>LL_QA_006_MATERIAL_CHANGE</code> <code>PG9_011_PROJECT_INFO_UPDATE_10_BUSINESS_DAYS</code> <code>PG9_012_DYNAMIC_MODEL_CHANGE_IMPACTS_LLIS</code> <code>PG9_026_MATERIAL_CHANGE_NOTIFY_LEAD_TSP</code> <code>PG9_027_NEW_STABILITY_STUDY_DETERMINATION_IF_SUBSTANTIAL_CHANGE</code></td></tr>
+<tr><td class="nowrap"><code>agreements_security_ntp</code></td><td class="wrap"><span class="small">Agreements, financial security &amp; notice-to-proceed</span></td><td class="wrap"><span class="muted small">None</span></td><td class="wrap"><code>llis_completed_and_ercot_approved</code> <code>agreements_executed</code> <code>financial_security_posted</code> <code>notice_to_proceed_received</code></td><td class="nowrap"><code>9</code></td><td class="wrap"><code>LLI_EN_003_LLIS_COMPLETE</code> <code>LLI_EN_006_AGREEMENTS_AND_SECURITY</code> <code>LL_QA_009_MUST_STUDY</code> <code>LL_QA_011_ENERGIZATION_REQUIREMENTS</code> <code>PG9_023_LLIS_COMPLETION_COMMUNICATED</code> <code>PG9_024_AGREEMENTS_AND_FINANCIAL_SECURITY</code> <code>PG9_029B_CANCELLATION_RISK_IF_SECTION_9_5_NOT_SATISFIED_180_DAYS_FINANCIAL_SECURITY</code> <code>PG9_029_CANCELLATION_RISK_IF_SECTION_9_5_NOT_SATISFIED_180_DAYS_AGREEMENTS</code> <span class="muted small">…</span></td></tr>
+<tr><td class="nowrap"><code>llis_data_package_readiness</code></td><td class="wrap"><span class="small">LLIS study data package readiness</span></td><td class="wrap"><span class="muted small">None</span></td><td class="wrap"><code>llis_data_package_submitted</code></td><td class="nowrap"><code>1</code></td><td class="wrap"><code>PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED</code></td></tr>
+<tr><td class="nowrap"><code>quarterly_stability_readiness</code></td><td class="wrap"><span class="small">ERCOT quarterly stability assessment readiness (if applicable)</span></td><td class="wrap"><span class="muted small">None</span></td><td class="wrap"><code>ercot_quarterly_stability_assessment_complete</code></td><td class="nowrap"><code>1</code></td><td class="wrap"><code>PG9_031_ENERGIZATION_QUARTERLY_STABILITY_ASSESSMENT_REQUIRED</code></td></tr></tbody></table></div>
+          </details>
         </div>
 
         <div class="card" id="sec-options">
@@ -482,13 +542,14 @@
                   <th>patch</th>
                   <th>path</th>
                   <th class="nowrap">missing</th>
+                  <th class="nowrap">delta</th>
                   <th class="nowrap">risk</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td class="nowrap"><code>voltage_138</code></td><td class="nowrap"><code>voltage_level_choice</code></td><td class="wrap"><span class="small"><code>{&quot;voltage_options_kv&quot;: [138.0]}</code></span></td><td class="wrap"><span class="small">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Phased plan → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>2</code> <code>ack_change_notification_obligation</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td></tr>
-<tr><td class="nowrap"><code>voltage_345</code></td><td class="nowrap"><code>voltage_level_choice</code></td><td class="wrap"><span class="small"><code>{&quot;voltage_options_kv&quot;: [345.0]}</code></span></td><td class="wrap"><span class="small">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Phased plan → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>2</code> <code>ack_change_notification_obligation</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td></tr>
-<tr><td class="nowrap"><code>energization_plan_single</code></td><td class="nowrap"><code>phased_energization</code></td><td class="wrap"><span class="small"><code>{&quot;energization_plan&quot;: &quot;single&quot;}</code></span></td><td class="wrap"><span class="small">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>2</code> <code>ack_change_notification_obligation</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td></tr>
+                <tr><td class="nowrap"><code>voltage_138</code></td><td class="nowrap"><code>voltage_level_choice</code></td><td class="wrap"><span class="small"><code>{&quot;voltage_options_kv&quot;: [138.0]}</code></span></td><td class="wrap"><span class="small">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Phased plan → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>3</code> <code>ack_change_notification_obligation</code> <code>llis_data_package_submitted</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small"><code>path_same | missing:0 | upgrade:high→high | ops:low→low</code></span></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td></tr>
+<tr><td class="nowrap"><code>voltage_345</code></td><td class="nowrap"><code>voltage_level_choice</code></td><td class="wrap"><span class="small"><code>{&quot;voltage_options_kv&quot;: [345.0]}</code></span></td><td class="wrap"><span class="small">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Phased plan → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>3</code> <code>ack_change_notification_obligation</code> <code>llis_data_package_submitted</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small"><code>path_same | missing:0 | upgrade:high→high | ops:low→low</code></span></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td></tr>
+<tr><td class="nowrap"><code>energization_plan_single</code></td><td class="nowrap"><code>phased_energization</code></td><td class="wrap"><span class="small"><code>{&quot;energization_plan&quot;: &quot;single&quot;}</code></span></td><td class="wrap"><span class="small">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>3</code> <code>ack_change_notification_obligation</code> <code>llis_data_package_submitted</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small"><code>path_changed | missing:0 | upgrade:high→high | ops:low→low</code></span></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td></tr>
               </tbody>
             </table>
           </div>
@@ -519,6 +580,8 @@
 <tr><td class="nowrap"><code>ONC_002_VOLTAGE_AVAILABILITY</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.4.1, p.3</span></td><td class="wrap"><code>voltage_selection_risk</code></td><td class="wrap"><span class="trace-wrap"><code>tdsp_area==ONCOR (ONCOR)</code><code>exists(voltage_options_kv)=True</code></span></td></tr>
 <tr><td class="nowrap"><code>ONC_005_FAULT_INTERRUPT_RATING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 5.2.1, p.7</span></td><td class="wrap"><code>short_circuit</code> <code>protection</code> <code>upgrade_exposure</code></td><td class="wrap"><span class="trace-wrap"><code>tdsp_area==ONCOR (ONCOR)</code></span></td></tr>
 <tr><td class="nowrap"><code>ONC_009_REVENUE_METERING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.6.1, p.3–4</span></td><td class="wrap"><code>metering_requirement</code></td><td class="wrap"><span class="trace-wrap"><code>tdsp_area==ONCOR (ONCOR)</code></span></td></tr>
+<tr><td class="nowrap"><code>PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED</code></td><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(a) (&quot;Submission of all information, including but not limited to, data required by the lead Transmission Service Provider (TSP) to perform steady state, short circuit, motor start, stability analyses&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>process_latency</code> <code>study_dependency</code></td><td class="wrap"><span class="trace-wrap"><code>project_type==large_load (large_load)</code><code>load_mw_total&gt;=75 (200)</code></span></td></tr>
+<tr><td class="nowrap"><code>PG9_028_LCP_PHASES_REQUIRED_IF_PHASED_PLAN</code></td><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="wrap"><span class="muted">p.131, Section 9.2.4(1) (&quot;The LCP must specify the load increments and timeline by which the ILLE intends to increase peak Demand&quot;)</span></td><td class="wrap"><code>commissioning_plan</code> <code>timeline_dependency</code> <code>data_completeness</code> <code>process_latency</code></td><td class="wrap"><span class="trace-wrap"><code>energization_plan==phased (phased)</code><code>load_mw_total&gt;=75 (200)</code></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -581,13 +644,13 @@
             <div class="id">rule_id → doc_id/loc (heuristics are explicitly marked)</div>
           </div>
           <div class="chips" style="margin-top:10px">
-            <span class="chip good"><span class="small">satisfied</span> <code>13</code></span>
-<span class="chip warn"><span class="small">missing</span> <code>2</code></span>
+            <span class="chip good"><span class="small">satisfied</span> <code>14</code></span>
+<span class="chip warn"><span class="small">missing</span> <code>3</code></span>
 <span class="chip bad"><span class="small">not_satisfied</span> <code>0</code></span>
 <span class="chip"><span class="small">unknown</span> <code>5</code></span>
 <span class="chip"><span class="small">not_applicable</span> <code>2</code></span>
 <span class="chip"><span class="small">heuristics</span> <code>2</code></span>
-<span class="chip"><span class="small">evidence items</span> <code>27</code></span>
+<span class="chip"><span class="small">evidence items</span> <code>29</code></span>
           </div>
 
           <details style="margin-top:10px">
@@ -599,7 +662,7 @@
               <button class="btn active" data-tab-group="evidence" data-tab-target="evidenceFlat">Flat table</button>
               <button class="btn" data-tab-group="evidence" data-tab-target="evidenceByDoc">Group by doc</button>
               <button class="btn" data-tab-group="evidence" data-tab-target="evidenceByTag">Group by tag</button>
-              <span class="muted small">Total: <code>27</code></span>
+              <span class="muted small">Total: <code>29</code></span>
             </div>
 
             <div class="tab-panels" data-tab-panels="evidence">
@@ -644,6 +707,8 @@
 <tr><td class="nowrap"><code>ONC_002_VOLTAGE_AVAILABILITY</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.4.1, p.3</span></td><td class="wrap"><code>voltage_selection_risk</code></td></tr>
 <tr><td class="nowrap"><code>ONC_005_FAULT_INTERRUPT_RATING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 5.2.1, p.7</span></td><td class="wrap"><code>protection</code> <code>short_circuit</code> <code>upgrade_exposure</code></td></tr>
 <tr><td class="nowrap"><code>ONC_009_REVENUE_METERING</code></td><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="wrap"><span class="muted">Section 3.6.1, p.3–4</span></td><td class="wrap"><code>metering_requirement</code></td></tr>
+<tr><td class="nowrap"><code>PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED</code></td><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(a) (&quot;Submission of all information, including but not limited to, data required by the lead Transmission Service Provider (TSP) to perform steady state, short circuit, motor start, stability analyses&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>process_latency</code> <code>study_dependency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_028_LCP_PHASES_REQUIRED_IF_PHASED_PLAN</code></td><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="wrap"><span class="muted">p.131, Section 9.2.4(1) (&quot;The LCP must specify the load increments and timeline by which the ILLE intends to increase peak Demand&quot;)</span></td><td class="wrap"><code>commissioning_plan</code> <code>data_completeness</code> <code>process_latency</code> <code>timeline_dependency</code></td></tr>
 <tr><td class="nowrap"><code>HEUR_PHASED_PLAN_REDUCES_UPGRADE_PRESSURE</code></td><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="wrap"><span class="muted">non-cited heuristic: phased energization plan can reduce upgrade exposure pressure in screening</span></td><td class="wrap"><code>non_cited_heuristic</code> <code>phased_plan</code> <code>upgrade_exposure</code></td></tr>
 <tr><td class="nowrap"><code>HEUR_MISSING_INPUTS_PRESENT_INCREASES_WAIT_PRESSURE</code></td><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="wrap"><span class="muted">non-cited heuristic: missing inputs increase process waiting/latency pressure</span></td><td class="wrap"><code>data_completeness</code> <code>non_cited_heuristic</code> <code>process_latency</code></td></tr>
                     </tbody>
@@ -661,14 +726,16 @@
 <tr><td class="nowrap"><code>LL_QA_008_SSO_REQUIRED</code></td><td class="wrap"><span class="muted">p.8, &quot;Subsynchronous Oscillation study (SSO study)&quot;</span></td><td class="wrap"><code>dynamic_study</code> <code>energization_gate</code> <code>sso</code> <code>study_dependency</code></td></tr>
 <tr><td class="nowrap"><code>LL_QA_014_365_DAY_RULE</code></td><td class="wrap"><span class="muted">p.15, Planning Guide Section 9.4(10)</span></td><td class="wrap"><code>re_study</code> <code>timeline_risk</code></td></tr></tbody></table></div></details>
 <details style="margin-top:8px"><summary><code>ERCOT_LLI_ENERGIZATION_REQUEST</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">rule_id</th><th>loc</th><th>tags</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LLI_INTAKE_REQUIRED_DOCS</code></td><td class="wrap"><span class="muted">p.1, Instructions (&quot;All fields must be completed unless otherwise noted&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>process_latency</code></td></tr></tbody></table></div></details>
-<details style="margin-top:8px"><summary><code>ERCOT_PLANNING_GUIDE</code> <span class="muted small">(8)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">rule_id</th><th>loc</th><th>tags</th></tr></thead><tbody><tr><td class="nowrap"><code>PG9_001_LLIS_APPLICABILITY_SUBJECT_TO_LLIS</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.1 (&quot;following criteria shall be subject to the Large Load Interconnection Study (LLIS)&quot;)</span></td><td class="wrap"><code>process_trigger</code></td></tr>
+<details style="margin-top:8px"><summary><code>ERCOT_PLANNING_GUIDE</code> <span class="muted small">(10)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">rule_id</th><th>loc</th><th>tags</th></tr></thead><tbody><tr><td class="nowrap"><code>PG9_001_LLIS_APPLICABILITY_SUBJECT_TO_LLIS</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.1 (&quot;following criteria shall be subject to the Large Load Interconnection Study (LLIS)&quot;)</span></td><td class="wrap"><code>process_trigger</code></td></tr>
 <tr><td class="nowrap"><code>PG9_005_LLIS_PREINIT_PRELIM_LCP_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(b) (&quot;Submission of a preliminary Load Commissioning Plan (LCP)&quot;)</span></td><td class="wrap"><code>commissioning_plan</code> <code>data_completeness</code> <code>process_latency</code></td></tr>
 <tr><td class="nowrap"><code>PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(c) (&quot;Written acknowledgement from the Interconnecting Large Load Entity (ILLE)&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>process_latency</code> <code>re_study</code></td></tr>
 <tr><td class="nowrap"><code>PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(d) (&quot;A formal request to initiate the LLIS process&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>intake_gate</code> <code>process_latency</code></td></tr>
 <tr><td class="nowrap"><code>PG9_008_LLIS_PREINIT_APPLICATION_FEE_REQUIRED</code></td><td class="wrap"><span class="muted">p.130, Section 9.2.2(1)(e) (&quot;Payment of the LLIS Application Fee&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>fee_requirement</code> <code>process_latency</code></td></tr>
 <tr><td class="nowrap"><code>PG9_016_STEADY_STATE_ANALYSIS_ELEMENT</code></td><td class="wrap"><span class="muted">p.135, Section 9.3.4.1 (&quot;9.3.4.1 Steady-State Analysis&quot;)</span></td><td class="wrap"><code>steady_state</code> <code>study_dependency</code></td></tr>
 <tr><td class="nowrap"><code>PG9_017_SYSTEM_PROTECTION_SHORT_CIRCUIT_ELEMENT</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.2 (&quot;System Protection (Short-Circuit) Analysis&quot;)</span></td><td class="wrap"><code>protection</code> <code>short_circuit</code> <code>study_dependency</code></td></tr>
-<tr><td class="nowrap"><code>PG9_018_DYNAMIC_TRANSIENT_STABILITY_ELEMENT</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.3 (&quot;Dynamic and Transient Stability Analysis&quot;)</span></td><td class="wrap"><code>dynamic_stability</code> <code>study_dependency</code></td></tr></tbody></table></div></details>
+<tr><td class="nowrap"><code>PG9_018_DYNAMIC_TRANSIENT_STABILITY_ELEMENT</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.3 (&quot;Dynamic and Transient Stability Analysis&quot;)</span></td><td class="wrap"><code>dynamic_stability</code> <code>study_dependency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(a) (&quot;Submission of all information, including but not limited to, data required by the lead Transmission Service Provider (TSP) to perform steady state, short circuit, motor start, stability analyses&quot;)</span></td><td class="wrap"><code>data_completeness</code> <code>process_latency</code> <code>study_dependency</code></td></tr>
+<tr><td class="nowrap"><code>PG9_028_LCP_PHASES_REQUIRED_IF_PHASED_PLAN</code></td><td class="wrap"><span class="muted">p.131, Section 9.2.4(1) (&quot;The LCP must specify the load increments and timeline by which the ILLE intends to increase peak Demand&quot;)</span></td><td class="wrap"><code>commissioning_plan</code> <code>data_completeness</code> <code>process_latency</code> <code>timeline_dependency</code></td></tr></tbody></table></div></details>
 <details style="margin-top:8px"><summary><code>NON_CITED_HEURISTIC</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">rule_id</th><th>loc</th><th>tags</th></tr></thead><tbody><tr><td class="nowrap"><code>HEUR_MISSING_INPUTS_PRESENT_INCREASES_WAIT_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: missing inputs increase process waiting/latency pressure</span></td><td class="wrap"><code>data_completeness</code> <code>non_cited_heuristic</code> <code>process_latency</code></td></tr>
 <tr><td class="nowrap"><code>HEUR_PHASED_PLAN_REDUCES_UPGRADE_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: phased energization plan can reduce upgrade exposure pressure in screening</span></td><td class="wrap"><code>non_cited_heuristic</code> <code>phased_plan</code> <code>upgrade_exposure</code></td></tr></tbody></table></div></details>
 <details style="margin-top:8px"><summary><code>ONCOR_STD_520_106</code> <span class="muted small">(8)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">rule_id</th><th>loc</th><th>tags</th></tr></thead><tbody><tr><td class="nowrap"><code>ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS</code></td><td class="wrap"><span class="muted">p.8, Sec 6.0 &quot;System Protection Requirements&quot; (protection requirements depend on POD/location/line protection)</span></td><td class="wrap"><code>protection</code> <code>upgrade_exposure</code></td></tr>
@@ -682,14 +749,17 @@
               </div>
 
               <div class="tab-panel" id="evidenceByTag">
-                <details style="margin-top:8px"><summary><code>commissioning_plan</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2</span></td></tr>
-<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_005_LLIS_PREINIT_PRELIM_LCP_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(b) (&quot;Submission of a preliminary Load Commissioning Plan (LCP)&quot;)</span></td></tr></tbody></table></div></details>
-<details style="margin-top:8px"><summary><code>data_completeness</code> <span class="muted small">(9)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2</span></td></tr>
+                <details style="margin-top:8px"><summary><code>commissioning_plan</code> <span class="muted small">(3)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_005_LLIS_PREINIT_PRELIM_LCP_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(b) (&quot;Submission of a preliminary Load Commissioning Plan (LCP)&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_028_LCP_PHASES_REQUIRED_IF_PHASED_PLAN</code></td><td class="wrap"><span class="muted">p.131, Section 9.2.4(1) (&quot;The LCP must specify the load increments and timeline by which the ILLE intends to increase peak Demand&quot;)</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>data_completeness</code> <span class="muted small">(11)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_LLI_ENERGIZATION_REQUEST</code></td><td class="nowrap"><code>ERCOT_LLI_INTAKE_REQUIRED_DOCS</code></td><td class="wrap"><span class="muted">p.1, Instructions (&quot;All fields must be completed unless otherwise noted&quot;)</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_005_LLIS_PREINIT_PRELIM_LCP_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(b) (&quot;Submission of a preliminary Load Commissioning Plan (LCP)&quot;)</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(c) (&quot;Written acknowledgement from the Interconnecting Large Load Entity (ILLE)&quot;)</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(d) (&quot;A formal request to initiate the LLIS process&quot;)</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_008_LLIS_PREINIT_APPLICATION_FEE_REQUIRED</code></td><td class="wrap"><span class="muted">p.130, Section 9.2.2(1)(e) (&quot;Payment of the LLIS Application Fee&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(a) (&quot;Submission of all information, including but not limited to, data required by the lead Transmission Service Provider (TSP) to perform steady state, short circuit, motor start, stability analyses&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_028_LCP_PHASES_REQUIRED_IF_PHASED_PLAN</code></td><td class="wrap"><span class="muted">p.131, Section 9.2.4(1) (&quot;The LCP must specify the load increments and timeline by which the ILLE intends to increase peak Demand&quot;)</span></td></tr>
 <tr><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="nowrap"><code>HEUR_MISSING_INPUTS_PRESENT_INCREASES_WAIT_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: missing inputs increase process waiting/latency pressure</span></td></tr>
 <tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_003_LOAD_PROJECTION</code></td><td class="wrap"><span class="muted">Section 4.1.8, p.6</span></td></tr>
 <tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_004_ONE_LINE_DIAGRAM</code></td><td class="wrap"><span class="muted">Section 4.1.6, p.6</span></td></tr></tbody></table></div></details>
@@ -709,13 +779,15 @@
 <details style="margin-top:8px"><summary><code>non_cited_heuristic</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="nowrap"><code>HEUR_MISSING_INPUTS_PRESENT_INCREASES_WAIT_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: missing inputs increase process waiting/latency pressure</span></td></tr>
 <tr><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="nowrap"><code>HEUR_PHASED_PLAN_REDUCES_UPGRADE_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: phased energization plan can reduce upgrade exposure pressure in screening</span></td></tr></tbody></table></div></details>
 <details style="margin-top:8px"><summary><code>phased_plan</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="nowrap"><code>HEUR_PHASED_PLAN_REDUCES_UPGRADE_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: phased energization plan can reduce upgrade exposure pressure in screening</span></td></tr></tbody></table></div></details>
-<details style="margin-top:8px"><summary><code>process_latency</code> <span class="muted small">(11)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_003_TSP_INITIATION</code></td><td class="wrap"><span class="muted">p.6, &quot;initiate the Large Load Interconnection Process?&quot;</span></td></tr>
+<details style="margin-top:8px"><summary><code>process_latency</code> <span class="muted small">(13)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_003_TSP_INITIATION</code></td><td class="wrap"><span class="muted">p.6, &quot;initiate the Large Load Interconnection Process?&quot;</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_005_APPLICATION_FEE</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2 fee requirement</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_LLI_ENERGIZATION_REQUEST</code></td><td class="nowrap"><code>ERCOT_LLI_INTAKE_REQUIRED_DOCS</code></td><td class="wrap"><span class="muted">p.1, Instructions (&quot;All fields must be completed unless otherwise noted&quot;)</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_005_LLIS_PREINIT_PRELIM_LCP_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(b) (&quot;Submission of a preliminary Load Commissioning Plan (LCP)&quot;)</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(c) (&quot;Written acknowledgement from the Interconnecting Large Load Entity (ILLE)&quot;)</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(d) (&quot;A formal request to initiate the LLIS process&quot;)</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_008_LLIS_PREINIT_APPLICATION_FEE_REQUIRED</code></td><td class="wrap"><span class="muted">p.130, Section 9.2.2(1)(e) (&quot;Payment of the LLIS Application Fee&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(a) (&quot;Submission of all information, including but not limited to, data required by the lead Transmission Service Provider (TSP) to perform steady state, short circuit, motor start, stability analyses&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_028_LCP_PHASES_REQUIRED_IF_PHASED_PLAN</code></td><td class="wrap"><span class="muted">p.131, Section 9.2.4(1) (&quot;The LCP must specify the load increments and timeline by which the ILLE intends to increase peak Demand&quot;)</span></td></tr>
 <tr><td class="nowrap"><code>NON_CITED_HEURISTIC</code></td><td class="nowrap"><code>HEUR_MISSING_INPUTS_PRESENT_INCREASES_WAIT_PRESSURE</code></td><td class="wrap"><span class="muted">non-cited heuristic: missing inputs increase process waiting/latency pressure</span></td></tr>
 <tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_003_LOAD_PROJECTION</code></td><td class="wrap"><span class="muted">Section 4.1.8, p.6</span></td></tr>
 <tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_004_ONE_LINE_DIAGRAM</code></td><td class="wrap"><span class="muted">Section 4.1.6, p.6</span></td></tr>
@@ -734,12 +806,14 @@
 <details style="margin-top:8px"><summary><code>sso</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_008_SSO_REQUIRED</code></td><td class="wrap"><span class="muted">p.8, &quot;Subsynchronous Oscillation study (SSO study)&quot;</span></td></tr></tbody></table></div></details>
 <details style="margin-top:8px"><summary><code>steady_state</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_007_REQUIRED_STUDIES</code></td><td class="wrap"><span class="muted">p.8–9, &quot;What types of reliability studies are required?&quot;</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_016_STEADY_STATE_ANALYSIS_ELEMENT</code></td><td class="wrap"><span class="muted">p.135, Section 9.3.4.1 (&quot;9.3.4.1 Steady-State Analysis&quot;)</span></td></tr></tbody></table></div></details>
-<details style="margin-top:8px"><summary><code>study_dependency</code> <span class="muted small">(5)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_007_REQUIRED_STUDIES</code></td><td class="wrap"><span class="muted">p.8–9, &quot;What types of reliability studies are required?&quot;</span></td></tr>
+<details style="margin-top:8px"><summary><code>study_dependency</code> <span class="muted small">(6)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_007_REQUIRED_STUDIES</code></td><td class="wrap"><span class="muted">p.8–9, &quot;What types of reliability studies are required?&quot;</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_008_SSO_REQUIRED</code></td><td class="wrap"><span class="muted">p.8, &quot;Subsynchronous Oscillation study (SSO study)&quot;</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_016_STEADY_STATE_ANALYSIS_ELEMENT</code></td><td class="wrap"><span class="muted">p.135, Section 9.3.4.1 (&quot;9.3.4.1 Steady-State Analysis&quot;)</span></td></tr>
 <tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_017_SYSTEM_PROTECTION_SHORT_CIRCUIT_ELEMENT</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.2 (&quot;System Protection (Short-Circuit) Analysis&quot;)</span></td></tr>
-<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_018_DYNAMIC_TRANSIENT_STABILITY_ELEMENT</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.3 (&quot;Dynamic and Transient Stability Analysis&quot;)</span></td></tr></tbody></table></div></details>
-<details style="margin-top:8px"><summary><code>timeline_dependency</code> <span class="muted small">(2)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_018_DYNAMIC_TRANSIENT_STABILITY_ELEMENT</code></td><td class="wrap"><span class="muted">p.136, Section 9.3.4.3 (&quot;Dynamic and Transient Stability Analysis&quot;)</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED</code></td><td class="wrap"><span class="muted">p.129, Section 9.2.2(1)(a) (&quot;Submission of all information, including but not limited to, data required by the lead Transmission Service Provider (TSP) to perform steady state, short circuit, motor start, stability analyses&quot;)</span></td></tr></tbody></table></div></details>
+<details style="margin-top:8px"><summary><code>timeline_dependency</code> <span class="muted small">(3)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code></td><td class="wrap"><span class="muted">p.7, Planning Guide Section 9.2.2</span></td></tr>
+<tr><td class="nowrap"><code>ERCOT_PLANNING_GUIDE</code></td><td class="nowrap"><code>PG9_028_LCP_PHASES_REQUIRED_IF_PHASED_PLAN</code></td><td class="wrap"><span class="muted">p.131, Section 9.2.4(1) (&quot;The LCP must specify the load increments and timeline by which the ILLE intends to increase peak Demand&quot;)</span></td></tr>
 <tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_003_LOAD_PROJECTION</code></td><td class="wrap"><span class="muted">Section 4.1.8, p.6</span></td></tr></tbody></table></div></details>
 <details style="margin-top:8px"><summary><code>timeline_risk</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ERCOT_LARGE_LOAD_QA</code></td><td class="nowrap"><code>LL_QA_014_365_DAY_RULE</code></td><td class="wrap"><span class="muted">p.15, Planning Guide Section 9.4(10)</span></td></tr></tbody></table></div></details>
 <details style="margin-top:8px"><summary><code>transmission_scope</code> <span class="muted small">(1)</span></summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">doc_id</th><th class="nowrap">rule_id</th><th>loc</th></tr></thead><tbody><tr><td class="nowrap"><code>ONCOR_STD_520_106</code></td><td class="nowrap"><code>ONC_001_TRANSMISSION_VOLTAGE_SCOPE</code></td><td class="wrap"><span class="muted">Section 1.1, p.1</span></td></tr></tbody></table></div></details>
@@ -767,10 +841,11 @@
     ],
     &quot;contributions&quot;: {
       &quot;upgrade&quot;: 0.0,
-      &quot;wait&quot;: 0.5,
+      &quot;wait&quot;: 1.0,
       &quot;ops&quot;: 0.0
     },
     &quot;notes&quot;: [
+      &quot;tag:data_completeness =&gt; wait +0.5&quot;,
       &quot;tag:process_latency =&gt; wait +0.5&quot;
     ]
   },
@@ -802,10 +877,11 @@
     ],
     &quot;contributions&quot;: {
       &quot;upgrade&quot;: 0.0,
-      &quot;wait&quot;: 0.5,
+      &quot;wait&quot;: 1.0,
       &quot;ops&quot;: 0.0
     },
     &quot;notes&quot;: [
+      &quot;tag:intake_gate =&gt; wait +0.5&quot;,
       &quot;tag:process_latency =&gt; wait +0.5&quot;
     ]
   },
@@ -822,10 +898,14 @@
     ],
     &quot;contributions&quot;: {
       &quot;upgrade&quot;: 0.0,
-      &quot;wait&quot;: 0.0,
+      &quot;wait&quot;: 1.5,
       &quot;ops&quot;: 0.0
     },
-    &quot;notes&quot;: []
+    &quot;notes&quot;: [
+      &quot;tag:commissioning_plan =&gt; wait +0.5&quot;,
+      &quot;tag:data_completeness =&gt; wait +0.5&quot;,
+      &quot;tag:timeline_dependency =&gt; wait +0.5&quot;
+    ]
   },
   {
     &quot;kind&quot;: &quot;rule&quot;,
@@ -839,10 +919,11 @@
     ],
     &quot;contributions&quot;: {
       &quot;upgrade&quot;: 0.0,
-      &quot;wait&quot;: 0.5,
+      &quot;wait&quot;: 1.0,
       &quot;ops&quot;: 0.0
     },
     &quot;notes&quot;: [
+      &quot;tag:fee_requirement =&gt; wait +0.5&quot;,
       &quot;tag:process_latency =&gt; wait +0.5&quot;
     ]
   },
@@ -859,10 +940,12 @@
     ],
     &quot;contributions&quot;: {
       &quot;upgrade&quot;: 0.0,
-      &quot;wait&quot;: 0.5,
+      &quot;wait&quot;: 1.5,
       &quot;ops&quot;: 0.0
     },
     &quot;notes&quot;: [
+      &quot;tag:commissioning_plan =&gt; wait +0.5&quot;,
+      &quot;tag:data_completeness =&gt; wait +0.5&quot;,
       &quot;tag:process_latency =&gt; wait +0.5&quot;
     ]
   },
@@ -879,10 +962,11 @@
     ],
     &quot;contributions&quot;: {
       &quot;upgrade&quot;: 0.0,
-      &quot;wait&quot;: 4.0,
+      &quot;wait&quot;: 4.5,
       &quot;ops&quot;: 0.0
     },
     &quot;notes&quot;: [
+      &quot;tag:data_completeness =&gt; wait +0.5&quot;,
       &quot;tag:process_latency =&gt; wait +0.5&quot;,
       &quot;tag:re_study =&gt; wait +1.5&quot;,
       &quot;data_completeness missing=[&#x27;ack_change_notification_obligation&#x27;] =&gt; wait +2.0&quot;
@@ -901,10 +985,12 @@
     ],
     &quot;contributions&quot;: {
       &quot;upgrade&quot;: 0.0,
-      &quot;wait&quot;: 2.5,
+      &quot;wait&quot;: 3.5,
       &quot;ops&quot;: 0.0
     },
     &quot;notes&quot;: [
+      &quot;tag:data_completeness =&gt; wait +0.5&quot;,
+      &quot;tag:intake_gate =&gt; wait +0.5&quot;,
       &quot;tag:process_latency =&gt; wait +0.5&quot;,
       &quot;data_completeness missing=[&#x27;llis_formal_request_submitted&#x27;] =&gt; wait +2.0&quot;
     ]
@@ -922,10 +1008,12 @@
     ],
     &quot;contributions&quot;: {
       &quot;upgrade&quot;: 0.0,
-      &quot;wait&quot;: 0.5,
+      &quot;wait&quot;: 1.5,
       &quot;ops&quot;: 0.0
     },
     &quot;notes&quot;: [
+      &quot;tag:data_completeness =&gt; wait +0.5&quot;,
+      &quot;tag:fee_requirement =&gt; wait +0.5&quot;,
       &quot;tag:process_latency =&gt; wait +0.5&quot;
     ]
   },
@@ -958,11 +1046,13 @@
     ],
     &quot;contributions&quot;: {
       &quot;upgrade&quot;: 0.0,
-      &quot;wait&quot;: 0.5,
+      &quot;wait&quot;: 1.5,
       &quot;ops&quot;: 0.0
     },
     &quot;notes&quot;: [
-      &quot;tag:process_latency =&gt; wait +0.5&quot;
+      &quot;tag:data_completeness =&gt; wait +0.5&quot;,
+      &quot;tag:process_latency =&gt; wait +0.5&quot;,
+      &quot;tag:timeline_dependency =&gt; wait +0.5&quot;
     ]
   },
   {
@@ -978,10 +1068,11 @@
     ],
     &quot;contributions&quot;: {
       &quot;upgrade&quot;: 0.0,
-      &quot;wait&quot;: 0.5,
+      &quot;wait&quot;: 1.0,
       &quot;ops&quot;: 0.0
     },
     &quot;notes&quot;: [
+      &quot;tag:data_completeness =&gt; wait +0.5&quot;,
       &quot;tag:process_latency =&gt; wait +0.5&quot;
     ]
   },
@@ -1196,11 +1287,13 @@
       &quot;voltage_selection_risk&quot;
     ],
     &quot;contributions&quot;: {
-      &quot;upgrade&quot;: 0.0,
+      &quot;upgrade&quot;: 0.5,
       &quot;wait&quot;: 0.0,
       &quot;ops&quot;: 0.0
     },
-    &quot;notes&quot;: []
+    &quot;notes&quot;: [
+      &quot;tag:voltage_selection_risk =&gt; upgrade +0.5&quot;
+    ]
   },
   {
     &quot;kind&quot;: &quot;rule&quot;,
@@ -1236,9 +1329,58 @@
     &quot;contributions&quot;: {
       &quot;upgrade&quot;: 0.0,
       &quot;wait&quot;: 0.0,
+      &quot;ops&quot;: 0.5
+    },
+    &quot;notes&quot;: [
+      &quot;tag:metering_requirement =&gt; ops +0.5&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_PLANNING_GUIDE&quot;,
+    &quot;loc&quot;: &quot;p.129, Section 9.2.2(1)(a) (\&quot;Submission of all information, including but not limited to, data required by the lead Transmission Service Provider (TSP) to perform steady state, short circuit, motor start, stability analyses\&quot;)&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;data_completeness&quot;,
+      &quot;process_latency&quot;,
+      &quot;study_dependency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 3.5,
       &quot;ops&quot;: 0.0
     },
-    &quot;notes&quot;: []
+    &quot;notes&quot;: [
+      &quot;tag:data_completeness =&gt; wait +0.5&quot;,
+      &quot;tag:process_latency =&gt; wait +0.5&quot;,
+      &quot;tag:study_dependency =&gt; wait +0.5&quot;,
+      &quot;data_completeness missing=[&#x27;llis_data_package_submitted&#x27;] =&gt; wait +2.0&quot;
+    ]
+  },
+  {
+    &quot;kind&quot;: &quot;rule&quot;,
+    &quot;source&quot;: &quot;published_rule&quot;,
+    &quot;rule_id&quot;: &quot;PG9_028_LCP_PHASES_REQUIRED_IF_PHASED_PLAN&quot;,
+    &quot;doc_id&quot;: &quot;ERCOT_PLANNING_GUIDE&quot;,
+    &quot;loc&quot;: &quot;p.131, Section 9.2.4(1) (\&quot;The LCP must specify the load increments and timeline by which the ILLE intends to increase peak Demand\&quot;)&quot;,
+    &quot;trigger_tags&quot;: [
+      &quot;commissioning_plan&quot;,
+      &quot;data_completeness&quot;,
+      &quot;process_latency&quot;,
+      &quot;timeline_dependency&quot;
+    ],
+    &quot;contributions&quot;: {
+      &quot;upgrade&quot;: 0.0,
+      &quot;wait&quot;: 2.0,
+      &quot;ops&quot;: 0.0
+    },
+    &quot;notes&quot;: [
+      &quot;tag:commissioning_plan =&gt; wait +0.5&quot;,
+      &quot;tag:data_completeness =&gt; wait +0.5&quot;,
+      &quot;tag:process_latency =&gt; wait +0.5&quot;,
+      &quot;tag:timeline_dependency =&gt; wait +0.5&quot;
+    ]
   },
   {
     &quot;kind&quot;: &quot;heuristic&quot;,
@@ -1277,14 +1419,14 @@
       &quot;ops&quot;: 0.0
     },
     &quot;notes&quot;: [
-      &quot;missing_inputs_count=2 =&gt; wait +0.5&quot;
+      &quot;missing_inputs_count=3 =&gt; wait +0.5&quot;
     ]
   },
   {
     &quot;kind&quot;: &quot;summary&quot;,
-    &quot;upgrade_score&quot;: 10.5,
-    &quot;wait_score&quot;: 16.5,
-    &quot;ops_score&quot;: 0.0,
+    &quot;upgrade_score&quot;: 11.0,
+    &quot;wait_score&quot;: 30.0,
+    &quot;ops_score&quot;: 0.5,
     &quot;status&quot;: &quot;rule_driven_v0&quot;,
     &quot;timeline_buckets&quot;: {
       &quot;le_12_months&quot;: &quot;down&quot;,
@@ -1294,9 +1436,9 @@
     &quot;upgrade_exposure_bucket&quot;: &quot;high&quot;,
     &quot;operational_exposure_bucket&quot;: &quot;low&quot;,
     &quot;reasoning&quot;: [
-      &quot;upgrade_score=10.5 &gt;= 3 =&gt; upgrade_exposure_bucket=high, shift to &gt;24 and 12–24&quot;,
-      &quot;wait_score=16.5 &gt;= 2 =&gt; additional shift away from ≤12 into 12–24&quot;,
-      &quot;ops_score=0 =&gt; operational_exposure_bucket=low&quot;
+      &quot;upgrade_score=11 &gt;= 3 =&gt; upgrade_exposure_bucket=high, shift to &gt;24 and 12–24&quot;,
+      &quot;wait_score=30 &gt;= 2 =&gt; additional shift away from ≤12 into 12–24&quot;,
+      &quot;ops_score=0.5 =&gt; operational_exposure_bucket=low&quot;
     ]
   }
 ]</pre>
@@ -1312,11 +1454,11 @@
             <div class="k">Graph version</div>
             <div class="v"><code>0.1</code></div>
             <div class="k">Graph sha256</div>
-            <div class="v"><code>68651d2190c00239a7ff16c435ec6b8b157e0e57807a1d933495fcdfb0c3d611</code></div>
+            <div class="v"><code>3c4be17992519337f2ce433d0e5b52e5e26e5bcf630dfbcbeaf545e5a2b52807</code></div>
             <div class="k">Rules source</div>
             <div class="v"><code>rules/published.jsonl</code></div>
             <div class="k">Rules sha256</div>
-            <div class="v"><code>6d7b4f4c4795355b9beac8adb37399fac4e275823fea75b90905121c728239d4</code></div>
+            <div class="v"><code>8dbeba53d69f4ee1650b6b2fae5d0d946f1ff6b08868ba50540a8ef3264cd944</code></div>
             <div class="k">Citation audit (PDF)</div>
             <div class="v"><code>strict</code> / <code>True</code> (errors: <code>0</code>, warns: <code>0</code>)</div>
           </div>

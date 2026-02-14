@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Tuple
 import yaml
 
 from io_jsonl import iter_jsonl, read_jsonl, write_jsonl
+from tag_taxonomy import TAG_RISK_CONTRIB
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -152,6 +153,42 @@ def required_fields_from_rule(rule: Dict[str, Any]) -> List[str]:
     return uniq
 
 
+def _classify_missing_reason(*, req: Dict[str, Any], field: str, is_completeness: bool) -> str:
+    """
+    Classify why a field is treated as "missing" in v0 evaluation.
+
+    This is used for memo-grade uncertainty reporting; it does not change
+    the evaluation semantics.
+    """
+    if field not in req:
+        return "absent"
+    v = req.get(field)
+    if v is None:
+        return "null"
+    if isinstance(v, str) and v.strip() == "":
+        return "empty_string"
+    if is_completeness and v is False:
+        return "false_as_missing"
+    if is_completeness and isinstance(v, list) and len(v) == 0:
+        return "empty_list_as_missing"
+    if isinstance(v, list) and len(v) == 0:
+        return "empty_list"
+    return "unknown"
+
+
+def _is_explicit_unknown_value(v: Any) -> bool:
+    """
+    Detect explicit 'unknown' style markers in the request.
+
+    We keep this intentionally conservative to avoid mislabeling valid values.
+    """
+    if v is None:
+        return True
+    if isinstance(v, str) and v.strip().lower() == "unknown":
+        return True
+    return False
+
+
 def _missing_required_fields_for_rule(rule: Dict[str, Any], req: Dict[str, Any]) -> List[str]:
     """
     Determine which required_fields are missing for a given rule.
@@ -183,34 +220,6 @@ def _missing_required_fields_for_rule(rule: Dict[str, Any], req: Dict[str, Any])
             missing.append(f)
             continue
     return missing
-
-
-_TAG_RISK_CONTRIB: Dict[str, Dict[str, float]] = {
-    # wait / timeline pressure
-    "process_latency": {"wait": 0.5},
-    "timeline_risk": {"wait": 1.0},
-    "re_study": {"wait": 1.5},
-    "queue_density": {"wait": 1.0},
-    "queue_dependency": {"wait": 1.0},
-    "must_study": {"wait": 1.0},
-    "study_dependency": {"wait": 0.5},
-    "financial_security": {"wait": 0.5},
-    "modeling_requirement": {"wait": 0.5},
-    "telemetry_requirement": {"wait": 0.5},
-    # upgrade exposure
-    "protection": {"upgrade": 1.0},
-    "short_circuit": {"upgrade": 1.0},
-    "upgrade_exposure": {"upgrade": 0.5},
-    "new_substation": {"upgrade": 3.0},
-    "new_line": {"upgrade": 3.0},
-    "dynamic_stability": {"upgrade": 1.0},
-    "dynamic_study": {"upgrade": 1.0},
-    "sso": {"upgrade": 1.0},
-    # operations exposure
-    "curtailment_risk": {"ops": 2.0},
-    "operational_constraint": {"ops": 1.0},
-    "commissioning_limit": {"ops": 1.0},
-}
 
 
 def risk_from_signals(
@@ -277,7 +286,7 @@ def risk_from_signals(
         notes: List[str] = []
 
         for t in tags:
-            m = _TAG_RISK_CONTRIB.get(t)
+            m = TAG_RISK_CONTRIB.get(t)
             if not m:
                 continue
             for k, dv in m.items():
@@ -770,6 +779,98 @@ def _summarize_option_eval(ev: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _diff_option_summaries(base: Dict[str, Any], other: Dict[str, Any]) -> Dict[str, Any]:
+    b_path = str(base.get("path") or "")
+    o_path = str(other.get("path") or "")
+    b_miss = int(base.get("missing_inputs_count") or 0)
+    o_miss = int(other.get("missing_inputs_count") or 0)
+    b_flags = int(base.get("flags_count") or 0)
+    o_flags = int(other.get("flags_count") or 0)
+
+    b_tb = base.get("timeline_buckets") or {}
+    o_tb = other.get("timeline_buckets") or {}
+
+    def _chg(k: str) -> Dict[str, str]:
+        return {"from": str(b_tb.get(k, "unknown")), "to": str(o_tb.get(k, "unknown"))}
+
+    return {
+        "path_changed": (b_path != o_path),
+        "missing_inputs_count_delta": o_miss - b_miss,
+        "flags_count_delta": o_flags - b_flags,
+        "timeline_buckets_changed": {
+            "le_12_months": _chg("le_12_months"),
+            "m12_24_months": _chg("m12_24_months"),
+            "gt_24_months": _chg("gt_24_months"),
+        },
+        "upgrade_exposure_bucket_changed": {
+            "from": str(base.get("upgrade_exposure_bucket", "unknown")),
+            "to": str(other.get("upgrade_exposure_bucket", "unknown")),
+        },
+        "operational_exposure_bucket_changed": {
+            "from": str(base.get("operational_exposure_bucket", "unknown")),
+            "to": str(other.get("operational_exposure_bucket", "unknown")),
+        },
+    }
+
+
+def _fields_referenced_by_rule(rule: Dict[str, Any]) -> set[str]:
+    dsl = ((rule.get("criteria") or {}).get("dsl") or {})
+    fields: set[str] = set()
+    if isinstance(dsl, dict):
+        rf = dsl.get("required_fields") or []
+        if isinstance(rf, list):
+            fields |= {str(x) for x in rf if x}
+        af = dsl.get("applicability_fields") or []
+        if isinstance(af, list):
+            fields |= {str(x) for x in af if x}
+        preds = dsl.get("predicates") or []
+        if isinstance(preds, list):
+            for p in preds:
+                if isinstance(p, dict) and p.get("field"):
+                    fields.add(str(p.get("field")))
+    return fields
+
+
+def _analyze_levers(req: Dict[str, Any], graph: Dict[str, Any], rules_by_id: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+    levers = graph.get("levers_catalog") or []
+    if not isinstance(levers, list):
+        return []
+
+    out: List[Dict[str, Any]] = []
+    for lv in levers:
+        if not isinstance(lv, dict) or not lv.get("lever_id"):
+            continue
+        lever_id = str(lv.get("lever_id"))
+        label = str(lv.get("label") or "")
+        req_fields = [str(x) for x in (lv.get("request_fields") or []) if x]
+        # Presence is “exists” semantics (same as evaluator): None / "" / [] are treated as missing.
+        present = []
+        missing = []
+        for f in req_fields:
+            v = get_field(req, f)
+            ok = (v is not None) and (v != "") and (v != [])
+            (present if ok else missing).append(f)
+
+        refs = []
+        for rid, r in rules_by_id.items():
+            if rid and (set(req_fields) & _fields_referenced_by_rule(r)):
+                refs.append(str(rid))
+        refs = sorted(set(refs))
+
+        out.append(
+            {
+                "lever_id": lever_id,
+                "label": label,
+                "request_fields": req_fields,
+                "present_fields": present,
+                "missing_fields": missing,
+                "referenced_rule_ids": refs,
+                "referenced_rule_count": len(refs),
+            }
+        )
+    return out
+
+
 def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_options: bool = True) -> Dict[str, Any]:
     req = normalize_request(req)
     edges: List[Dict[str, Any]] = graph.get("edges") or []
@@ -781,6 +882,8 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
     path_nodes: List[str] = [current]
     traversed_edges: List[Dict[str, Any]] = []
     missing_inputs: List[str] = []
+    # Field-level sources for memo-grade uncertainty reporting.
+    missing_meta: Dict[str, Dict[str, Any]] = {}
     matched_rules: List[Dict[str, Any]] = []
 
     # deterministic traversal: at each node, pick the first satisfied outgoing edge in file order
@@ -797,6 +900,14 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                 chosen_traces = traces
                 break
             missing_inputs.extend(missing_fields)
+            # Keep compact missing provenance (edge-level attribution).
+            for f in missing_fields:
+                mm = missing_meta.get(f) or {"field": f, "sources": [], "reason": "", "value": None}
+                mm["value"] = req.get(f) if f in req else None
+                # Edge predicates treat empty string/list as missing, but do not use completeness False-as-missing.
+                mm["reason"] = mm["reason"] or _classify_missing_reason(req=req, field=f, is_completeness=False)
+                mm["sources"].append({"kind": "edge_criteria", "edge_id": str(e.get("id") or "")})
+                missing_meta[f] = mm
         if chosen is None:
             break
 
@@ -915,22 +1026,114 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
             # Same missing semantics as tri-state (but applied to memo-level missing_inputs list)
             if f not in req:
                 missing_inputs.append(f)
+                mm = missing_meta.get(f) or {"field": f, "sources": [], "reason": "", "value": None}
+                mm["value"] = None
+                mm["reason"] = mm["reason"] or _classify_missing_reason(req=req, field=f, is_completeness=is_completeness)
+                mm["sources"].append({"kind": "rule_required_fields", "rule_id": str(r.get("rule_id") or "")})
+                missing_meta[f] = mm
                 continue
             v = req.get(f)
             if v is None:
                 missing_inputs.append(f)
+                mm = missing_meta.get(f) or {"field": f, "sources": [], "reason": "", "value": None}
+                mm["value"] = None
+                mm["reason"] = mm["reason"] or _classify_missing_reason(req=req, field=f, is_completeness=is_completeness)
+                mm["sources"].append({"kind": "rule_required_fields", "rule_id": str(r.get("rule_id") or "")})
+                missing_meta[f] = mm
                 continue
             if isinstance(v, str) and v.strip() == "":
                 missing_inputs.append(f)
+                mm = missing_meta.get(f) or {"field": f, "sources": [], "reason": "", "value": None}
+                mm["value"] = v
+                mm["reason"] = mm["reason"] or _classify_missing_reason(req=req, field=f, is_completeness=is_completeness)
+                mm["sources"].append({"kind": "rule_required_fields", "rule_id": str(r.get("rule_id") or "")})
+                missing_meta[f] = mm
                 continue
             if is_completeness and (v is False):
                 missing_inputs.append(f)
+                mm = missing_meta.get(f) or {"field": f, "sources": [], "reason": "", "value": None}
+                mm["value"] = v
+                mm["reason"] = mm["reason"] or _classify_missing_reason(req=req, field=f, is_completeness=is_completeness)
+                mm["sources"].append({"kind": "rule_required_fields", "rule_id": str(r.get("rule_id") or "")})
+                missing_meta[f] = mm
                 continue
             if is_completeness and isinstance(v, list) and len(v) == 0:
                 missing_inputs.append(f)
+                mm = missing_meta.get(f) or {"field": f, "sources": [], "reason": "", "value": None}
+                mm["value"] = v
+                mm["reason"] = mm["reason"] or _classify_missing_reason(req=req, field=f, is_completeness=is_completeness)
+                mm["sources"].append({"kind": "rule_required_fields", "rule_id": str(r.get("rule_id") or "")})
+                missing_meta[f] = mm
                 continue
 
     risk, risk_trace = risk_from_signals(req, unique_signal_rules, missing_inputs=sorted(set(missing_inputs)))
+
+    # Uncertainty buckets (memo-friendly, compact, evidence-backed):
+    # - Missing: absent/empty/false-as-missing fields
+    # - Unknown: explicit unknown markers (null / "unknown")
+    # - Assumptions: explicitly labeled non-cited heuristics (still auditable)
+    # - Operator discretion: signals that indicate engineering/operator judgement remains
+    # - Queue-state dependent: signals tied to queue density/dependencies
+    missing_inputs_uniq = sorted(set(missing_inputs))
+    missing_details = []
+    for f in missing_inputs_uniq:
+        mm = missing_meta.get(f) or {"field": f, "sources": [], "reason": _classify_missing_reason(req=req, field=f, is_completeness=False), "value": (req.get(f) if f in req else None)}
+        # stable + compact sources (dedupe by kind/id)
+        seen_src = set()
+        src2 = []
+        for s in mm.get("sources") or []:
+            k = json.dumps(s, sort_keys=True, ensure_ascii=False)
+            if k in seen_src:
+                continue
+            seen_src.add(k)
+            src2.append(s)
+        mm2 = {
+            "field": f,
+            "reason": mm.get("reason") or "",
+            "provided": f in req,
+            "value": req.get(f) if f in req else None,
+            "sources": src2,
+        }
+        missing_details.append(mm2)
+
+    unknown_inputs: List[Dict[str, Any]] = []
+    for k, v in sorted(req.items(), key=lambda kv: str(kv[0])):
+        if _is_explicit_unknown_value(v):
+            unknown_inputs.append({"field": str(k), "value": v})
+
+    assumptions: List[Dict[str, Any]] = []
+    for rt in (risk_trace or []):
+        if not isinstance(rt, dict):
+            continue
+        if rt.get("source") == "non_cited_heuristic":
+            assumptions.append(
+                {
+                    "rule_id": rt.get("rule_id"),
+                    "loc": rt.get("loc"),
+                    "trigger_tags": rt.get("trigger_tags") or [],
+                    "notes": rt.get("notes") or [],
+                }
+            )
+
+    OPERATOR_DISCRETION_TAGS = {"engineering_review", "operator_discretion", "voltage_selection_risk"}
+    QUEUE_STATE_TAGS = {"queue_density", "queue_dependency", "must_study"}
+
+    def _compact_signal(r: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "rule_id": r.get("rule_id"),
+            "doc_id": r.get("doc_id"),
+            "loc": r.get("loc"),
+            "trigger_tags": sorted(set(r.get("trigger_tags") or [])),
+        }
+
+    operator_discretion_signals = []
+    queue_state_dependent_signals = []
+    for r in unique_signal_rules:
+        tags = set(r.get("trigger_tags") or [])
+        if tags & OPERATOR_DISCRETION_TAGS:
+            operator_discretion_signals.append(_compact_signal(r))
+        if tags & QUEUE_STATE_TAGS:
+            queue_state_dependent_signals.append(_compact_signal(r))
 
     # Attach provenance for any docs referenced by evidence
     used_doc_ids = sorted({e.get("doc_id") for e in (risk.get("evidence") or []) if e.get("doc_id")})
@@ -946,7 +1149,15 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
             "graph_version": graph.get("version"),
         },
         "missing_inputs": sorted(set(missing_inputs)),
+        "uncertainties": {
+            "missing": missing_details,
+            "unknown": unknown_inputs,
+            "assumptions": assumptions,
+            "operator_discretion": operator_discretion_signals,
+            "queue_state_dependent": queue_state_dependent_signals,
+        },
         "levers": levers,
+        "levers_catalog_analysis": _analyze_levers(req, graph, rules_by_id),
         "options": [],
         "flags": flags,
         "rule_checks": rule_checks,
@@ -965,6 +1176,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
 
     if include_options:
         options: List[Dict[str, Any]] = []
+        baseline_summary = _summarize_option_eval(out)
 
         # Lever 1: voltage choice (evaluate each option separately).
         vopts = get_field(req, "voltage_options_kv")
@@ -979,12 +1191,14 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                 # Keep alias in sync for readability in raw request JSON.
                 req2["voltage_options"] = [v_num]
                 ev2 = evaluate_graph(req2, graph, include_options=False)
+                opt_summary = _summarize_option_eval(ev2)
                 options.append(
                     {
                         "option_id": f"voltage_{int(v_num) if v_num.is_integer() else v_num}",
                         "lever_id": "voltage_level_choice",
                         "patch": {"voltage_options_kv": [v_num]},
-                        "summary": _summarize_option_eval(ev2),
+                        "summary": opt_summary,
+                        "delta": _diff_option_summaries(baseline_summary, opt_summary),
                     }
                 )
 
@@ -997,12 +1211,14 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
             if other == "single":
                 req2.pop("phases", None)
             ev2 = evaluate_graph(req2, graph, include_options=False)
+            opt_summary = _summarize_option_eval(ev2)
             options.append(
                 {
                     "option_id": f"energization_plan_{other}",
                     "lever_id": "phased_energization",
                     "patch": {"energization_plan": other},
-                    "summary": _summarize_option_eval(ev2),
+                    "summary": opt_summary,
+                    "delta": _diff_option_summaries(baseline_summary, opt_summary),
                 }
             )
 

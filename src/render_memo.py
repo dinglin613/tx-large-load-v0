@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import html
 import json
 from datetime import datetime, timezone
@@ -53,6 +54,129 @@ def chip_list(xs: List[Any]) -> str:
     if not xs2:
         return "<span class=\"muted small\">None</span>"
     return "\n".join(f"<span class=\"chip\"><code>{esc(x)}</code></span>" for x in xs2)
+
+
+def render_uncertainty_html(ev: Dict[str, Any]) -> str:
+    u = ev.get("uncertainties") or {}
+    missing = [x for x in (u.get("missing") or []) if isinstance(x, dict)]
+    unknown = [x for x in (u.get("unknown") or []) if isinstance(x, dict)]
+    assumptions = [x for x in (u.get("assumptions") or []) if isinstance(x, dict)]
+    op_disc = [x for x in (u.get("operator_discretion") or []) if isinstance(x, dict)]
+    queue = [x for x in (u.get("queue_state_dependent") or []) if isinstance(x, dict)]
+
+    reason_counts = Counter([str(m.get("reason") or "") for m in missing])
+    # Stable display order (compact)
+    reason_order = [
+        ("absent", "absent"),
+        ("null", "explicit null"),
+        ("empty_string", "empty string"),
+        ("empty_list", "empty list"),
+        ("false_as_missing", "false-as-missing"),
+        ("empty_list_as_missing", "empty-list-as-missing"),
+        ("unknown", "other"),
+    ]
+
+    chips: List[str] = []
+    total_missing = len(missing)
+    total_unknown = len(unknown)
+    chips.append(f"<span class=\"chip warn\"><span class=\"small\">missing</span> <code>{total_missing}</code></span>")
+    if total_unknown:
+        chips.append(f"<span class=\"chip\"><span class=\"small\">unknown (explicit)</span> <code>{total_unknown}</code></span>")
+    if assumptions:
+        chips.append(f"<span class=\"chip\"><span class=\"small\">assumptions</span> <code>{len(assumptions)}</code></span>")
+    if op_disc:
+        chips.append(f"<span class=\"chip\"><span class=\"small\">operator discretion</span> <code>{len(op_disc)}</code></span>")
+    if queue:
+        chips.append(f"<span class=\"chip\"><span class=\"small\">queue-state dependent</span> <code>{len(queue)}</code></span>")
+
+    parts: List[str] = []
+    parts.append("<div class=\"chips\">" + "\n".join(chips) + "</div>")
+
+    # Missing breakdown (counts only; full list is in “Missing inputs” section).
+    if total_missing:
+        breakdown = []
+        for key, label in reason_order:
+            n = int(reason_counts.get(key, 0))
+            if n:
+                breakdown.append(f"<span class=\"chip\"><span class=\"small\">{esc(label)}</span> <code>{n}</code></span>")
+        if breakdown:
+            parts.append("<div class=\"muted small\" style=\"margin-top:10px\">Missing breakdown</div>")
+            parts.append("<div class=\"chips\">" + "\n".join(breakdown) + "</div>")
+
+    # Unknown inputs (explicit markers)
+    if total_unknown:
+        fields = [str(x.get("field") or "") for x in unknown if str(x.get("field") or "").strip()]
+        parts.append("<details style=\"margin-top:10px\"><summary>Show explicit unknown inputs</summary>")
+        parts.append("<div class=\"hint muted small\">These fields were provided but marked as unknown (e.g., <code>null</code> or <code>\"unknown\"</code>).</div>")
+        parts.append("<div class=\"chips\" style=\"margin-top:8px\">" + chip_list(sorted(set(fields))) + "</div>")
+        parts.append("</details>")
+
+    # Assumptions (non-cited heuristics)
+    if assumptions:
+        parts.append("<details style=\"margin-top:10px\"><summary>Show non-cited assumptions (heuristics)</summary>")
+        parts.append("<div class=\"hint muted small\">Heuristics are explicitly labeled and contribute to v0 risk buckets; they are not backed by PDF citations.</div>")
+        rows = []
+        items = sorted(assumptions, key=lambda x: str(x.get("rule_id") or ""))
+        for a in items:
+            rid = a.get("rule_id")
+            loc = a.get("loc")
+            notes = a.get("notes") or []
+            note1 = notes[0] if isinstance(notes, list) and notes else ""
+            rows.append(
+                "<tr>"
+                f"<td class=\"nowrap\"><code>{esc(rid)}</code></td>"
+                f"<td class=\"wrap\"><span class=\"muted\">{esc(loc)}</span></td>"
+                f"<td class=\"wrap\"><span class=\"small\">{esc(note1)}</span></td>"
+                "</tr>"
+            )
+        parts.append("<div style=\"overflow-x:auto;margin-top:8px\"><table>")
+        parts.append("<thead><tr><th class=\"nowrap\">rule_id</th><th>loc</th><th>note</th></tr></thead>")
+        parts.append("<tbody>" + ("\n".join(rows) or "<tr><td colspan=\"3\" class=\"muted\">None</td></tr>") + "</tbody>")
+        parts.append("</table></div></details>")
+
+    # Operator discretion signals
+    if op_disc:
+        parts.append("<details style=\"margin-top:10px\"><summary>Show operator discretion signals</summary>")
+        parts.append("<div class=\"hint muted small\">These signals indicate engineering / operator judgement may materially affect outcomes.</div>")
+        rows = []
+        items = sorted(op_disc, key=lambda x: (str(x.get("doc_id") or ""), str(x.get("rule_id") or "")))
+        for it in items:
+            rows.append(
+                "<tr>"
+                f"<td class=\"nowrap\"><code>{esc(it.get('rule_id'))}</code></td>"
+                f"<td class=\"nowrap\"><code>{esc(it.get('doc_id'))}</code></td>"
+                f"<td class=\"wrap\"><span class=\"muted\">{esc(it.get('loc'))}</span></td>"
+                f"<td class=\"wrap\">{code_list(it.get('trigger_tags') or [])}</td>"
+                "</tr>"
+            )
+        parts.append("<div style=\"overflow-x:auto;margin-top:8px\"><table>")
+        parts.append("<thead><tr><th class=\"nowrap\">rule_id</th><th class=\"nowrap\">doc_id</th><th>loc</th><th>tags</th></tr></thead>")
+        parts.append("<tbody>" + ("\n".join(rows) or "<tr><td colspan=\"4\" class=\"muted\">None</td></tr>") + "</tbody>")
+        parts.append("</table></div></details>")
+
+    # Queue-state dependent signals
+    if queue:
+        parts.append("<details style=\"margin-top:10px\"><summary>Show queue-state dependent signals</summary>")
+        parts.append("<div class=\"hint muted small\">These signals depend on queue density / dependencies; timelines can change as other projects progress.</div>")
+        rows = []
+        items = sorted(queue, key=lambda x: (str(x.get("doc_id") or ""), str(x.get("rule_id") or "")))
+        for it in items:
+            rows.append(
+                "<tr>"
+                f"<td class=\"nowrap\"><code>{esc(it.get('rule_id'))}</code></td>"
+                f"<td class=\"nowrap\"><code>{esc(it.get('doc_id'))}</code></td>"
+                f"<td class=\"wrap\"><span class=\"muted\">{esc(it.get('loc'))}</span></td>"
+                f"<td class=\"wrap\">{code_list(it.get('trigger_tags') or [])}</td>"
+                "</tr>"
+            )
+        parts.append("<div style=\"overflow-x:auto;margin-top:8px\"><table>")
+        parts.append("<thead><tr><th class=\"nowrap\">rule_id</th><th class=\"nowrap\">doc_id</th><th>loc</th><th>tags</th></tr></thead>")
+        parts.append("<tbody>" + ("\n".join(rows) or "<tr><td colspan=\"4\" class=\"muted\">None</td></tr>") + "</tbody>")
+        parts.append("</table></div></details>")
+
+    if (not total_missing) and (not total_unknown) and (not assumptions) and (not op_disc) and (not queue):
+        return "<div class=\"muted small\">None detected</div>"
+    return "\n".join(parts)
 
 
 def render_path_graph(ev: Dict[str, Any]) -> str:
@@ -610,6 +734,242 @@ def render_evidence_grouped_by_tag(evidence: List[Dict[str, Any]]) -> str:
     return "\n".join(out)
 
 
+def render_levers_catalog_html(ev: Dict[str, Any]) -> str:
+    items = ev.get("levers_catalog_analysis") or []
+    if not isinstance(items, list) or not items:
+        return "<div class=\"muted small\">None</div>"
+
+    rows: List[str] = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        lever_id = it.get("lever_id")
+        label = it.get("label") or ""
+        present = it.get("present_fields") or []
+        missing = it.get("missing_fields") or []
+        n = it.get("referenced_rule_count") or 0
+        rids = it.get("referenced_rule_ids") or []
+        rids_preview = [str(x) for x in rids[:8]]
+        rows.append(
+            "<tr>"
+            f"<td class=\"nowrap\"><code>{esc(lever_id)}</code></td>"
+            f"<td class=\"wrap\"><span class=\"small\">{esc(label)}</span></td>"
+            f"<td class=\"wrap\">{code_list(present)}</td>"
+            f"<td class=\"wrap\">{code_list(missing)}</td>"
+            f"<td class=\"nowrap\"><code>{esc(n)}</code></td>"
+            f"<td class=\"wrap\">{code_list(rids_preview)}{' <span class=\"muted small\">…</span>' if len(rids) > len(rids_preview) else ''}</td>"
+            "</tr>"
+        )
+
+    if not rows:
+        return "<div class=\"muted small\">None</div>"
+
+    return (
+        "<div style=\"overflow-x:auto;margin-top:8px\">"
+        "<table>"
+        "<thead><tr>"
+        "<th class=\"nowrap\">lever_id</th>"
+        "<th>label</th>"
+        "<th>present fields</th>"
+        "<th>missing fields</th>"
+        "<th class=\"nowrap\">rule refs</th>"
+        "<th>example rule_ids</th>"
+        "</tr></thead>"
+        "<tbody>"
+        + "\n".join(rows)
+        + "</tbody></table></div>"
+    )
+
+
+def render_lever_next_actions_html(ev: Dict[str, Any], *, top_n: int = 5) -> str:
+    """
+    Produce a bounded, memo-friendly guide for "which levers to decide next":
+    - What to ask (missing/unknown lever fields)
+    - What we observed (option delta signals)
+    - Which rule checks are currently blocked (missing) by those fields
+    """
+    lever_items = ev.get("levers_catalog_analysis") or []
+    if not isinstance(lever_items, list) or not lever_items:
+        return "<div class=\"muted small\">None</div>"
+
+    options = ev.get("options") or []
+    if not isinstance(options, list):
+        options = []
+
+    u = ev.get("uncertainties") or {}
+    missing = [x for x in (u.get("missing") or []) if isinstance(x, dict)]
+    unknown = [x for x in (u.get("unknown") or []) if isinstance(x, dict)]
+    unknown_fields = {str(x.get("field") or "") for x in unknown if str(x.get("field") or "").strip()}
+
+    rule_checks = ev.get("rule_checks") or []
+    if not isinstance(rule_checks, list):
+        rule_checks = []
+
+    # Index: lever_id -> option deltas
+    opt_by_lever: Dict[str, List[Dict[str, Any]]] = {}
+    for o in options:
+        if not isinstance(o, dict):
+            continue
+        lid = str(o.get("lever_id") or "")
+        if not lid:
+            continue
+        opt_by_lever.setdefault(lid, []).append(o)
+
+    # Index missing sources: field -> rule_ids that require it
+    missing_rule_sources: Dict[str, set[str]] = {}
+    for m in missing:
+        f = str(m.get("field") or "")
+        if not f:
+            continue
+        for s in (m.get("sources") or []):
+            if not isinstance(s, dict):
+                continue
+            if s.get("kind") == "rule_required_fields" and s.get("rule_id"):
+                missing_rule_sources.setdefault(f, set()).add(str(s.get("rule_id")))
+
+    def _score(it: Dict[str, Any]) -> float:
+        lever_id = str(it.get("lever_id") or "")
+        missing_fields = [str(x) for x in (it.get("missing_fields") or []) if str(x).strip()]
+        present_fields = [str(x) for x in (it.get("present_fields") or []) if str(x).strip()]
+        opt = opt_by_lever.get(lever_id, [])
+
+        s = 0.0
+        # If options show a path change, it's a very high-signal decision lever.
+        any_path_change = False
+        any_bucket_change = False
+        for o in opt:
+            d = o.get("delta") or {}
+            if d.get("path_changed"):
+                any_path_change = True
+            up = d.get("upgrade_exposure_bucket_changed") or {}
+            ops = d.get("operational_exposure_bucket_changed") or {}
+            if str(up.get("from")) != str(up.get("to")) or str(ops.get("from")) != str(ops.get("to")):
+                any_bucket_change = True
+        if any_path_change:
+            s += 6.0
+        if any_bucket_change:
+            s += 2.5
+        # Missing/unknown lever fields => actionable next questions.
+        s += 1.0 * len(missing_fields)
+        s += 0.75 * len([f for f in present_fields if f in unknown_fields])
+        # If many rules reference the lever, deciding it will unlock more explanation.
+        try:
+            s += min(2.0, float(it.get("referenced_rule_count") or 0) / 5.0)
+        except Exception:
+            pass
+        return s
+
+    # Build per-lever rows
+    enriched = []
+    for it in lever_items:
+        if not isinstance(it, dict):
+            continue
+        lever_id = str(it.get("lever_id") or "")
+        if not lever_id:
+            continue
+        req_fields = [str(x) for x in (it.get("request_fields") or []) if str(x).strip()]
+        missing_fields = [str(x) for x in (it.get("missing_fields") or []) if str(x).strip()]
+        unknown_lever_fields = sorted({f for f in req_fields if f in unknown_fields})
+
+        # Rules that are currently blocked (missing) due to these lever fields.
+        blocked_rules: set[str] = set()
+        for f in missing_fields:
+            blocked_rules |= set(missing_rule_sources.get(f, set()))
+        # Also consult rule_checks missing_fields (more direct).
+        for c in rule_checks:
+            if not isinstance(c, dict):
+                continue
+            if str(c.get("status") or "").lower() != "missing":
+                continue
+            mf = {str(x) for x in (c.get("missing_fields") or []) if str(x).strip()}
+            if mf & set(req_fields):
+                rid = str(c.get("rule_id") or "")
+                if rid:
+                    blocked_rules.add(rid)
+
+        # Option delta summary for this lever.
+        opt = opt_by_lever.get(lever_id, [])
+        any_path_changed = False
+        miss_deltas: List[int] = []
+        any_upgrade_change = False
+        any_ops_change = False
+        for o in opt:
+            d = o.get("delta") or {}
+            any_path_changed = any_path_changed or bool(d.get("path_changed"))
+            try:
+                miss_deltas.append(int(d.get("missing_inputs_count_delta") or 0))
+            except Exception:
+                pass
+            up = d.get("upgrade_exposure_bucket_changed") or {}
+            ops = d.get("operational_exposure_bucket_changed") or {}
+            any_upgrade_change = any_upgrade_change or (str(up.get("from")) != str(up.get("to")))
+            any_ops_change = any_ops_change or (str(ops.get("from")) != str(ops.get("to")))
+
+        delta_hint = []
+        if opt:
+            delta_hint.append(f"options={len(opt)}")
+            delta_hint.append("path_changed" if any_path_changed else "path_same")
+            if miss_deltas:
+                delta_hint.append(f"missingΔ[{min(miss_deltas):+d},{max(miss_deltas):+d}]")
+            if any_upgrade_change:
+                delta_hint.append("upgrade_bucket_changed")
+            if any_ops_change:
+                delta_hint.append("ops_bucket_changed")
+        else:
+            delta_hint.append("no_options_generated")
+
+        enriched.append(
+            {
+                "lever_id": lever_id,
+                "label": str(it.get("label") or ""),
+                "ask_missing_fields": missing_fields,
+                "ask_unknown_fields": unknown_lever_fields,
+                "blocked_rule_ids": sorted(blocked_rules),
+                "referenced_rule_count": int(it.get("referenced_rule_count") or 0),
+                "delta_hint": " | ".join(delta_hint),
+                "_score": _score(it),
+            }
+        )
+
+    if not enriched:
+        return "<div class=\"muted small\">None</div>"
+
+    # Pick top levers (deterministic sort)
+    enriched.sort(key=lambda x: (-float(x.get("_score") or 0.0), str(x.get("lever_id") or "")))
+    top = enriched[: max(1, int(top_n))]
+
+    rows: List[str] = []
+    for it in top:
+        blocked = it.get("blocked_rule_ids") or []
+        blocked_preview = [str(x) for x in blocked[:8]]
+        rows.append(
+            "<tr>"
+            f"<td class=\"nowrap\"><code>{esc(it.get('lever_id'))}</code></td>"
+            f"<td class=\"wrap\"><span class=\"small\">{esc(it.get('label'))}</span></td>"
+            f"<td class=\"wrap\">{code_list(it.get('ask_missing_fields') or [])}{('<div class=\"muted small\" style=\"margin-top:6px\">unknown: ' + code_list(it.get('ask_unknown_fields') or []) + '</div>') if (it.get('ask_unknown_fields') or []) else ''}</td>"
+            f"<td class=\"wrap\"><span class=\"small\"><code>{esc(it.get('delta_hint'))}</code></span></td>"
+            f"<td class=\"wrap\"><code>{esc(it.get('referenced_rule_count'))}</code></td>"
+            f"<td class=\"wrap\">{code_list(blocked_preview)}{' <span class=\"muted small\">…</span>' if len(blocked) > len(blocked_preview) else ''}</td>"
+            "</tr>"
+        )
+
+    return (
+        "<div style=\"overflow-x:auto;margin-top:8px\">"
+        "<table>"
+        "<thead><tr>"
+        "<th class=\"nowrap\">lever</th>"
+        "<th>label</th>"
+        "<th>ask next (fields)</th>"
+        "<th class=\"nowrap\">observed delta</th>"
+        "<th class=\"nowrap\">rule refs</th>"
+        "<th>rule checks unblocked</th>"
+        "</tr></thead>"
+        "<tbody>"
+        + ("\n".join(rows) or "<tr><td colspan=\"6\" class=\"muted\">None</td></tr>")
+        + "</tbody></table></div>"
+    )
+
+
 def render_citation_audit_rows(report: Optional[Dict[str, Any]]) -> str:
     if not report:
         return "<tr><td colspan=\"6\" class=\"muted\">Not run</td></tr>"
@@ -732,7 +1092,10 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optiona
         .replace("{{full_graph_svg}}", full_graph_svg)
         .replace("{{edges_rows}}", edges_rows)
         .replace("{{missing_chips}}", missing_chips)
+        .replace("{{uncertainty_html}}", render_uncertainty_html(ev))
         .replace("{{levers_rows}}", levers_rows)
+        .replace("{{lever_next_actions_html}}", render_lever_next_actions_html(ev, top_n=5))
+        .replace("{{levers_catalog_html}}", render_levers_catalog_html(ev))
         .replace("{{options_rows}}", options_rows)
         .replace("{{flags_rows}}", flags_rows)
         .replace("{{checklist_rows}}", checklist_rows)
@@ -787,7 +1150,7 @@ def render_checklist_rows(items: List[Dict[str, Any]]) -> str:
 def render_options_rows(items: List[Dict[str, Any]]) -> str:
     if not items:
         return (
-            "<tr><td colspan=\"6\" class=\"muted\">"
+            "<tr><td colspan=\"7\" class=\"muted\">"
             "None (provide multiple <code>voltage_options_kv</code> or set <code>energization_plan</code> to compare)"
             "</td></tr>"
         )
@@ -798,6 +1161,7 @@ def render_options_rows(items: List[Dict[str, Any]]) -> str:
         lever = it.get("lever_id")
         patch = it.get("patch") or {}
         summ = it.get("summary") or {}
+        delta = it.get("delta") or {}
 
         path = summ.get("path") or ""
         miss = summ.get("missing_inputs") or []
@@ -812,6 +1176,24 @@ def render_options_rows(items: List[Dict[str, Any]]) -> str:
         )
 
         patch_s = json.dumps(patch, ensure_ascii=False)
+
+        # Compact delta rendering (bounded recommendation-friendly)
+        miss_delta = delta.get("missing_inputs_count_delta", 0)
+        try:
+            miss_delta_i = int(miss_delta)
+        except Exception:
+            miss_delta_i = 0
+        miss_delta_s = f"{miss_delta_i:+d}" if miss_delta_i else "0"
+
+        path_changed = bool(delta.get("path_changed"))
+        path_s = "path_changed" if path_changed else "path_same"
+
+        up = delta.get("upgrade_exposure_bucket_changed") or {}
+        ops = delta.get("operational_exposure_bucket_changed") or {}
+        up_s = f"upgrade:{up.get('from','?')}→{up.get('to','?')}"
+        ops_s = f"ops:{ops.get('from','?')}→{ops.get('to','?')}"
+        delta_text = f"{path_s} | missing:{miss_delta_s} | {up_s} | {ops_s}"
+
         out.append(
             "<tr>"
             f"<td class=\"nowrap\"><code>{esc(opt_id)}</code></td>"
@@ -819,6 +1201,7 @@ def render_options_rows(items: List[Dict[str, Any]]) -> str:
             f"<td class=\"wrap\"><span class=\"small\"><code>{esc(patch_s)}</code></span></td>"
             f"<td class=\"wrap\"><span class=\"small\">{esc(path)}</span></td>"
             f"<td class=\"wrap\"><code>{esc(miss_count)}</code> {code_list(miss[:8])}</td>"
+            f"<td class=\"wrap\"><span class=\"small\"><code>{esc(delta_text)}</code></span></td>"
             f"<td class=\"wrap\"><span class=\"small\">{esc(risk_text)}</span></td>"
             "</tr>"
         )

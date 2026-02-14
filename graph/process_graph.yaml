@@ -260,3 +260,27 @@ levers_catalog:
     label: POI voltage level choice
     request_fields:
       - voltage_options_kv
+  - lever_id: energization_posture_timing
+    label: Energization posture & timing
+    request_fields:
+      - is_requesting_energization
+      - requested_energization_window
+  - lever_id: change_control_restudy
+    label: Change control / re-study triggers
+    request_fields:
+      - material_change_flags
+  - lever_id: agreements_security_ntp
+    label: Agreements, financial security & notice-to-proceed
+    request_fields:
+      - llis_completed_and_ercot_approved
+      - agreements_executed
+      - financial_security_posted
+      - notice_to_proceed_received
+  - lever_id: llis_data_package_readiness
+    label: LLIS study data package readiness
+    request_fields:
+      - llis_data_package_submitted
+  - lever_id: quarterly_stability_readiness
+    label: ERCOT quarterly stability assessment readiness (if applicable)
+    request_fields:
+      - ercot_quarterly_stability_assessment_complete
