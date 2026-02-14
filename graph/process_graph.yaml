@@ -1,3 +1,6 @@
+# NOTE: edge order matters.
+# The evaluator (`src/evaluate.py`) is deterministic: at each node it checks outgoing edges
+# in this YAML file order, and the **first satisfied edge wins**.
 version: "0.1"
 operator_stack:
   - ERCOT

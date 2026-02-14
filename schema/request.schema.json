@@ -1,72 +1,77 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Large Load Request (v0)",
+  "description": "Input schema for tx-large-load v0 screening. This schema defines the product boundary for request JSONL rows; evaluator logic may apply additional semantics (e.g., completeness_check rules can treat false/empty values as missing for certain fields).",
   "type": "object",
   "required": ["project_name", "project_type", "operator_area", "tdsp_area", "load_mw_total"],
   "properties": {
-    "project_name": { "type": "string", "minLength": 1 },
-    "project_type": { "type": "string", "enum": ["large_load"] },
-    "operator_area": { "type": "string", "enum": ["ERCOT"] },
-    "tdsp_area": { "type": "string", "minLength": 1 },
-    "load_mw_total": { "type": "number", "exclusiveMinimum": 0 },
-    "energization_plan": { "type": "string", "enum": ["single", "phased"] },
+    "project_name": { "type": "string", "minLength": 1, "description": "Human-readable project identifier (also used for memo filename slugging)." },
+    "project_type": { "type": "string", "enum": ["large_load"], "description": "v0 supports only ERCOT large load screening requests." },
+    "operator_area": { "type": "string", "enum": ["ERCOT"], "description": "Market/operator area (v0: ERCOT only)." },
+    "tdsp_area": { "type": "string", "minLength": 1, "description": "TDSP service area identifier (e.g., ONCOR)." },
+    "load_mw_total": { "type": "number", "exclusiveMinimum": 0, "description": "Aggregate peak demand in MW total (used by large-load applicability rules and heuristics)." },
+    "energization_plan": { "type": "string", "enum": ["single", "phased"], "description": "High-level energization/commissioning plan shape used for graph branching and option levers." },
     "phases": {
       "type": "array",
+      "description": "When energization_plan=phased, an ordered list of MW and target windows.",
       "items": {
         "type": "object",
         "required": ["mw", "target_window"],
         "properties": {
-          "mw": { "type": "number", "exclusiveMinimum": 0 },
-          "target_window": { "type": "string", "minLength": 1 }
+          "mw": { "type": "number", "exclusiveMinimum": 0, "description": "Phase MW (incremental or cumulative, depending on your internal convention)." },
+          "target_window": { "type": "string", "minLength": 1, "description": "Target energization/COD window label (e.g., 2027Q2)." }
         },
         "additionalProperties": true
       }
     },
-    "poi_hint": { "type": "string" },
+    "poi_hint": { "type": "string", "description": "Free-text POI / location hint for screening context." },
     "voltage_options_kv": {
       "type": "array",
+      "description": "Candidate POI voltage levels in kV (preferred field name). Provide 2+ values to enable options comparison.",
       "items": { "type": "number", "exclusiveMinimum": 0 }
     },
     "voltage_options": {
       "type": "array",
+      "description": "Legacy alias for voltage_options_kv (supported for backward compatibility).",
       "items": { "type": "number", "exclusiveMinimum": 0 }
     },
-    "cod_target_window": { "type": "string" },
-    "load_profile_type": { "type": "string", "enum": ["baseload", "ramp", "variable", "unknown"] },
+    "cod_target_window": { "type": "string", "description": "Requested/assumed COD window label (e.g., 2027Q4)." },
+    "load_profile_type": { "type": "string", "enum": ["baseload", "ramp", "variable", "unknown"], "description": "High-level load shape label for screening (v0 informational)." },
 
-    "is_requesting_energization": { "type": "boolean" },
-    "requested_energization_window": { "type": "string" },
+    "is_requesting_energization": { "type": "boolean", "description": "If true, evaluator runs tri-state energization gates and renders the energization checklist." },
+    "requested_energization_window": { "type": "string", "description": "Requested energization date/window (used by certain energization timing rules, e.g., '365-day' logic)." },
 
-    "is_new_interconnection": { "type": "boolean" },
+    "is_new_interconnection": { "type": "boolean", "description": "Whether this is a new interconnection vs modification/increase (used by applicability rules)." },
     "material_change_flags": {
       "type": "array",
+      "description": "List of material change signals (e.g., poi_changed, timeline_accelerated) used for re-study screening.",
       "items": { "type": "string", "minLength": 1 }
     },
 
-    "llis_completed_and_ercot_approved": { "type": "boolean" },
-    "agreements_executed": { "type": "boolean" },
-    "financial_security_posted": { "type": "boolean" },
-    "nom_included": { "type": "boolean" },
+    "llis_completed_and_ercot_approved": { "type": "boolean", "description": "Energization gate input: whether required LLIS studies are completed and approved." },
+    "agreements_executed": { "type": "boolean", "description": "Energization gate input: whether required agreements are executed." },
+    "financial_security_posted": { "type": "boolean", "description": "Energization gate input: whether required financial security is posted." },
+    "nom_included": { "type": "boolean", "description": "Energization gate input: whether the load is included in the Network Operations Model (NOM)." },
 
-    "one_line_diagram": { "type": "boolean" },
-    "load_projection_5y": { "type": "boolean" },
-    "peak_power_factor": { "type": ["number", "null"] },
+    "one_line_diagram": { "type": "boolean", "description": "Intake/completeness input (often required by TDSP). In v0 completeness semantics, false can be treated as missing." },
+    "load_projection_5y": { "type": "boolean", "description": "Intake/completeness input (often required by TDSP). In v0 completeness semantics, false can be treated as missing." },
+    "peak_power_factor": { "type": ["number", "null"], "description": "Peak load power factor (may be required by TDSP). null is allowed to represent unknown." },
 
-    "load_commissioning_plan_provided": { "type": "boolean" },
-    "application_fee_paid": { "type": "boolean" },
+    "load_commissioning_plan_provided": { "type": "boolean", "description": "Whether a (preliminary/current) Load Commissioning Plan is provided (key ERCOT large-load intake + energization gate)." },
+    "application_fee_paid": { "type": "boolean", "description": "Whether the ERCOT LLIS application fee is paid (intake prerequisite in Planning Guide Section 9)." },
 
-    "ack_change_notification_obligation": { "type": "boolean" },
-    "llis_formal_request_submitted": { "type": "boolean" },
+    "ack_change_notification_obligation": { "type": "boolean", "description": "v0 input representing written acknowledgement of change-notification obligation (Planning Guide Section 9.2.2/9.2.3)." },
+    "llis_formal_request_submitted": { "type": "boolean", "description": "v0 input representing that a formal request to initiate LLIS has been submitted (Planning Guide Section 9.2.2)." },
 
-    "is_large_electronic_load": { "type": "boolean" },
-    "lel_interim_assessment_complete": { "type": "boolean" },
-    "model_consistency_confirmed": { "type": "boolean" },
-    "telemetry_operational_and_accurate": { "type": "boolean" },
-    "dme_installed_and_operational": { "type": "boolean" },
-    "sso_complete_and_mitigation_in_place": { "type": "boolean" },
+    "is_large_electronic_load": { "type": "boolean", "description": "Applicability toggle for LEL-specific energization gates and curtailment risk signals." },
+    "lel_interim_assessment_complete": { "type": "boolean", "description": "If is_large_electronic_load=true, whether the interim ride-through assessment is complete." },
+    "model_consistency_confirmed": { "type": "boolean", "description": "Energization gate input: confirm no material change vs the dynamic model assumptions used in studies." },
+    "telemetry_operational_and_accurate": { "type": "boolean", "description": "Energization gate input: required telemetry is operational and accurate." },
+    "dme_installed_and_operational": { "type": "boolean", "description": "If dme_required=true, whether Disturbance Monitoring Equipment is installed and operational." },
+    "sso_complete_and_mitigation_in_place": { "type": "boolean", "description": "If sso_required=true, whether the SSO study is complete and mitigation is in place." },
 
-    "sso_required": { "type": "boolean" },
-    "dme_required": { "type": "boolean" }
+    "sso_required": { "type": "boolean", "description": "Applicability toggle for conditional energization gate: whether SSO is required for this project." },
+    "dme_required": { "type": "boolean", "description": "Applicability toggle for conditional energization gate: whether DME is required for this project." }
   },
   "additionalProperties": true
 }
