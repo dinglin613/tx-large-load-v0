@@ -733,6 +733,8 @@ def normalize_request(req: Dict[str, Any]) -> Dict[str, Any]:
                 r["voltage_choice_kv"] = None
 
     # Voltage class: explicit poi_voltage_class wins; otherwise derive from voltage_choice_kv when numeric.
+    # If voltage_choice_kv is not available, fall back to voltage_options_kv when it is unambiguous
+    # (e.g., all candidate options are transmission-voltage, or all are distribution-voltage).
     if "poi_voltage_class" not in r:
         v = r.get("voltage_choice_kv")
         cls = "unknown"
@@ -743,7 +745,33 @@ def normalize_request(req: Dict[str, Any]) -> Dict[str, Any]:
         if v_num is not None:
             # v0 threshold aligned with certain TDSP transmission-scope standards (e.g., 69kV+).
             cls = "transmission" if v_num >= 69.0 else "distribution"
+        else:
+            vopts = r.get("voltage_options_kv")
+            if isinstance(vopts, list) and vopts:
+                nums = []
+                for vv in vopts:
+                    try:
+                        nums.append(float(vv))
+                    except Exception:
+                        nums = []
+                        break
+                if nums:
+                    if min(nums) >= 69.0:
+                        cls = "transmission"
+                    elif max(nums) < 69.0:
+                        cls = "distribution"
         r["poi_voltage_class"] = cls
+
+    # Convenience applicability fields (derived, deterministic) for conditional_gate modeling.
+    # These let us express "not_applicable vs unknown" without forcing users to provide extra toggles.
+    pvc = str(r.get("poi_voltage_class") or "").strip().lower()
+    if pvc in {"transmission", "distribution"}:
+        r.setdefault("poi_voltage_class_is_transmission", pvc == "transmission")
+        r.setdefault("poi_voltage_class_is_distribution", pvc == "distribution")
+    else:
+        # unknown / not provided
+        r.setdefault("poi_voltage_class_is_transmission", None)
+        r.setdefault("poi_voltage_class_is_distribution", None)
     return r
 
 
@@ -1089,6 +1117,29 @@ def _summarize_option_eval(ev: Dict[str, Any]) -> Dict[str, Any]:
                 s = "unknown"
             counts[s] += 1
 
+    # Risk score totals (v0, explainable). These are used as tie-breakers in recommendation ranking.
+    upgrade_score = 0.0
+    wait_score = 0.0
+    ops_score = 0.0
+    for rt in (ev.get("risk_trace") or []):
+        if not isinstance(rt, dict):
+            continue
+        if rt.get("kind") != "summary":
+            continue
+        try:
+            upgrade_score = float(rt.get("upgrade_score") or 0.0)
+            wait_score = float(rt.get("wait_score") or 0.0)
+            ops_score = float(rt.get("ops_score") or 0.0)
+        except Exception:
+            upgrade_score = wait_score = ops_score = 0.0
+        break
+
+    def _round3(x: float) -> float:
+        try:
+            return float(round(float(x), 3))
+        except Exception:
+            return 0.0
+
     return {
         "path": path,
         "missing_inputs_count": len(ev.get("missing_inputs") or []),
@@ -1097,6 +1148,11 @@ def _summarize_option_eval(ev: Dict[str, Any]) -> Dict[str, Any]:
         "energization": {
             "requested": bool(is_energization_mode(req)),
             "checklist_counts": counts,
+        },
+        "risk_scores": {
+            "upgrade_score": _round3(upgrade_score),
+            "wait_score": _round3(wait_score),
+            "ops_score": _round3(ops_score),
         },
         "timeline_buckets": {
             "le_12_months": tb.get("le_12_months", "unknown"),
@@ -1283,16 +1339,44 @@ def _recommendation_from_candidates(
         # readiness: lower not_sat/missing is better when energization is requested
         readiness_penalty = (not_sat * 2 + missing) if req_is_energization else 0
 
+        rs = s.get("risk_scores") or {}
+        try:
+            up_sc = float(rs.get("upgrade_score") or 0.0)
+            wt_sc = float(rs.get("wait_score") or 0.0)
+            op_sc = float(rs.get("ops_score") or 0.0)
+        except Exception:
+            up_sc = wt_sc = op_sc = 0.0
+
         tb = s.get("timeline_buckets") or {}
         timeline = _timeline_score(tb)
         up = _bucket_rank(str(s.get("upgrade_exposure_bucket") or "unknown"))
         ops = _bucket_rank(str(s.get("operational_exposure_bucket") or "unknown"))
-        return (miss, readiness_penalty, up, ops, timeline)
+        # NOTE: risk score totals are used as a tiebreaker so lever-driven rules can
+        # affect recommendations even when qualitative buckets don't change.
+        risk_pressure = up_sc + wt_sc + op_sc
+        return (miss, readiness_penalty, up, ops, int(round(risk_pressure * 1000)), timeline)
 
     ranked = []
     for c in candidates:
         ranked.append((_score(c.get("summary") or {}), c))
-    ranked.sort(key=lambda t: (t[0], str(t[1].get("option_id") or "")))
+
+    def _source_priority(cand: Dict[str, Any]) -> int:
+        src = str(cand.get("source") or "").strip()
+        if not src and str(cand.get("option_id") or "") == "baseline":
+            src = "baseline"
+        if src == "user_provided_alternatives":
+            return 0
+        if src == "baseline":
+            return 1
+        if src == "system_generated_toggle":
+            return 2
+        return 3
+
+    # Deterministic ordering:
+    # 1) score tuple (lower is better)
+    # 2) prefer user-provided alternatives over baseline over system-generated toggles
+    # 3) stable option_id tie-break
+    ranked.sort(key=lambda t: (t[0], _source_priority(t[1]), str(t[1].get("option_id") or "")))
     best = ranked[0][1] if ranked else None
 
     out = {
@@ -1310,6 +1394,7 @@ def _recommendation_from_candidates(
             {
                 "option_id": c.get("option_id"),
                 "lever_id": c.get("lever_id"),
+                "source": c.get("source"),
                 "score": list(_score(c.get("summary") or {})),
                 "summary": c.get("summary") or {},
             }
@@ -1648,7 +1733,14 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
 
     energization_checklist = dedupe_checklist(energization_checklist)
 
-    # Missing inputs from completeness-check rules (published)
+    # Missing inputs from rules with required_fields (published)
+    #
+    # Policy:
+    # - Only enforce required_fields when the rule is "in play" (predicates evaluate true),
+    #   except when the rule has no predicates (pure completeness requirement).
+    # - Conditional gates: if applicability isn't known-true, skip enforcement (unknown/not_applicable
+    #   should not become missing_inputs).
+    # - Energization-gated rules: do not enforce outside energization mode.
     for r in all_signal_rules:
         rf = required_fields_from_rule(r)
         if not rf:
@@ -1656,35 +1748,37 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
 
         dsl = ((r.get("criteria") or {}).get("dsl") or {})
         is_completeness = dsl.get("kind") == "completeness_check"
-        if not is_completeness:
-            # Conditional gates: do not treat unknown applicability as "missing inputs".
-            # If applicability is False (not applicable) OR unknown, skip enforcement entirely.
-            if dsl.get("kind") == "conditional_gate":
-                app_fields = dsl.get("applicability_fields") or []
-                if isinstance(app_fields, list) and app_fields:
-                    applicable_known_true = True
-                    for f_app in [str(x) for x in app_fields if x]:
-                        v_app = get_field(req, f_app)
-                        if v_app is False:
-                            applicable_known_true = False
-                            break
-                        if _is_explicit_unknown_value(v_app):
-                            applicable_known_true = False
-                            break
-                        if v_app is not True:
-                            applicable_known_true = False
-                            break
-                    if not applicable_known_true:
-                        continue
 
-            # Only enforce non-completeness required_fields when the rule is "in play".
-            preds = rule_predicates(r)
-            if preds:
-                ok, _tr, _miss = criteria_satisfied(req, preds)
-                if not ok:
-                    # Special-case energization gates: only relevant when requesting energization.
-                    if has_gate_predicate(r, field="is_requesting_energization", value=True) and req.get("is_requesting_energization") is not True:
-                        continue
+        # Conditional gates: do not treat unknown applicability as "missing inputs".
+        # If applicability is False (not applicable) OR unknown, skip enforcement entirely.
+        if dsl.get("kind") == "conditional_gate":
+            app_fields = dsl.get("applicability_fields") or []
+            if isinstance(app_fields, list) and app_fields:
+                applicable_known_true = True
+                for f_app in [str(x) for x in app_fields if x]:
+                    v_app = get_field(req, f_app)
+                    if v_app is False:
+                        applicable_known_true = False
+                        break
+                    if _is_explicit_unknown_value(v_app):
+                        applicable_known_true = False
+                        break
+                    if v_app is not True:
+                        applicable_known_true = False
+                        break
+                if not applicable_known_true:
+                    continue
+
+        preds = rule_predicates(r)
+        if preds:
+            ok, _tr, _miss = criteria_satisfied(req, preds)
+            if not ok:
+                # Special-case energization gates: only relevant in energization mode.
+                if has_gate_predicate(r, field="is_requesting_energization", value=True) and not is_energization_mode(req):
+                    continue
+                # If predicates are not satisfied (or cannot be evaluated), the rule is not in play
+                # for required_fields enforcement in missing_inputs.
+                continue
         for f in rf:
             # Same missing semantics as tri-state (but applied to memo-level missing_inputs list)
             if f not in req:
@@ -1959,16 +2053,22 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                 }
             )
 
-        # Lever 6: voltage class (only when no explicit voltage options list is provided).
-        if not (isinstance(vopts, list) and len(vopts) >= 2):
+        # Lever 6: voltage class
+        #
+        # IMPORTANT: avoid generating "class-only" toggles when we already have numeric voltage
+        # evidence (voltage_choice_kv or voltage_options_kv) because it creates inconsistent
+        # what-ifs (e.g., voltage_options=[138,345] but poi_voltage_class=distribution).
+        #
+        # We only allow this toggle when the request explicitly provides poi_voltage_class
+        # without any numeric voltage choice/options.
+        has_voltage_choice = req.get("voltage_choice_kv") is not None
+        has_voltage_opts = isinstance(vopts, list) and len(vopts) > 0
+        if (not has_voltage_choice) and (not has_voltage_opts):
             cls = str(req.get("poi_voltage_class") or "").strip().lower()
             if cls in {"distribution", "transmission"}:
                 other_cls = "transmission" if cls == "distribution" else "distribution"
                 req2 = dict(req)
-                # Explicit class override for what-if comparison (keeps v0 deterministic).
                 req2["poi_voltage_class"] = other_cls
-                # Clear voltage_choice_kv to avoid implying a numeric choice without evidence.
-                req2["voltage_choice_kv"] = None
                 ev2 = evaluate_graph(req2, graph, include_options=False)
                 opt_summary = _summarize_option_eval(ev2)
                 options.append(
@@ -1976,7 +2076,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                         "option_id": f"voltage_class_{other_cls}",
                         "lever_id": "voltage_level_choice",
                         "source": "system_generated_toggle",
-                        "patch": {"poi_voltage_class": other_cls, "voltage_choice_kv": None},
+                        "patch": {"poi_voltage_class": other_cls},
                         "summary": opt_summary,
                         "delta": _diff_option_summaries(baseline_summary, opt_summary),
                     }
@@ -1988,6 +2088,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
         base_candidate = {
             "option_id": "baseline",
             "lever_id": "baseline",
+            "source": "baseline",
             "patch": {},
             "summary": baseline_summary,
         }

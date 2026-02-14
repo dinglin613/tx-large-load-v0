@@ -39,6 +39,14 @@
       "enum": ["distribution", "transmission", "unknown"],
       "description": "Configuration lever: voltage class at POI used for path branching. If omitted, evaluator may derive it from voltage_choice_kv using v0 thresholds (e.g., 69kV as transmission threshold for certain TDSP standards)."
     },
+    "poi_voltage_class_is_transmission": {
+      "type": ["boolean", "null"],
+      "description": "Derived-only applicability helper (v0): true if poi_voltage_class is confirmed/derived as transmission, false if distribution, null if unknown. Used to model not_applicable vs unknown for conditional gates without forcing extra user inputs."
+    },
+    "poi_voltage_class_is_distribution": {
+      "type": ["boolean", "null"],
+      "description": "Derived-only applicability helper (v0): true if poi_voltage_class is confirmed/derived as distribution, false if transmission, null if unknown. Used to model not_applicable vs unknown for conditional gates without forcing extra user inputs."
+    },
     "voltage_options_kv": {
       "type": "array",
       "description": "Candidate POI voltage levels in kV (preferred field name). Provide 2+ values to enable options comparison.",
@@ -87,6 +95,15 @@
     "ercot_quarterly_stability_assessment_required": { "type": ["boolean", "null"], "description": "Applicability toggle for conditional energization gate: whether ERCOT Quarterly Stability Assessment (QSA) is required for this project / target energization window. Use null to represent unknown/unconfirmed (e.g., requires TSP/ERCOT confirmation)." },
     "ercot_quarterly_stability_assessment_complete": { "type": "boolean", "description": "Energization readiness input (v0): completion of ERCOT Quarterly Stability Assessment requirements referenced by Planning Guide Section 9.6(1)(c)." },
     "notice_to_proceed_received": { "type": "boolean", "description": "Energization readiness input (v0): whether the interconnecting TSP has received notice to proceed with construction of required interconnection facilities (Planning Guide Section 9.5.1(iii))." },
+
+    "dsp_facility_info_provided": {
+      "type": ["boolean", "null"],
+      "description": "Study/completeness input (v0): for distribution-voltage Large Load interconnections, whether the affected DSP has provided the facility information needed by the lead TSP to complete required studies (Planning Guide Section 9.3.1(4)). Use null to represent unknown/unconfirmed coordination status."
+    },
+    "interconnection_breaker_configuration_confirmed": {
+      "type": ["boolean", "null"],
+      "description": "Engineering/energization readiness input (v0): for transmission-voltage Large Load interconnections, whether the required permanent breaker configuration (capable of interrupting fault current and remotely controllable per Planning Guide Section 9.2.5) has been confirmed/implemented for the Service Delivery Point(s). Use null to represent unknown/unconfirmed status."
+    },
 
     "sso_required": { "type": "boolean", "description": "Applicability toggle for conditional energization gate: whether SSO is required for this project." },
     "dme_required": { "type": "boolean", "description": "Applicability toggle for conditional energization gate: whether DME is required for this project." },

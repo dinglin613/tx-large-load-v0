@@ -1032,11 +1032,13 @@ def render_recommendation_html(ev: Dict[str, Any]) -> str:
     # Make the scoring rule explicit (v0, bounded, no probabilities).
     parts.append("<div class=\"muted small\" style=\"margin-top:10px\">Scoring rule (v0, explainable)</div>")
     parts.append(
-        "<div class=\"small\"><code>score = (missing_inputs_count, energization_penalty, upgrade_bucket_rank, ops_bucket_rank, timeline_score)</code></div>"
+        "<div class=\"small\"><code>score = (missing_inputs_count, energization_penalty, upgrade_bucket_rank, ops_bucket_rank, risk_pressure, timeline_score)</code></div>"
     )
     parts.append(
         "<div class=\"muted small\" style=\"margin-top:6px\">Where <code>energization_penalty = 2*not_satisfied + missing</code> (only when energization is requested), "
-        "bucket ranks are <code>low&lt;medium&lt;high&lt;unknown</code>, and <code>timeline_score</code> is derived from the qualitative timeline buckets.</div>"
+        "bucket ranks are <code>low&lt;medium&lt;high&lt;unknown</code>, "
+        "<code>risk_pressure = upgrade_score + wait_score + ops_score</code> (tie-breaker from v0 tag scoring), "
+        "and <code>timeline_score</code> is derived from the qualitative timeline buckets.</div>"
     )
     ctx_note = basis.get("context_note")
     if isinstance(ctx_note, str) and ctx_note.strip():
@@ -1055,22 +1057,25 @@ def render_recommendation_html(ev: Dict[str, Any]) -> str:
                 continue
             s = c.get("summary") or {}
             tb = s.get("timeline_buckets") or {}
+            rs = s.get("risk_scores") or {}
             en = s.get("energization") or {}
             cc = (en.get("checklist_counts") or {}) if isinstance(en, dict) else {}
             rows.append(
                 "<tr>"
                 f"<td class=\"nowrap\"><code>{esc(c.get('option_id'))}</code></td>"
                 f"<td class=\"nowrap\"><code>{esc(c.get('lever_id'))}</code></td>"
+                f"<td class=\"nowrap\"><code>{esc(c.get('source') or '')}</code></td>"
                 f"<td class=\"nowrap\"><code>{esc(s.get('missing_inputs_count'))}</code></td>"
                 f"<td class=\"nowrap\"><code>{esc(s.get('upgrade_exposure_bucket'))}</code></td>"
                 f"<td class=\"nowrap\"><code>{esc(s.get('operational_exposure_bucket'))}</code></td>"
+                f"<td class=\"nowrap\"><span class=\"small\"><code>risk:{esc((rs.get('upgrade_score',0) or 0) + (rs.get('wait_score',0) or 0) + (rs.get('ops_score',0) or 0))}</code></span></td>"
                 f"<td class=\"nowrap\"><span class=\"small\">≤12:{esc(tb.get('le_12_months','?'))} 12–24:{esc(tb.get('m12_24_months','?'))} >24:{esc(tb.get('gt_24_months','?'))}</span></td>"
                 f"<td class=\"nowrap\"><span class=\"small\">gate not_sat:{esc(cc.get('not_satisfied',0))} missing:{esc(cc.get('missing',0))}</span></td>"
                 "</tr>"
             )
         parts.append("<div style=\"overflow-x:auto;margin-top:8px\"><table>")
-        parts.append("<thead><tr><th class=\"nowrap\">option</th><th class=\"nowrap\">lever</th><th class=\"nowrap\">missing</th><th class=\"nowrap\">upgrade</th><th class=\"nowrap\">ops</th><th class=\"nowrap\">timeline</th><th class=\"nowrap\">gates</th></tr></thead>")
-        parts.append("<tbody>" + ("\n".join(rows) or "<tr><td colspan=\"7\" class=\"muted\">None</td></tr>") + "</tbody>")
+        parts.append("<thead><tr><th class=\"nowrap\">option</th><th class=\"nowrap\">lever</th><th class=\"nowrap\">source</th><th class=\"nowrap\">missing</th><th class=\"nowrap\">upgrade</th><th class=\"nowrap\">ops</th><th class=\"nowrap\">risk</th><th class=\"nowrap\">timeline</th><th class=\"nowrap\">gates</th></tr></thead>")
+        parts.append("<tbody>" + ("\n".join(rows) or "<tr><td colspan=\"9\" class=\"muted\">None</td></tr>") + "</tbody>")
         parts.append("</table></div>")
     parts.append("<div class=\"muted small\" style=\"margin-top:10px\">Note: v0 recommendation is bounded to baseline + generated options; it is not a global optimizer.</div>")
     return "\n".join(parts)
