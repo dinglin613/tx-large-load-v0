@@ -22,6 +22,8 @@ nodes:
     label: Study Path (ERCOT) — Single plan
   - id: N3R
     label: Material Change / Re-study Screening
+  - id: N3C
+    label: Configuration Branching (v0 what-if)
   - id: N3T
     label: TDSP Routing
   - id: N4
@@ -59,6 +61,7 @@ edges:
       - PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED
       - PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED
       - PG9_008_LLIS_PREINIT_APPLICATION_FEE_REQUIRED
+      - PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED
 
   # Branch 1: plan shape (phased vs single) + minimal required fields.
   - id: E2P
@@ -74,6 +77,7 @@ edges:
         value: phased
     rule_ids:
       - LL_QA_001_LARGE_LOAD_DEFINITION
+      - PG9_028_LCP_PHASES_REQUIRED_IF_PHASED_PLAN
       - ONC_003_LOAD_PROJECTION
       - ONC_004_ONE_LINE_DIAGRAM
 
@@ -106,6 +110,7 @@ edges:
       - PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED
       - PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED
       - PG9_008_LLIS_PREINIT_APPLICATION_FEE_REQUIRED
+      - PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED
 
   - id: E2X_END
     from: N2X
@@ -115,6 +120,7 @@ edges:
       - ERCOT_LLI_INTAKE_REQUIRED_DOCS
       - ONC_003_LOAD_PROJECTION
       - ONC_004_ONE_LINE_DIAGRAM
+      - PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED
 
   # Branch 3: material change / re-study signal (applies to both plans).
   - id: E3P_RESTUDY
@@ -128,6 +134,53 @@ edges:
       - LL_QA_006_MATERIAL_CHANGE
       - PG9_011_PROJECT_INFO_UPDATE_10_BUSINESS_DAYS
       - PG9_012_DYNAMIC_MODEL_CHANGE_IMPACTS_LLIS
+      - PG9_026_MATERIAL_CHANGE_NOTIFY_LEAD_TSP
+      - PG9_027_NEW_STABILITY_STUDY_DETERMINATION_IF_SUBSTANTIAL_CHANGE
+
+  # Branch 3b: configuration-dependent branching (does not replace published rules; it makes irreversible choices auditable + comparable).
+  - id: E3P_CFG_MULTI_POI
+    from: N3P
+    to: N3C
+    missing_policy: ignore
+    criteria:
+      - op: equals
+        field: multiple_poi
+        value: true
+    rule_ids:
+      - LL_QA_016_MULTI_POI_SCREEN_AS_SEPARATE_SITES
+
+  - id: E3P_CFG_CO_LOCATED
+    from: N3P
+    to: N3C
+    missing_policy: ignore
+    criteria:
+      - op: equals
+        field: is_co_located
+        value: true
+    rule_ids:
+      - LL_QA_017_CO_LOCATED_WITH_GENERATION_IN_SCOPE
+
+  - id: E3P_CFG_EXPORT
+    from: N3P
+    to: N3C
+    missing_policy: ignore
+    criteria:
+      - op: any_of
+        field: export_capability
+        values: ["possible", "planned"]
+    rule_ids:
+      - LL_QA_018_NET_METERING_REVIEW_MAY_APPLY
+
+  - id: E3P_CFG_DISTRIBUTION_VOLTAGE
+    from: N3P
+    to: N3C
+    missing_policy: ignore
+    criteria:
+      - op: equals
+        field: poi_voltage_class
+        value: distribution
+    rule_ids:
+      - ONC_001_TRANSMISSION_VOLTAGE_SCOPE
 
   - id: E3P_BASE
     from: N3P
@@ -151,6 +204,52 @@ edges:
       - LL_QA_006_MATERIAL_CHANGE
       - PG9_011_PROJECT_INFO_UPDATE_10_BUSINESS_DAYS
       - PG9_012_DYNAMIC_MODEL_CHANGE_IMPACTS_LLIS
+      - PG9_026_MATERIAL_CHANGE_NOTIFY_LEAD_TSP
+      - PG9_027_NEW_STABILITY_STUDY_DETERMINATION_IF_SUBSTANTIAL_CHANGE
+
+  - id: E3S_CFG_MULTI_POI
+    from: N3S
+    to: N3C
+    missing_policy: ignore
+    criteria:
+      - op: equals
+        field: multiple_poi
+        value: true
+    rule_ids:
+      - LL_QA_016_MULTI_POI_SCREEN_AS_SEPARATE_SITES
+
+  - id: E3S_CFG_CO_LOCATED
+    from: N3S
+    to: N3C
+    missing_policy: ignore
+    criteria:
+      - op: equals
+        field: is_co_located
+        value: true
+    rule_ids:
+      - LL_QA_017_CO_LOCATED_WITH_GENERATION_IN_SCOPE
+
+  - id: E3S_CFG_EXPORT
+    from: N3S
+    to: N3C
+    missing_policy: ignore
+    criteria:
+      - op: any_of
+        field: export_capability
+        values: ["possible", "planned"]
+    rule_ids:
+      - LL_QA_018_NET_METERING_REVIEW_MAY_APPLY
+
+  - id: E3S_CFG_DISTRIBUTION_VOLTAGE
+    from: N3S
+    to: N3C
+    missing_policy: ignore
+    criteria:
+      - op: equals
+        field: poi_voltage_class
+        value: distribution
+    rule_ids:
+      - ONC_001_TRANSMISSION_VOLTAGE_SCOPE
 
   - id: E3S_BASE
     from: N3S
@@ -163,12 +262,63 @@ edges:
       - PG9_017_SYSTEM_PROTECTION_SHORT_CIRCUIT_ELEMENT
       - PG9_018_DYNAMIC_TRANSIENT_STABILITY_ELEMENT
 
+  # Branch 3c: configuration-dependent branching after re-study screening.
+  - id: E3R_CFG_MULTI_POI
+    from: N3R
+    to: N3C
+    missing_policy: ignore
+    criteria:
+      - op: equals
+        field: multiple_poi
+        value: true
+    rule_ids:
+      - LL_QA_016_MULTI_POI_SCREEN_AS_SEPARATE_SITES
+
+  - id: E3R_CFG_CO_LOCATED
+    from: N3R
+    to: N3C
+    missing_policy: ignore
+    criteria:
+      - op: equals
+        field: is_co_located
+        value: true
+    rule_ids:
+      - LL_QA_017_CO_LOCATED_WITH_GENERATION_IN_SCOPE
+
+  - id: E3R_CFG_EXPORT
+    from: N3R
+    to: N3C
+    missing_policy: ignore
+    criteria:
+      - op: any_of
+        field: export_capability
+        values: ["possible", "planned"]
+    rule_ids:
+      - LL_QA_018_NET_METERING_REVIEW_MAY_APPLY
+
+  - id: E3R_CFG_DISTRIBUTION_VOLTAGE
+    from: N3R
+    to: N3C
+    missing_policy: ignore
+    criteria:
+      - op: equals
+        field: poi_voltage_class
+        value: distribution
+    rule_ids:
+      - ONC_001_TRANSMISSION_VOLTAGE_SCOPE
+
   - id: E3R_TO_TDSP
     from: N3R
     to: N3T
     criteria: []
     rule_ids:
       - LL_QA_006_MATERIAL_CHANGE
+
+  - id: E3C_TO_TDSP
+    from: N3C
+    to: N3T
+    criteria: []
+    rule_ids: []
 
   # Branch 4: TDSP-specific routing (Oncor vs generic).
   - id: E4_ONCOR
@@ -197,6 +347,8 @@ edges:
       - ONCOR_520_106_SYSTEM_PROTECTION_REQUIREMENTS
       - ONC_001_TRANSMISSION_VOLTAGE_SCOPE
       - ONC_010_NOMCR_APPROVAL
+      - PG9_029_CANCELLATION_RISK_IF_SECTION_9_5_NOT_SATISFIED_180_DAYS_AGREEMENTS
+      - PG9_029B_CANCELLATION_RISK_IF_SECTION_9_5_NOT_SATISFIED_180_DAYS_FINANCIAL_SECURITY
 
   - id: E5_GENERIC
     from: N4G
@@ -204,6 +356,8 @@ edges:
     criteria: []
     rule_ids:
       - LL_QA_007_REQUIRED_STUDIES
+      - PG9_029_CANCELLATION_RISK_IF_SECTION_9_5_NOT_SATISFIED_180_DAYS_AGREEMENTS
+      - PG9_029B_CANCELLATION_RISK_IF_SECTION_9_5_NOT_SATISFIED_180_DAYS_FINANCIAL_SECURITY
 
   # Branch 5: energization requested vs feasibility-only memo.
   - id: E6_ENERGIZATION
@@ -224,6 +378,9 @@ edges:
       - PG9_022_ENERGIZATION_CURRENT_LCP_REQUIRED
       - PG9_023_LLIS_COMPLETION_COMMUNICATED
       - PG9_024_AGREEMENTS_AND_FINANCIAL_SECURITY
+      - PG9_030_365_DAY_INITIAL_ENERGIZATION_RESTUDY_OPINION
+      - PG9_031_ENERGIZATION_QUARTERLY_STABILITY_ASSESSMENT_REQUIRED
+      - PG9_034_NOTICE_TO_PROCEED_INTERCONNECTION_FACILITIES_REQUIRED
 
   - id: E6_FEASIBILITY
     from: N5
@@ -249,6 +406,9 @@ edges:
       - PG9_022_ENERGIZATION_CURRENT_LCP_REQUIRED
       - PG9_023_LLIS_COMPLETION_COMMUNICATED
       - PG9_024_AGREEMENTS_AND_FINANCIAL_SECURITY
+      - PG9_030_365_DAY_INITIAL_ENERGIZATION_RESTUDY_OPINION
+      - PG9_031_ENERGIZATION_QUARTERLY_STABILITY_ASSESSMENT_REQUIRED
+      - PG9_034_NOTICE_TO_PROCEED_INTERCONNECTION_FACILITIES_REQUIRED
 
 levers_catalog:
   - lever_id: phased_energization
@@ -260,6 +420,21 @@ levers_catalog:
     label: POI voltage level choice
     request_fields:
       - voltage_options_kv
+      - voltage_choice_kv
+      - poi_voltage_class
+  - lever_id: poi_topology_choice
+    label: POI topology (single vs multiple POIs)
+    request_fields:
+      - poi_count
+      - multiple_poi
+  - lever_id: co_location_signal
+    label: Co-location / shared infrastructure signal
+    request_fields:
+      - is_co_located
+  - lever_id: export_capability_choice
+    label: Export capability posture
+    request_fields:
+      - export_capability
   - lever_id: energization_posture_timing
     label: Energization posture & timing
     request_fields:

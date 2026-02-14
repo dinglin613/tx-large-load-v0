@@ -25,6 +25,20 @@
       }
     },
     "poi_hint": { "type": "string", "description": "Free-text POI / location hint for screening context." },
+    "poi_count": { "type": "integer", "minimum": 1, "description": "Number of Points of Interconnection (POIs) under consideration for this project (v0: used as a configuration lever for path branching/what-if comparisons)." },
+    "multiple_poi": { "type": "boolean", "description": "Configuration lever: whether multiple POIs are being considered (can be derived from poi_count>1; explicit value wins when provided)." },
+    "is_co_located": { "type": "boolean", "description": "Configuration lever: co-located / shared infrastructure / multi-tenant adjacency signal (v0: treated as configuration complexity input for path branching/what-if comparisons)." },
+    "export_capability": {
+      "type": "string",
+      "enum": ["none", "possible", "planned", "unknown"],
+      "description": "Configuration lever: whether the site has (or plans) export capability (e.g., generation / storage export). v0 uses this as a configuration branching + risk/uncertainty input; it is not a market/settlement determination."
+    },
+    "voltage_choice_kv": { "type": ["number", "null"], "description": "Optional selected/assumed POI voltage choice in kV. If omitted and voltage_options_kv has a single value, evaluator may treat that value as the choice for voltage-class branching." },
+    "poi_voltage_class": {
+      "type": "string",
+      "enum": ["distribution", "transmission", "unknown"],
+      "description": "Configuration lever: voltage class at POI used for path branching. If omitted, evaluator may derive it from voltage_choice_kv using v0 thresholds (e.g., 69kV as transmission threshold for certain TDSP standards)."
+    },
     "voltage_options_kv": {
       "type": "array",
       "description": "Candidate POI voltage levels in kV (preferred field name). Provide 2+ values to enable options comparison.",
@@ -70,11 +84,40 @@
     "telemetry_operational_and_accurate": { "type": "boolean", "description": "Energization gate input: required telemetry is operational and accurate." },
     "dme_installed_and_operational": { "type": "boolean", "description": "If dme_required=true, whether Disturbance Monitoring Equipment is installed and operational." },
     "sso_complete_and_mitigation_in_place": { "type": "boolean", "description": "If sso_required=true, whether the SSO study is complete and mitigation is in place." },
+    "ercot_quarterly_stability_assessment_required": { "type": ["boolean", "null"], "description": "Applicability toggle for conditional energization gate: whether ERCOT Quarterly Stability Assessment (QSA) is required for this project / target energization window. Use null to represent unknown/unconfirmed (e.g., requires TSP/ERCOT confirmation)." },
     "ercot_quarterly_stability_assessment_complete": { "type": "boolean", "description": "Energization readiness input (v0): completion of ERCOT Quarterly Stability Assessment requirements referenced by Planning Guide Section 9.6(1)(c)." },
     "notice_to_proceed_received": { "type": "boolean", "description": "Energization readiness input (v0): whether the interconnecting TSP has received notice to proceed with construction of required interconnection facilities (Planning Guide Section 9.5.1(iii))." },
 
     "sso_required": { "type": "boolean", "description": "Applicability toggle for conditional energization gate: whether SSO is required for this project." },
-    "dme_required": { "type": "boolean", "description": "Applicability toggle for conditional energization gate: whether DME is required for this project." }
+    "dme_required": { "type": "boolean", "description": "Applicability toggle for conditional energization gate: whether DME is required for this project." },
+    "context": {
+      "type": "object",
+      "description": "Optional context snapshot (system state / engineering discretion) to make queue- and discretion-dependent signals auditable and to influence v0 risk/recommendation deterministically.",
+      "properties": {
+        "as_of": { "type": "string", "minLength": 1, "description": "Context snapshot timestamp (ISO 8601 recommended) indicating when the context was true/observed." },
+        "signals": {
+          "type": "array",
+          "description": "List of context signals. Each signal should be sourced and have an explicit confidence to keep memo claims bounded and auditable.",
+          "items": {
+            "type": "object",
+            "required": ["signal_id", "type", "value"],
+            "properties": {
+              "signal_id": { "type": "string", "minLength": 1, "description": "Stable identifier for the signal within a project (e.g., queue_density, tdsp_constraint, engineer_judgement)." },
+              "type": { "type": "string", "minLength": 1, "description": "Signal type used for deterministic mapping into v0 risk/recommendation (often aligns with tag taxonomy, e.g., queue_density, queue_dependency, must_study)." },
+              "value": {
+                "description": "Signal value (recommended: low/medium/high, true/false, or a short string).",
+                "type": ["string", "number", "boolean", "null"]
+              },
+              "confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "Confidence in this context signal (0–1). Used for memo display; v0 mapping uses it only for ordering/visibility, not probabilistic scoring." },
+              "source": { "type": "string", "description": "Where this signal came from (URL, file, email summary, internal note). This is not citation-audited like published rules, but it is recorded for auditability." },
+              "notes": { "type": "string", "description": "Optional free-text notes clarifying assumptions, scope, or caveats for this context signal." }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    }
   },
   "additionalProperties": true
 }

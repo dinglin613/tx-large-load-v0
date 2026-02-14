@@ -4,6 +4,7 @@ import argparse
 from collections import Counter
 import html
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -17,6 +18,89 @@ from citation_audit import audit_citations
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE_PATH = REPO_ROOT / "memo" / "templates" / "memo_template.html"
 GRAPH_PATH = REPO_ROOT / "graph" / "process_graph.yaml"
+REQUEST_SCHEMA_PATH = REPO_ROOT / "schema" / "request.schema.json"
+
+
+_REQ_FIELD_DESC_CACHE: Dict[str, str] | None = None
+
+
+def load_request_field_descriptions() -> Dict[str, str]:
+    global _REQ_FIELD_DESC_CACHE
+    if _REQ_FIELD_DESC_CACHE is not None:
+        return _REQ_FIELD_DESC_CACHE
+    if not REQUEST_SCHEMA_PATH.exists():
+        _REQ_FIELD_DESC_CACHE = {}
+        return _REQ_FIELD_DESC_CACHE
+    try:
+        schema = json.loads(REQUEST_SCHEMA_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        _REQ_FIELD_DESC_CACHE = {}
+        return _REQ_FIELD_DESC_CACHE
+    props = (schema.get("properties") or {}) if isinstance(schema, dict) else {}
+    out: Dict[str, str] = {}
+    if isinstance(props, dict):
+        for k, v in props.items():
+            if isinstance(v, dict) and isinstance(v.get("description"), str):
+                out[str(k)] = v["description"].strip()
+    _REQ_FIELD_DESC_CACHE = out
+    return out
+
+
+def field_label(field: str) -> str:
+    """
+    Return a short human-friendly label for a request field.
+    """
+    desc = load_request_field_descriptions().get(field, "").strip()
+    if not desc:
+        return field
+    # Take first sentence-ish chunk, keep compact.
+    s = desc.split(".")[0].strip()
+    # Trim repetitive schema prefixes (UI-only).
+    prefixes = [
+        "Energization gate input:",
+        "Energization readiness input (v0):",
+        "Feasibility screening input (v0):",
+        "Applicability toggle for",
+    ]
+    for p in prefixes:
+        if s.lower().startswith(p.lower()):
+            s = s[len(p) :].strip()
+            break
+    if len(s) > 92:
+        s = s[:92].rstrip() + "…"
+    return s
+
+
+_TRAILING_CITATION_PAREN_RE = re.compile(r"\s*\([^)]*(?:Planning Guide|Section|ERCOT)[^)]*\)\s*\.?\s*$", re.IGNORECASE)
+
+
+def humanize_requirement_text(text: str) -> str:
+    """
+    UI-only, deterministic cleanup for requirement text:
+    - keep meaning, drop trailing citation parentheticals
+    - keep it compact / less legalistic in the "Top next actions" list
+    """
+    t = " ".join(str(text or "").split()).strip()
+    if not t:
+        return ""
+    t = _TRAILING_CITATION_PAREN_RE.sub("", t).strip()
+    if t.endswith("."):
+        t = t[:-1].strip()
+    # Soften common boilerplate prefixes.
+    prefixes = [
+        "Prior to initiation of the LLIS process,",
+        "As part of Section",
+        "As part of",
+        "Initial Energization prerequisites may include",
+        "Initial energization prerequisites may include",
+        "Initial Energization prerequisites include",
+        "Initial energization prerequisites include",
+    ]
+    for p in prefixes:
+        if t.startswith(p):
+            t = t[len(p) :].lstrip()
+            break
+    return t
 
 
 def load_template() -> str:
@@ -54,6 +138,61 @@ def chip_list(xs: List[Any]) -> str:
     if not xs2:
         return "<span class=\"muted small\">None</span>"
     return "\n".join(f"<span class=\"chip\"><code>{esc(x)}</code></span>" for x in xs2)
+
+
+def render_memo_guidance_html(mg: Any) -> str:
+    """
+    Render rule-level memo guidance (Owner / Recipient / Evidence / What to do).
+
+    This is intentionally NOT citation-audited; it is human process guidance.
+    """
+    if not isinstance(mg, dict):
+        return ""
+    if mg.get("verified") is not True:
+        return ""
+    owner = str(mg.get("owner") or "").strip()
+    recipient = str(mg.get("recipient") or "").strip()
+    what = str(mg.get("what_to_do") or "").strip()
+    evidence = mg.get("evidence") or []
+    ev2 = [str(x).strip() for x in evidence if str(x).strip()] if isinstance(evidence, list) else []
+    sources = mg.get("sources") or []
+    sources2 = [s for s in sources if isinstance(s, dict) and str(s.get("doc_id") or "").strip() and str(s.get("loc") or "").strip()]
+
+    if (not owner) and (not recipient) and (not what) and (not ev2):
+        return ""
+
+    parts: List[str] = []
+    if sources2:
+        parts.append("<div class=\"muted small\">Guidance sources (docs/raw)</div>")
+        chips_src: List[str] = []
+        for s in sources2[:6]:
+            doc_id = str(s.get("doc_id") or "").strip()
+            loc = str(s.get("loc") or "").strip()
+            chips_src.append(
+                f"<span class=\"chip\"><span class=\"small\">source</span> <code>{esc(doc_id)}</code> <span class=\"muted\">{esc(loc)}</span></span>"
+            )
+        parts.append("<div class=\"chips\">" + "\n".join(chips_src) + "</div>")
+    parts.append("<div class=\"muted small\">Owner / recipient</div>")
+    chips: List[str] = []
+    if owner:
+        chips.append(f"<span class=\"chip\"><span class=\"small\">owner</span> <code>{esc(owner)}</code></span>")
+    if recipient:
+        chips.append(f"<span class=\"chip\"><span class=\"small\">recipient</span> <code>{esc(recipient)}</code></span>")
+    parts.append("<div class=\"chips\">" + ("\n".join(chips) if chips else "<span class=\"muted small\">None</span>") + "</div>")
+
+    if what:
+        parts.append("<div class=\"muted small\" style=\"margin-top:8px\">What to do</div>")
+        parts.append(f"<div class=\"small\"><span class=\"muted\">{esc(what)}</span></div>")
+
+    parts.append("<div class=\"muted small\" style=\"margin-top:8px\">Evidence (completion proof)</div>")
+    if ev2:
+        lis = "".join(f"<li class=\"small\"><span class=\"muted\">{esc(x)}</span></li>" for x in ev2[:12])
+        more = f"<div class=\"muted small\" style=\"margin-top:6px\">(+{len(ev2)-12} more)</div>" if len(ev2) > 12 else ""
+        parts.append("<ul style=\"margin:6px 0 0 18px\">" + lis + "</ul>" + more)
+    else:
+        parts.append("<div class=\"muted small\">None</div>")
+
+    return "\n".join(parts)
 
 
 def render_uncertainty_html(ev: Dict[str, Any]) -> str:
@@ -581,9 +720,387 @@ def badge_for_status(status: str) -> str:
         cls = "bad"
     else:
         cls = ""
+    label = status
+    if s == "unknown":
+        label = "暂不可判断/需确认适用性"
     cls_attr = f" badge {cls}".strip()
-    return f"<span class=\"{cls_attr}\"><code>{esc(status)}</code></span>"
+    return f"<span class=\"{cls_attr}\"><code>{esc(label)}</code></span>"
 
+
+def render_decision_status_badge(ev: Dict[str, Any]) -> str:
+    def _chip(label: str, status: str) -> str:
+        s = (status or "").strip().lower()
+        if s in {"go", "ready"}:
+            cls = "good"
+        elif s in {"conditional"}:
+            cls = "warn"
+        elif s in {"no_go", "not_ready"}:
+            cls = "bad"
+        else:
+            cls = ""
+        cls_attr = f"chip {cls}".strip()
+        return f"<span class=\"{cls_attr}\"><span class=\"small\">{esc(label)}</span> <code>{esc(status)}</code></span>"
+
+    ds = ev.get("decision_screening")
+    de = ev.get("decision_energization")
+    if isinstance(ds, dict) or isinstance(de, dict):
+        ds2 = ds if isinstance(ds, dict) else (ev.get("decision") or {})
+        de2 = de if isinstance(de, dict) else {}
+        scr = _chip("screening", str(ds2.get("status") or "unknown"))
+        en = _chip("energization", str(de2.get("status") or "unknown")) if isinstance(de2, dict) and de2 else _chip("energization", "unknown")
+        return "\n".join([scr, en])
+
+    # Fallback: legacy single decision
+    d = ev.get("decision") or {}
+    return _chip(str(d.get("mode") or "decision"), str(d.get("status") or "unknown"))
+
+
+def render_decision_reason_chips(ev: Dict[str, Any]) -> str:
+    def _chips(label: str, d: Any) -> List[str]:
+        if not isinstance(d, dict):
+            return []
+        rs = d.get("reasons") or []
+        if not isinstance(rs, list) or not rs:
+            return []
+        rs2 = [str(x) for x in rs if str(x).strip()]
+        if not rs2:
+            return []
+        rs2 = rs2[:4]
+        return [f"<span class=\"chip\"><span class=\"small\">{esc(label)}</span> <code>{esc(r)}</code></span>" for r in rs2]
+
+    ds = ev.get("decision_screening")
+    de = ev.get("decision_energization")
+    if isinstance(ds, dict) or isinstance(de, dict):
+        out = _chips("screening", ds) + _chips("energization", de)
+        return "\n".join(out)
+
+    # Fallback: legacy single decision
+    d = ev.get("decision") or {}
+    out = _chips("reason", d)
+    return "\n".join(out)
+
+
+def render_next_actions_html(ev: Dict[str, Any]) -> str:
+    items = ev.get("next_actions") or []
+    if not isinstance(items, list) or not items:
+        return "<div class=\"muted small\">Next actions: None</div>"
+
+    # Index missing field -> sources (edge criteria / rule required_fields)
+    miss_meta = {}
+    u = ev.get("uncertainties") or {}
+    for m in (u.get("missing") or []):
+        if not isinstance(m, dict):
+            continue
+        f = str(m.get("field") or "")
+        if not f:
+            continue
+        miss_meta[f] = m
+
+    def _render_sources_for_field(field: str) -> str:
+        m = miss_meta.get(field) or {}
+        src = m.get("sources") or []
+        if not isinstance(src, list) or not src:
+            return "<div class=\"muted small\">No sources</div>"
+        edge_ids = sorted({str(s.get("edge_id")) for s in src if isinstance(s, dict) and s.get("kind") == "edge_criteria" and s.get("edge_id")})
+        rule_ids = sorted({str(s.get("rule_id")) for s in src if isinstance(s, dict) and s.get("kind") == "rule_required_fields" and s.get("rule_id")})
+        parts = []
+        if edge_ids:
+            parts.append("<div class=\"muted small\">From edge criteria</div>")
+            parts.append("<div class=\"chips\">" + chip_list(edge_ids) + "</div>")
+        if rule_ids:
+            parts.append("<div class=\"muted small\" style=\"margin-top:8px\">From rule required_fields</div>")
+            parts.append("<div class=\"chips\">" + chip_list(rule_ids[:16]) + ("<span class=\"muted small\">…</span>" if len(rule_ids) > 16 else "") + "</div>")
+        return "\n".join(parts) if parts else "<div class=\"muted small\">No sources</div>"
+
+    def _action_chip(label: str, value: Any) -> str:
+        v = "" if value is None else str(value)
+        if not v.strip():
+            return ""
+        return f"<span class=\"chip\"><span class=\"small\">{esc(label)}</span> <code>{esc(v.strip())}</code></span>"
+
+    def _owner_recipient_chips(mg: Any) -> str:
+        if not isinstance(mg, dict):
+            return "<span class=\"muted small\">None</span>"
+        owner = str(mg.get("owner") or "").strip()
+        recipient = str(mg.get("recipient") or "").strip()
+        chips = []
+        if owner:
+            chips.append(_action_chip("owner", owner))
+        if recipient:
+            chips.append(_action_chip("recipient", recipient))
+        if not chips:
+            return "<span class=\"muted small\">None</span>"
+        return "<div class=\"chips\">" + "\n".join([c for c in chips if c]) + "</div>"
+
+    def _done_evidence_preview(mg: Any, *, max_items: int = 3) -> str:
+        if not isinstance(mg, dict):
+            return "<span class=\"muted small\">None</span>"
+        evs = mg.get("evidence") or []
+        if not isinstance(evs, list):
+            return "<span class=\"muted small\">None</span>"
+        xs = [str(x).strip() for x in evs if str(x).strip()]
+        if not xs:
+            return "<span class=\"muted small\">None</span>"
+        xs = xs[: max(0, int(max_items))]
+        lis = "".join(f"<li class=\"small\"><span class=\"muted\">{esc(x)}</span></li>" for x in xs)
+        return "<ul class=\"done-list\" style=\"margin:6px 0 0 18px\">" + lis + "</ul>"
+
+    def _blocked_by_chips(fields: Any) -> str:
+        fs = [str(x) for x in (fields or []) if str(x).strip() and str(x) != "is_requesting_energization"]
+        if not fs:
+            return "<span class=\"muted small\">None</span>"
+        chips = []
+        for f in fs[:8]:
+            chips.append(
+                f"<span class=\"chip\"><span class=\"small\">field</span> <span class=\"muted\">{esc(field_label(f))}</span> <code>{esc(f)}</code></span>"
+            )
+        return "<div class=\"chips\">" + "\n".join(chips) + "</div>"
+
+    def _guidance_sources_chips(mg: Any) -> str:
+        if not isinstance(mg, dict):
+            return "<div class=\"muted small\">None</div>"
+        src = mg.get("sources") or []
+        if not isinstance(src, list):
+            return "<div class=\"muted small\">None</div>"
+        src2 = []
+        for s in src:
+            if not isinstance(s, dict):
+                continue
+            doc = str(s.get("doc_id") or "").strip()
+            loc = str(s.get("loc") or "").strip()
+            if not doc or not loc:
+                continue
+            src2.append((doc, loc))
+        if not src2:
+            return "<div class=\"muted small\">None</div>"
+        chips = [
+            f"<span class=\"chip\"><span class=\"small\">source</span> <code>{esc(doc)}</code> <span class=\"muted\">{esc(loc)}</span></span>"
+            for doc, loc in src2[:8]
+        ]
+        return "<div class=\"chips\">" + "\n".join(chips) + "</div>"
+
+    out: List[str] = []
+    out.append("<div class=\"muted small\">Top next actions</div>")
+    out.append("<div class=\"action-cards\" style=\"margin-top:8px\">")
+
+    for i, a in enumerate(items[:10], start=1):
+        if not isinstance(a, dict):
+            continue
+        kind = str(a.get("kind") or "")
+
+        # Card header chips
+        head_chips: List[str] = []
+        head_chips.append(_action_chip("rank", i))
+        if kind:
+            head_chips.append(_action_chip("type", kind))
+
+        if kind == "provide_field":
+            f = str(a.get("field") or "").strip()
+            if not f:
+                continue
+            lbl = field_label(f)
+            title = f"Provide: {lbl}"
+
+            drawer = (
+                "<details class=\"action-details\">"
+                "<summary>Evidence & audit details</summary>"
+                f"<div class=\"flip-box\">{_render_sources_for_field(f)}</div>"
+                "</details>"
+            )
+
+            out.append("<div class=\"action-card\">")
+            out.append("<div class=\"action-head\">")
+            out.append(f"<div class=\"action-title\">{esc(title)} <code>{esc(f)}</code></div>")
+            out.append("<div class=\"chips\">" + "\n".join([c for c in head_chips if c]) + "</div>")
+            out.append("</div>")
+            out.append("<div class=\"action-grid\">")
+            out.append("<div class=\"action-k\">Done = evidence</div>")
+            out.append("<div class=\"action-v\"><span class=\"muted small\">Field is provided (non-empty / non-null) in the request snapshot.</span></div>")
+            out.append("</div>")
+            out.append(drawer)
+            out.append("</div>")
+            continue
+
+        if kind == "energization_gate":
+            rid = str(a.get("rule_id") or "").strip()
+            doc_id = str(a.get("doc_id") or "").strip()
+            loc = str(a.get("loc") or "").strip()
+            status = str(a.get("status") or "").strip().lower()
+            crit = str(a.get("criteria_text") or "").strip()
+            cond = a.get("conditions") or []
+            ask = a.get("ask_fields") or []
+            mg = a.get("memo_guidance") if isinstance(a.get("memo_guidance"), dict) else None
+
+            # Title: prefer plain-language memo guidance
+            what = str((mg or {}).get("what_to_do") or "").strip() if isinstance(mg, dict) else ""
+            if what:
+                title = what
+            else:
+                # fallback
+                fields_for_title = [str(x) for x in (ask or (a.get("required_fields") or [])) if str(x).strip() and str(x) != "is_requesting_energization"]
+                if fields_for_title:
+                    lbls = [field_label(f) for f in fields_for_title[:4]]
+                    title = "Provide/confirm: " + "; ".join(lbls)
+                else:
+                    title = humanize_requirement_text(crit) or (crit or f"Gate requirement ({rid})")
+
+            if status:
+                head_chips.append(_action_chip("status", status))
+
+            # Evidence drawer (audit/engineering details)
+            drawer_parts: List[str] = []
+            drawer_parts.append("<div class=\"muted small\">Guidance sources</div>")
+            drawer_parts.append(_guidance_sources_chips(mg))
+            drawer_parts.append("<div class=\"muted small\" style=\"margin-top:10px\">rule</div>")
+            chips_rule = [
+                _action_chip("rule_id", rid),
+                (_action_chip("doc_id", doc_id) if doc_id else ""),
+                (_action_chip("status", status) if status else ""),
+            ]
+            drawer_parts.append("<div class=\"chips\">" + "\n".join([c for c in chips_rule if c]) + "</div>")
+            if loc:
+                drawer_parts.append("<div class=\"muted small\" style=\"margin-top:10px\">loc</div>")
+                drawer_parts.append(f"<div class=\"small\"><span class=\"muted\">{esc(loc)}</span></div>")
+            if crit:
+                drawer_parts.append("<div class=\"muted small\" style=\"margin-top:10px\">source text</div>")
+                drawer_parts.append(f"<div class=\"small\"><span class=\"muted\">{esc(crit)}</span></div>")
+            if cond:
+                drawer_parts.append("<div class=\"muted small\" style=\"margin-top:10px\">predicate traces</div>")
+                drawer_parts.append(f"<div class=\"small\">{trace_list(cond)}</div>")
+
+            why = "energization gate (missing / not_satisfied)"
+            if status == "unknown":
+                why = "energization gate (unknown applicability)"
+
+            drawer_parts.append("<div class=\"muted small\" style=\"margin-top:10px\">why in top actions</div>")
+            drawer_parts.append(f"<div class=\"small\"><span class=\"muted\">{esc(why)}</span></div>")
+
+            drawer = (
+                "<details class=\"action-details\">"
+                "<summary>Evidence & audit details</summary>"
+                "<div class=\"flip-box\">"
+                + "\n".join(drawer_parts)
+                + "</div>"
+                "</details>"
+            )
+
+            out.append("<div class=\"action-card\">")
+            out.append("<div class=\"action-head\">")
+            out.append(f"<div class=\"action-title\">{esc(title)}</div>")
+            out.append("<div class=\"chips\">" + "\n".join([c for c in head_chips if c]) + "</div>")
+            out.append("</div>")
+
+            out.append("<div class=\"action-grid\">")
+            out.append("<div class=\"action-k\">Owner → recipient</div>")
+            out.append(f"<div class=\"action-v\">{_owner_recipient_chips(mg)}</div>")
+            out.append("<div class=\"action-k\">Done = evidence</div>")
+            out.append(f"<div class=\"action-v\">{_done_evidence_preview(mg, max_items=3)}</div>")
+            out.append("<div class=\"action-k\">Blocked by</div>")
+            out.append(f"<div class=\"action-v\">{_blocked_by_chips(ask)}</div>")
+            out.append("</div>")
+
+            out.append(drawer)
+            out.append("</div>")
+            continue
+
+        # Fallback card
+        out.append("<div class=\"action-card\">")
+        out.append("<div class=\"action-head\">")
+        out.append(f"<div class=\"action-title\"><code>{esc(kind or 'action')}</code></div>")
+        out.append("<div class=\"chips\">" + "\n".join([c for c in head_chips if c]) + "</div>")
+        out.append("</div></div>")
+
+    out.append("</div>")
+    return "\n".join(out)
+
+
+def render_recommendation_html(ev: Dict[str, Any]) -> str:
+    rec = ev.get("recommendation") or {}
+    if not isinstance(rec, dict) or not rec:
+        return "<div class=\"muted small\">None</div>"
+    rid = rec.get("recommended_option_id")
+    is_base = bool(rec.get("recommended_is_baseline"))
+    rationale = rec.get("rationale") or []
+    ranked = rec.get("candidates_ranked") or []
+    basis = rec.get("basis") or {}
+
+    parts: List[str] = []
+    parts.append("<div class=\"chips\">")
+    parts.append(f"<span class=\"chip good\"><span class=\"small\">recommended</span> <code>{esc(rid)}</code></span>")
+    parts.append(f"<span class=\"chip\"><span class=\"small\">baseline?</span> <code>{esc(str(is_base))}</code></span>")
+    parts.append("</div>")
+    # Make the scoring rule explicit (v0, bounded, no probabilities).
+    parts.append("<div class=\"muted small\" style=\"margin-top:10px\">Scoring rule (v0, explainable)</div>")
+    parts.append(
+        "<div class=\"small\"><code>score = (missing_inputs_count, energization_penalty, upgrade_bucket_rank, ops_bucket_rank, timeline_score)</code></div>"
+    )
+    parts.append(
+        "<div class=\"muted small\" style=\"margin-top:6px\">Where <code>energization_penalty = 2*not_satisfied + missing</code> (only when energization is requested), "
+        "bucket ranks are <code>low&lt;medium&lt;high&lt;unknown</code>, and <code>timeline_score</code> is derived from the qualitative timeline buckets.</div>"
+    )
+    ctx_note = basis.get("context_note")
+    if isinstance(ctx_note, str) and ctx_note.strip():
+        parts.append(f"<div class=\"muted small\" style=\"margin-top:6px\">Context: {esc(ctx_note.strip())}</div>")
+    if isinstance(rationale, list) and rationale:
+        parts.append("<div class=\"muted small\" style=\"margin-top:10px\">Rationale</div>")
+        parts.append("<ul style=\"margin:6px 0 0 18px\">")
+        for r in rationale[:6]:
+            parts.append(f"<li class=\"small\"><code>{esc(r)}</code></li>")
+        parts.append("</ul>")
+    if isinstance(ranked, list) and ranked:
+        parts.append("<div class=\"muted small\" style=\"margin-top:10px\">Top ranked candidates (v0)</div>")
+        rows = []
+        for c in ranked[:6]:
+            if not isinstance(c, dict):
+                continue
+            s = c.get("summary") or {}
+            tb = s.get("timeline_buckets") or {}
+            en = s.get("energization") or {}
+            cc = (en.get("checklist_counts") or {}) if isinstance(en, dict) else {}
+            rows.append(
+                "<tr>"
+                f"<td class=\"nowrap\"><code>{esc(c.get('option_id'))}</code></td>"
+                f"<td class=\"nowrap\"><code>{esc(c.get('lever_id'))}</code></td>"
+                f"<td class=\"nowrap\"><code>{esc(s.get('missing_inputs_count'))}</code></td>"
+                f"<td class=\"nowrap\"><code>{esc(s.get('upgrade_exposure_bucket'))}</code></td>"
+                f"<td class=\"nowrap\"><code>{esc(s.get('operational_exposure_bucket'))}</code></td>"
+                f"<td class=\"nowrap\"><span class=\"small\">≤12:{esc(tb.get('le_12_months','?'))} 12–24:{esc(tb.get('m12_24_months','?'))} >24:{esc(tb.get('gt_24_months','?'))}</span></td>"
+                f"<td class=\"nowrap\"><span class=\"small\">gate not_sat:{esc(cc.get('not_satisfied',0))} missing:{esc(cc.get('missing',0))}</span></td>"
+                "</tr>"
+            )
+        parts.append("<div style=\"overflow-x:auto;margin-top:8px\"><table>")
+        parts.append("<thead><tr><th class=\"nowrap\">option</th><th class=\"nowrap\">lever</th><th class=\"nowrap\">missing</th><th class=\"nowrap\">upgrade</th><th class=\"nowrap\">ops</th><th class=\"nowrap\">timeline</th><th class=\"nowrap\">gates</th></tr></thead>")
+        parts.append("<tbody>" + ("\n".join(rows) or "<tr><td colspan=\"7\" class=\"muted\">None</td></tr>") + "</tbody>")
+        parts.append("</table></div>")
+    parts.append("<div class=\"muted small\" style=\"margin-top:10px\">Note: v0 recommendation is bounded to baseline + generated options; it is not a global optimizer.</div>")
+    return "\n".join(parts)
+
+
+def render_top_drivers_html(ev: Dict[str, Any]) -> str:
+    items = ev.get("top_drivers") or []
+    if not isinstance(items, list) or not items:
+        return "<div class=\"muted small\">None</div>"
+    rows: List[str] = []
+    for it in items[:8]:
+        if not isinstance(it, dict):
+            continue
+        c = it.get("contributions") or {}
+        rows.append(
+            "<tr>"
+            f"<td class=\"nowrap\"><code>{esc(it.get('rule_id'))}</code></td>"
+            f"<td class=\"nowrap\"><code>{esc(it.get('doc_id'))}</code></td>"
+            f"<td class=\"wrap\"><span class=\"muted\">{esc(it.get('loc'))}</span></td>"
+            f"<td class=\"wrap\">{code_list(it.get('trigger_tags') or [])}</td>"
+            f"<td class=\"nowrap\"><span class=\"small\"><code>up:{esc(c.get('upgrade',0))}</code> <code>wait:{esc(c.get('wait',0))}</code> <code>ops:{esc(c.get('ops',0))}</code></span></td>"
+            "</tr>"
+        )
+    return (
+        "<div style=\"overflow-x:auto;margin-top:8px\"><table>"
+        "<thead><tr><th class=\"nowrap\">rule_id</th><th class=\"nowrap\">doc_id</th><th>loc</th><th>tags</th><th class=\"nowrap\">contrib</th></tr></thead>"
+        "<tbody>"
+        + ("\n".join(rows) or "<tr><td colspan=\"5\" class=\"muted\">None</td></tr>")
+        + "</tbody></table></div>"
+    )
 
 def _count_status(items: List[Dict[str, Any]]) -> Dict[str, int]:
     out = {"satisfied": 0, "missing": 0, "not_satisfied": 0, "unknown": 0, "not_applicable": 0}
@@ -695,6 +1212,91 @@ def render_evidence_grouped_by_doc(evidence: List[Dict[str, Any]]) -> str:
             + "</tbody></table></div></details>"
         )
     return "\n".join(out)
+
+
+def render_context_snapshot_html(ev: Dict[str, Any]) -> str:
+    ctx = ev.get("context_snapshot")
+    if not isinstance(ctx, dict):
+        # Fallback for older eval outputs.
+        req = ev.get("request") or {}
+        ctx = req.get("context")
+    if not isinstance(ctx, dict):
+        return "<div class=\"muted small\">None provided</div>"
+    sigs = ctx.get("signals") or []
+    if not isinstance(sigs, list) or not sigs:
+        return "<div class=\"muted small\">None provided</div>"
+
+    as_of = str(ctx.get("as_of") or "").strip()
+
+    # Index context contributions from risk_trace (kind=context) by CTX_{signal_id}
+    contrib_by_id: Dict[str, Dict[str, Any]] = {}
+    for rt in (ev.get("risk_trace") or []):
+        if not isinstance(rt, dict):
+            continue
+        if rt.get("kind") != "context":
+            continue
+        rid = str(rt.get("rule_id") or "")
+        if rid:
+            contrib_by_id[rid] = rt
+
+    def _fmt_contrib(c: Any) -> str:
+        if not isinstance(c, dict):
+            return "<span class=\"muted small\">n/a</span>"
+        try:
+            up = float(c.get("upgrade") or 0.0)
+            wt = float(c.get("wait") or 0.0)
+            op = float(c.get("ops") or 0.0)
+        except Exception:
+            up = wt = op = 0.0
+        parts = [f"up:{up:+g}", f"wait:{wt:+g}", f"ops:{op:+g}"]
+        return "<span class=\"small\"><code>" + "</code> <code>".join(esc(p) for p in parts) + "</code></span>"
+
+    rows: List[str] = []
+    for s in sigs:
+        if not isinstance(s, dict):
+            continue
+        sid = str(s.get("signal_id") or "").strip()
+        typ = str(s.get("type") or "").strip()
+        val = s.get("value")
+        conf = s.get("confidence")
+        src = str(s.get("source") or "").strip()
+        notes = str(s.get("notes") or "").strip()
+        rid = f"CTX_{sid}" if sid else ""
+        rt = contrib_by_id.get(rid) or {}
+        contrib = rt.get("contributions")
+
+        rows.append(
+            "<tr>"
+            f"<td class=\"nowrap\"><code>{esc(sid)}</code></td>"
+            f"<td class=\"nowrap\"><code>{esc(typ)}</code></td>"
+            f"<td class=\"wrap\"><span class=\"small\">{esc(json.dumps(val, ensure_ascii=False) if not isinstance(val, str) else val)}</span></td>"
+            f"<td class=\"nowrap\"><code>{esc(conf)}</code></td>"
+            f"<td class=\"wrap\"><span class=\"small\">{esc(src) if src else '<span class=\"muted small\">n/a</span>'}</span></td>"
+            f"<td class=\"wrap\"><span class=\"small\">{esc(notes) if notes else '<span class=\"muted small\">n/a</span>'}</span></td>"
+            f"<td class=\"nowrap\">{_fmt_contrib(contrib)}</td>"
+            "</tr>"
+        )
+
+    head = ""
+    if as_of:
+        head = f"<div class=\"chips\"><span class=\"chip\"><span class=\"small\">as_of</span> <code>{esc(as_of)}</code></span></div>"
+    table = (
+        "<div style=\"overflow-x:auto;margin-top:10px\">"
+        "<table>"
+        "<thead><tr>"
+        "<th class=\"nowrap\">signal_id</th>"
+        "<th class=\"nowrap\">type</th>"
+        "<th>value</th>"
+        "<th class=\"nowrap\">confidence</th>"
+        "<th>source</th>"
+        "<th>notes</th>"
+        "<th class=\"nowrap\">v0 effect</th>"
+        "</tr></thead>"
+        "<tbody>"
+        + ("\n".join(rows) if rows else "<tr><td colspan=\"7\" class=\"muted\">None</td></tr>")
+        + "</tbody></table></div>"
+    )
+    return head + table
 
 
 def render_evidence_grouped_by_tag(evidence: List[Dict[str, Any]]) -> str:
@@ -827,6 +1429,57 @@ def render_lever_next_actions_html(ev: Dict[str, Any], *, top_n: int = 5) -> str
             if s.get("kind") == "rule_required_fields" and s.get("rule_id"):
                 missing_rule_sources.setdefault(f, set()).add(str(s.get("rule_id")))
 
+    def _fmt_value(v: Any) -> str:
+        if isinstance(v, str):
+            return json.dumps(v, ensure_ascii=False)
+        return esc(v)
+
+    def _fmt_predicate(p: Dict[str, Any]) -> str:
+        op = str(p.get("op") or "")
+        if op == "eq":
+            op = "equals"
+        field = str(p.get("field") or "")
+        if op == "exists":
+            return f"provide {field}"
+        if op == "equals":
+            return f"{field} == {_fmt_value(p.get('value'))}"
+        if op == "gte":
+            return f"{field} >= {_fmt_value(p.get('value'))}"
+        if op == "any_of":
+            vals = p.get("values", None)
+            if vals is None:
+                vals = p.get("value", None)
+            return f"{field} in {_fmt_value(vals)}"
+        if op == "any_true":
+            return f"{field} contains any of {_fmt_value(p.get('value'))}"
+        return f"{op}({field})"
+
+    def _lever_related_conditions(chk: Dict[str, Any], lever_fields: List[str]) -> List[str]:
+        lf = set(lever_fields or [])
+        preds = chk.get("predicates") or []
+        out: List[str] = []
+        if isinstance(preds, list):
+            for p in preds:
+                if not isinstance(p, dict):
+                    continue
+                f = str(p.get("field") or "")
+                if f and f in lf:
+                    out.append(_fmt_predicate(p))
+        # Also include required_fields that are lever fields (if no predicate mentions them).
+        rf = [str(x) for x in (chk.get("required_fields") or []) if str(x).strip()]
+        for f in rf:
+            if f in lf and not any(s.startswith(f + " ") or s.endswith(" " + f) or (f + " ==") in s for s in out):
+                out.append(f"provide {f}")
+        # Stable + dedupe
+        seen = set()
+        out2 = []
+        for s in out:
+            if s in seen:
+                continue
+            seen.add(s)
+            out2.append(s)
+        return out2
+
     def _score(it: Dict[str, Any]) -> float:
         lever_id = str(it.get("lever_id") or "")
         missing_fields = [str(x) for x in (it.get("missing_fields") or []) if str(x).strip()]
@@ -871,21 +1524,49 @@ def render_lever_next_actions_html(ev: Dict[str, Any], *, top_n: int = 5) -> str
         missing_fields = [str(x) for x in (it.get("missing_fields") or []) if str(x).strip()]
         unknown_lever_fields = sorted({f for f in req_fields if f in unknown_fields})
 
-        # Rules that are currently blocked (missing) due to these lever fields.
-        blocked_rules: set[str] = set()
-        for f in missing_fields:
-            blocked_rules |= set(missing_rule_sources.get(f, set()))
-        # Also consult rule_checks missing_fields (more direct).
+        lf_set = set(req_fields)
+
+        # For memo: show which rule-check rows are likely to become "satisfied"
+        # once lever-related inputs are provided / changed.
+        missing_to_satisfied: List[Dict[str, Any]] = []
+        not_satisfied_to_satisfied: List[Dict[str, Any]] = []
+
         for c in rule_checks:
             if not isinstance(c, dict):
                 continue
-            if str(c.get("status") or "").lower() != "missing":
+            status = str(c.get("status") or "").strip().lower()
+            rid = str(c.get("rule_id") or "")
+            if not rid:
                 continue
-            mf = {str(x) for x in (c.get("missing_fields") or []) if str(x).strip()}
-            if mf & set(req_fields):
-                rid = str(c.get("rule_id") or "")
-                if rid:
-                    blocked_rules.add(rid)
+
+            missing_f = {str(x) for x in (c.get("missing_fields") or []) if str(x).strip()}
+            fields_ref = {str(x) for x in (c.get("fields_referenced") or []) if str(x).strip()}
+
+            # missing -> satisfied (if the missing lever fields are provided and predicates are met)
+            if status == "missing" and (missing_f & lf_set):
+                cond = _lever_related_conditions(c, req_fields)
+                missing_to_satisfied.append(
+                    {
+                        "rule_id": rid,
+                        "doc_id": c.get("doc_id"),
+                        "loc": c.get("loc"),
+                        "conditions": cond,
+                        "missing_fields": sorted(missing_f & lf_set),
+                    }
+                )
+
+            # not_satisfied -> satisfied (if lever-related predicate conditions are met)
+            if status == "not_satisfied" and (fields_ref & lf_set):
+                cond = _lever_related_conditions(c, req_fields)
+                if cond:
+                    not_satisfied_to_satisfied.append(
+                        {
+                            "rule_id": rid,
+                            "doc_id": c.get("doc_id"),
+                            "loc": c.get("loc"),
+                            "conditions": cond,
+                        }
+                    )
 
         # Option delta summary for this lever.
         opt = opt_by_lever.get(lever_id, [])
@@ -924,7 +1605,8 @@ def render_lever_next_actions_html(ev: Dict[str, Any], *, top_n: int = 5) -> str
                 "label": str(it.get("label") or ""),
                 "ask_missing_fields": missing_fields,
                 "ask_unknown_fields": unknown_lever_fields,
-                "blocked_rule_ids": sorted(blocked_rules),
+                "missing_to_satisfied": missing_to_satisfied,
+                "not_satisfied_to_satisfied": not_satisfied_to_satisfied,
                 "referenced_rule_count": int(it.get("referenced_rule_count") or 0),
                 "delta_hint": " | ".join(delta_hint),
                 "_score": _score(it),
@@ -940,8 +1622,49 @@ def render_lever_next_actions_html(ev: Dict[str, Any], *, top_n: int = 5) -> str
 
     rows: List[str] = []
     for it in top:
-        blocked = it.get("blocked_rule_ids") or []
-        blocked_preview = [str(x) for x in blocked[:8]]
+        mflip = it.get("missing_to_satisfied") or []
+        nflip = it.get("not_satisfied_to_satisfied") or []
+
+        def _render_flip_items(items: List[Dict[str, Any]]) -> str:
+            if not items:
+                return "<div class=\"muted small\">None</div>"
+            items2 = sorted(items, key=lambda x: str(x.get("rule_id") or ""))
+            lis: List[str] = []
+            for x in items2[:12]:
+                rid = x.get("rule_id")
+                cond = x.get("conditions") or []
+                cond2 = [str(c) for c in cond[:2]] if isinstance(cond, list) else []
+                cond_s = " ; ".join(cond2)
+                extra = " …" if (isinstance(cond, list) and len(cond) > len(cond2)) else ""
+                details = f"<span class=\"muted small\"> — {esc(cond_s)}{esc(extra)}</span>" if cond_s else ""
+                lis.append(f"<li class=\"small\"><code>{esc(rid)}</code>{details}</li>")
+            more = f"<div class=\"muted small\" style=\"margin-top:6px\">(+{len(items2)-12} more)</div>" if len(items2) > 12 else ""
+            return "<ul>" + "".join(lis) + "</ul>" + more
+
+        m_count = len(mflip) if isinstance(mflip, list) else 0
+        n_count = len(nflip) if isinstance(nflip, list) else 0
+
+        chips = (
+            "<div class=\"chips\">"
+            f"<span class=\"chip warn\"><span class=\"small\">missing→sat</span> <code>{m_count}</code></span>"
+            f"<span class=\"chip info\"><span class=\"small\">not_sat→sat</span> <code>{n_count}</code></span>"
+            "</div>"
+        )
+
+        details = ""
+        if m_count or n_count:
+            details = (
+                "<details class=\"mini\">"
+                "<summary>Show rules</summary>"
+                "<div class=\"flip-box\">"
+                f"<div class=\"muted small\">missing → satisfied</div>{_render_flip_items(mflip)}"
+                f"<div class=\"muted small\" style=\"margin-top:10px\">not_satisfied → satisfied</div>{_render_flip_items(nflip)}"
+                "</div>"
+                "</details>"
+            )
+
+        flips_html = f"<div class=\"lever-flips\">{chips}{details}</div>"
+
         rows.append(
             "<tr>"
             f"<td class=\"nowrap\"><code>{esc(it.get('lever_id'))}</code></td>"
@@ -949,20 +1672,20 @@ def render_lever_next_actions_html(ev: Dict[str, Any], *, top_n: int = 5) -> str
             f"<td class=\"wrap\">{code_list(it.get('ask_missing_fields') or [])}{('<div class=\"muted small\" style=\"margin-top:6px\">unknown: ' + code_list(it.get('ask_unknown_fields') or []) + '</div>') if (it.get('ask_unknown_fields') or []) else ''}</td>"
             f"<td class=\"wrap\"><span class=\"small\"><code>{esc(it.get('delta_hint'))}</code></span></td>"
             f"<td class=\"wrap\"><code>{esc(it.get('referenced_rule_count'))}</code></td>"
-            f"<td class=\"wrap\">{code_list(blocked_preview)}{' <span class=\"muted small\">…</span>' if len(blocked) > len(blocked_preview) else ''}</td>"
+            f"<td class=\"wrap\">{flips_html}</td>"
             "</tr>"
         )
 
     return (
         "<div style=\"overflow-x:auto;margin-top:8px\">"
-        "<table>"
+        "<table class=\"lever-next\">"
         "<thead><tr>"
         "<th class=\"nowrap\">lever</th>"
         "<th>label</th>"
         "<th>ask next (fields)</th>"
         "<th class=\"nowrap\">observed delta</th>"
         "<th class=\"nowrap\">rule refs</th>"
-        "<th>rule checks unblocked</th>"
+        "<th>rule check flips</th>"
         "</tr></thead>"
         "<tbody>"
         + ("\n".join(rows) or "<tr><td colspan=\"6\" class=\"muted\">None</td></tr>")
@@ -1087,7 +1810,13 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optiona
         .replace("{{cod_target_window}}", esc(req.get("cod_target_window")))
         .replace("{{is_requesting_energization}}", esc(req.get("is_requesting_energization")))
         .replace("{{request_json}}", esc(json.dumps(req, ensure_ascii=False, indent=2)))
+        .replace("{{context_snapshot_html}}", render_context_snapshot_html(ev))
         .replace("{{path}}", esc(" → ".join(path_labels)))
+        .replace("{{decision_status_badge}}", render_decision_status_badge(ev))
+        .replace("{{decision_reason_chips}}", render_decision_reason_chips(ev))
+        .replace("{{next_actions_html}}", render_next_actions_html(ev))
+        .replace("{{recommendation_html}}", render_recommendation_html(ev))
+        .replace("{{top_drivers_html}}", render_top_drivers_html(ev))
         .replace("{{path_graph}}", path_graph)
         .replace("{{full_graph_svg}}", full_graph_svg)
         .replace("{{edges_rows}}", edges_rows)
@@ -1128,12 +1857,21 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optiona
 def render_checklist_rows(items: List[Dict[str, Any]]) -> str:
     rows = [c for c in items if c.get("status") != "not_applicable"]
     if not rows:
-        return "<tr><td colspan=\"6\" class=\"muted\">Not requested (set <code>is_requesting_energization=true</code> to evaluate)</td></tr>"
+        return "<tr><td colspan=\"7\" class=\"muted\">Not requested (set <code>is_requesting_energization=true</code> to evaluate)</td></tr>"
 
     out: List[str] = []
     for c in rows:
         missing = c.get("missing_fields") or []
         traces = c.get("traces") or []
+        mg_html = render_memo_guidance_html(c.get("memo_guidance"))
+        guidance_cell = "<span class=\"muted small\">—</span>"
+        if mg_html:
+            guidance_cell = (
+                "<details class=\"mini\">"
+                "<summary>Guidance</summary>"
+                f"<div class=\"flip-box\">{mg_html}</div>"
+                "</details>"
+            )
         out.append(
             "<tr>"
             f"<td class=\"nowrap\">{badge_for_status(str(c.get('status') or 'unknown'))}</td>"
@@ -1142,6 +1880,7 @@ def render_checklist_rows(items: List[Dict[str, Any]]) -> str:
             f"<td class=\"wrap\"><span class=\"muted\">{esc(c.get('loc'))}</span></td>"
             f"<td class=\"wrap\">{code_list(missing)}</td>"
             f"<td class=\"wrap\">{trace_list(traces)}</td>"
+            f"<td class=\"wrap\">{guidance_cell}</td>"
             "</tr>"
         )
     return "\n".join(out)
@@ -1150,7 +1889,7 @@ def render_checklist_rows(items: List[Dict[str, Any]]) -> str:
 def render_options_rows(items: List[Dict[str, Any]]) -> str:
     if not items:
         return (
-            "<tr><td colspan=\"7\" class=\"muted\">"
+            "<tr><td colspan=\"8\" class=\"muted\">"
             "None (provide multiple <code>voltage_options_kv</code> or set <code>energization_plan</code> to compare)"
             "</td></tr>"
         )
@@ -1159,6 +1898,7 @@ def render_options_rows(items: List[Dict[str, Any]]) -> str:
     for it in items:
         opt_id = it.get("option_id")
         lever = it.get("lever_id")
+        source = str(it.get("source") or "").strip() or "unknown"
         patch = it.get("patch") or {}
         summ = it.get("summary") or {}
         delta = it.get("delta") or {}
@@ -1198,8 +1938,9 @@ def render_options_rows(items: List[Dict[str, Any]]) -> str:
             "<tr>"
             f"<td class=\"nowrap\"><code>{esc(opt_id)}</code></td>"
             f"<td class=\"nowrap\"><code>{esc(lever)}</code></td>"
-            f"<td class=\"wrap\"><span class=\"small\"><code>{esc(patch_s)}</code></span></td>"
-            f"<td class=\"wrap\"><span class=\"small\">{esc(path)}</span></td>"
+            f"<td class=\"nowrap\"><code>{esc(source)}</code></td>"
+            f"<td class=\"wrap\"><span class=\"small\"><code title=\"{esc(patch_s)}\">{esc(patch_s)}</code></span></td>"
+            f"<td class=\"wrap\"><span class=\"small nowrap\" title=\"{esc(path)}\">{esc(path)}</span></td>"
             f"<td class=\"wrap\"><code>{esc(miss_count)}</code> {code_list(miss[:8])}</td>"
             f"<td class=\"wrap\"><span class=\"small\"><code>{esc(delta_text)}</code></span></td>"
             f"<td class=\"wrap\"><span class=\"small\">{esc(risk_text)}</span></td>"

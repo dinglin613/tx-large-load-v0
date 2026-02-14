@@ -5,7 +5,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 
 import yaml
 
@@ -227,6 +227,7 @@ def risk_from_signals(
     signal_rules: List[Dict[str, Any]],
     *,
     missing_inputs: List[str],
+    context_snapshot: Optional[Dict[str, Any]] = None,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Compute qualitative risk buckets with a reproducible trace.
@@ -272,6 +273,20 @@ def risk_from_signals(
         doc_id = str(r.get("doc_id") or "")
         loc = str(r.get("loc") or "")
         tags = sorted(set(r.get("trigger_tags") or []))
+
+        # Only treat a rule as a risk "signal" when it is actually triggered by its predicates.
+        #
+        # v0 nuance:
+        # - If predicates are explicitly false (and not missing), skip the rule entirely (no risk contribution).
+        # - If predicates cannot be evaluated due to missing predicate fields, only keep the rule as a risk
+        #   signal when it is a data completeness concept (so missing inputs remain visible in wait pressure).
+        preds = rule_predicates(r)
+        if preds:
+            ok, _tr, missing = criteria_satisfied(req, preds)
+            if (not ok) and (not missing):
+                continue
+            if (not ok) and missing and ("data_completeness" not in set(tags)):
+                continue
 
         evidence.append(
             {
@@ -395,6 +410,140 @@ def risk_from_signals(
             contrib={"wait": 0.5},
             notes=[f"missing_inputs_count={len(missing_inputs)} => wait +0.5"],
         )
+
+    # Configuration heuristics (non-cited, explicitly labeled).
+    try:
+        poi_count = int(req.get("poi_count") or 0) if req.get("poi_count") is not None else 0
+    except Exception:
+        poi_count = 0
+    if (req.get("multiple_poi") is True) or (poi_count > 1):
+        _add_heuristic(
+            rule_id="HEUR_MULTI_POI_INCREASES_COMPLEXITY",
+            loc="non-cited heuristic: multiple POIs increase process/study coordination complexity in screening",
+            tags=["process_latency", "study_dependency"],
+            contrib={"wait": 1.0, "upgrade": 0.5},
+            notes=[f"multiple_poi={req.get('multiple_poi')!r}, poi_count={poi_count} => wait +1.0, upgrade +0.5"],
+        )
+    if req.get("is_co_located") is True:
+        _add_heuristic(
+            rule_id="HEUR_CO_LOCATED_INCREASES_COORDINATION_RISK",
+            loc="non-cited heuristic: co-located/shared infrastructure can increase coordination and operational exposure in screening",
+            tags=["engineering_review", "process_latency"],
+            contrib={"wait": 0.5, "ops": 0.5},
+            notes=["is_co_located=true => wait +0.5, ops +0.5"],
+        )
+    exp = str(req.get("export_capability") or "").strip().lower()
+    if exp in {"possible", "planned"}:
+        _add_heuristic(
+            rule_id="HEUR_EXPORT_CAPABILITY_INCREASES_OPS_EXPOSURE",
+            loc="non-cited heuristic: export capability posture can increase operational exposure and study requirements in screening",
+            tags=["operational_constraint", "study_dependency"],
+            contrib={"ops": 1.0, "upgrade": 0.5, "wait": 0.5},
+            notes=[f"export_capability={exp} => ops +1.0, upgrade +0.5, wait +0.5"],
+        )
+    if str(req.get("poi_voltage_class") or "").strip().lower() == "distribution":
+        _add_heuristic(
+            rule_id="HEUR_DISTRIBUTION_VOLTAGE_LIMITS_OPTIONS",
+            loc="non-cited heuristic: distribution-voltage POI can constrain upgrade and process options vs transmission-voltage POI in screening",
+            tags=["voltage_selection_risk", "process_latency"],
+            contrib={"upgrade": 0.5, "wait": 0.5},
+            notes=["poi_voltage_class=distribution => upgrade +0.5, wait +0.5"],
+        )
+
+    # Context snapshot signals (system state / discretion), if provided.
+    def _context_multiplier(v: Any) -> float:
+        if v is None:
+            return 0.0
+        if isinstance(v, bool):
+            return 1.0 if v else 0.0
+        if isinstance(v, (int, float)):
+            return 1.0 if float(v) != 0.0 else 0.0
+        s = str(v).strip().lower()
+        if s in {"", "unknown", "n/a", "na", "null"}:
+            return 0.0
+        if s == "low":
+            return 0.5
+        if s in {"medium", "med"}:
+            return 1.0
+        if s in {"high", "severe"}:
+            return 2.0
+        if s in {"true", "yes"}:
+            return 1.0
+        if s in {"false", "no"}:
+            return 0.0
+        return 1.0
+
+    if isinstance(context_snapshot, dict) and isinstance(context_snapshot.get("signals"), list):
+        as_of = str(context_snapshot.get("as_of") or "").strip()
+        for sig in context_snapshot.get("signals") or []:
+            if not isinstance(sig, dict):
+                continue
+            sid = str(sig.get("signal_id") or "").strip()
+            typ = str(sig.get("type") or "").strip()
+            if not sid or not typ:
+                continue
+            val = sig.get("value")
+            conf = sig.get("confidence")
+            src = str(sig.get("source") or "").strip()
+            note_txt = str(sig.get("notes") or "").strip()
+
+            base = TAG_RISK_CONTRIB.get(typ)
+            mult = _context_multiplier(val)
+            contrib = {"upgrade": 0.0, "wait": 0.0, "ops": 0.0}
+            notes2: List[str] = [f"value={val!r}", f"multiplier={mult:g}"]
+            if as_of:
+                notes2.append(f"as_of={as_of}")
+            if src:
+                notes2.append(f"source={src}")
+            if conf is not None:
+                try:
+                    notes2.append(f"confidence={float(conf):g}")
+                except Exception:
+                    notes2.append(f"confidence={conf}")
+            if note_txt:
+                notes2.append(f"notes={note_txt}")
+
+            if base and mult != 0.0:
+                for k, dv in base.items():
+                    contrib[k] = float(contrib.get(k, 0.0)) + float(dv) * float(mult)
+                notes2.append(f"mapped via TAG_RISK_CONTRIB[{typ!r}]")
+            else:
+                if not base:
+                    notes2.append("type not mapped to v0 risk buckets (recorded for auditability only)")
+                else:
+                    notes2.append("multiplier=0 => no v0 risk effect")
+
+            ctx_rule_id = f"CTX_{sid}"
+            ctx_loc_parts = []
+            if as_of:
+                ctx_loc_parts.append(f"as_of={as_of}")
+            if src:
+                ctx_loc_parts.append(f"source={src}")
+            if note_txt:
+                ctx_loc_parts.append(note_txt)
+            ctx_loc = "; ".join(ctx_loc_parts) if ctx_loc_parts else f"signal_id={sid}"
+
+            evidence.append(
+                {
+                    "rule_id": ctx_rule_id,
+                    "doc_id": "CONTEXT_SNAPSHOT",
+                    "loc": ctx_loc,
+                    "trigger_tags": sorted(set([typ])),
+                }
+            )
+            upgrade_score += float(contrib.get("upgrade") or 0.0)
+            wait_score += float(contrib.get("wait") or 0.0)
+            ops_score += float(contrib.get("ops") or 0.0)
+            _add_trace(
+                kind="context",
+                rule_id=ctx_rule_id,
+                doc_id="CONTEXT_SNAPSHOT",
+                loc=ctx_loc,
+                trigger_tags=sorted(set([typ])),
+                contributions=contrib,
+                notes=notes2,
+                source="context_snapshot",
+            )
 
     # 3) Bucket assignment (deterministic, based on totals)
     le_12 = "unknown"
@@ -565,7 +714,70 @@ def normalize_request(req: Dict[str, Any]) -> Dict[str, Any]:
         r["project_type"] = "large_load"
     if "voltage_options_kv" not in r and isinstance(r.get("voltage_options"), list):
         r["voltage_options_kv"] = r["voltage_options"]
+
+    # Configuration levers (derive when safe; explicit values win).
+    if ("multiple_poi" not in r) and isinstance(r.get("poi_count"), int):
+        try:
+            r["multiple_poi"] = int(r.get("poi_count") or 0) > 1
+        except Exception:
+            pass
+
+    # Treat a singleton voltage_options_kv as an implied current choice (for voltage-class branching),
+    # unless the request already specified an explicit voltage_choice_kv.
+    if "voltage_choice_kv" not in r:
+        vopts = r.get("voltage_options_kv")
+        if isinstance(vopts, list) and len(vopts) == 1:
+            try:
+                r["voltage_choice_kv"] = float(vopts[0])
+            except Exception:
+                r["voltage_choice_kv"] = None
+
+    # Voltage class: explicit poi_voltage_class wins; otherwise derive from voltage_choice_kv when numeric.
+    if "poi_voltage_class" not in r:
+        v = r.get("voltage_choice_kv")
+        cls = "unknown"
+        try:
+            v_num = float(v) if v is not None else None
+        except Exception:
+            v_num = None
+        if v_num is not None:
+            # v0 threshold aligned with certain TDSP transmission-scope standards (e.g., 69kV+).
+            cls = "transmission" if v_num >= 69.0 else "distribution"
+        r["poi_voltage_class"] = cls
     return r
+
+
+def normalize_context_snapshot(ctx: Any) -> Optional[Dict[str, Any]]:
+    """
+    Normalize optional request.context into a stable shape for evaluation + memo rendering.
+    """
+    if not isinstance(ctx, dict):
+        return None
+    as_of = str(ctx.get("as_of") or "").strip()
+    sigs_in = ctx.get("signals")
+    if not isinstance(sigs_in, list):
+        sigs_in = []
+    sigs_out: List[Dict[str, Any]] = []
+    for s in sigs_in:
+        if not isinstance(s, dict):
+            continue
+        sid = str(s.get("signal_id") or "").strip()
+        typ = str(s.get("type") or "").strip()
+        if not sid or not typ:
+            continue
+        sigs_out.append(
+            {
+                "signal_id": sid,
+                "type": typ,
+                "value": s.get("value"),
+                "confidence": s.get("confidence"),
+                "source": s.get("source"),
+                "notes": s.get("notes"),
+            }
+        )
+    if not sigs_out and not as_of:
+        return None
+    return {"as_of": as_of, "signals": sigs_out}
 
 
 def has_gate_predicate(rule: Dict[str, Any], *, field: str, value: Any = True) -> bool:
@@ -576,6 +788,75 @@ def has_gate_predicate(rule: Dict[str, Any], *, field: str, value: Any = True) -
         if op == "equals" and p.get("field") == field and p.get("value") == value:
             return True
     return False
+
+
+def is_energization_mode(req: Dict[str, Any]) -> bool:
+    """
+    Determine whether to evaluate energization readiness in v0.
+
+    v0 triggers energization-mode evaluation when either:
+    - is_requesting_energization == true, OR
+    - requested_energization_window is provided (readiness vs target window)
+    """
+    if req.get("is_requesting_energization") is True:
+        return True
+    w = req.get("requested_energization_window")
+    return isinstance(w, str) and bool(w.strip())
+
+
+def normalize_memo_guidance(rule: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Normalize optional rule.memo_guidance into a stable, memo-friendly shape.
+
+    This is NOT citation-audited; it is purely human process guidance.
+    """
+    mg = rule.get("memo_guidance")
+    if not isinstance(mg, dict):
+        return None
+
+    # Policy: only render guidance that is explicitly marked verified.
+    verified = bool(mg.get("verified") is True)
+    if not verified:
+        return None
+
+    sources_in = mg.get("sources") or []
+    sources: List[Dict[str, Any]] = []
+    if isinstance(sources_in, list):
+        for s in sources_in:
+            if not isinstance(s, dict):
+                continue
+            doc_id = str(s.get("doc_id") or "").strip()
+            loc = str(s.get("loc") or "").strip()
+            notes = str(s.get("notes") or "").strip()
+            if not doc_id or not loc:
+                continue
+            sources.append({"doc_id": doc_id, "loc": loc, "notes": notes})
+
+    owner = str(mg.get("owner") or "").strip()
+    recipient = str(mg.get("recipient") or "").strip()
+    what_to_do = str(mg.get("what_to_do") or "").strip()
+
+    ev = mg.get("evidence") or []
+    ev2: List[str] = []
+    if isinstance(ev, list):
+        for x in ev:
+            s = str(x).strip()
+            if s:
+                ev2.append(s)
+
+    # Dedupe evidence while preserving order (deterministic).
+    seen = set()
+    ev3: List[str] = []
+    for s in ev2:
+        if s in seen:
+            continue
+        seen.add(s)
+        ev3.append(s)
+
+    out = {"verified": True, "sources": sources, "owner": owner, "recipient": recipient, "evidence": ev3, "what_to_do": what_to_do}
+    if (not owner) and (not recipient) and (not ev3) and (not what_to_do):
+        return None
+    return out
 
 
 def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, Any]:
@@ -589,6 +870,7 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
     rid = rule.get("rule_id")
     preds = rule_predicates(rule)
     required = required_fields_from_rule(rule)
+    criteria_text = str(((rule.get("criteria") or {}).get("text") or "")).strip()
     dsl = ((rule.get("criteria") or {}).get("dsl") or {})
     is_completeness = dsl.get("kind") == "completeness_check"
     dsl_kind = str(dsl.get("kind") or "")
@@ -597,11 +879,12 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
         applicability_fields = []
 
     # If rule is explicitly gated on energization, treat it as not applicable unless requesting energization.
-    if has_gate_predicate(rule, field="is_requesting_energization", value=True) and req.get("is_requesting_energization") is not True:
+    if has_gate_predicate(rule, field="is_requesting_energization", value=True) and (not is_energization_mode(req)):
         return {
             "rule_id": rid,
             "doc_id": rule.get("doc_id"),
             "loc": rule.get("loc"),
+            "criteria_text": criteria_text,
             "trigger_tags": rule.get("trigger_tags") or [],
             "confidence": rule.get("confidence"),
             "dsl_kind": dsl_kind,
@@ -620,12 +903,23 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
         app_fields = dsl.get("applicability_fields") or []
         if isinstance(app_fields, list):
             for field in [str(x) for x in app_fields if x]:
+                # Applicability toggles are tri-state in v0:
+                # - False => not_applicable
+                # - missing / null / "unknown" => unknown (do NOT count as missing_fields)
+                # - True => gate is applicable; proceed with normal predicate + required_fields evaluation
+                if field not in req:
+                    v_raw = None
+                    why = "absent"
+                else:
+                    v_raw = req.get(field)
+                    why = "null" if v_raw is None else "provided"
                 v = get_field(req, field)
                 if v is False:
                     return {
                         "rule_id": rid,
                         "doc_id": rule.get("doc_id"),
                         "loc": rule.get("loc"),
+                        "criteria_text": criteria_text,
                         "trigger_tags": rule.get("trigger_tags") or [],
                         "confidence": rule.get("confidence"),
                         "dsl_kind": dsl_kind,
@@ -634,6 +928,21 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
                         "status": "not_applicable",
                         "missing_fields": [],
                         "traces": [f"{field}==True (False) => not_applicable"],
+                    }
+                if _is_explicit_unknown_value(v_raw) or _is_explicit_unknown_value(v):
+                    return {
+                        "rule_id": rid,
+                        "doc_id": rule.get("doc_id"),
+                        "loc": rule.get("loc"),
+                        "criteria_text": criteria_text,
+                        "trigger_tags": rule.get("trigger_tags") or [],
+                        "confidence": rule.get("confidence"),
+                        "dsl_kind": dsl_kind,
+                        "required_fields": required,
+                        "applicability_fields": applicability_fields,
+                        "status": "unknown",
+                        "missing_fields": [],
+                        "traces": [f"{field} applicability unknown ({why}) => unknown (confirm applicability)"],
                     }
 
     # Missing required fields.
@@ -665,6 +974,7 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
             "rule_id": rid,
             "doc_id": rule.get("doc_id"),
             "loc": rule.get("loc"),
+            "criteria_text": criteria_text,
             "trigger_tags": rule.get("trigger_tags") or [],
             "confidence": rule.get("confidence"),
             "dsl_kind": dsl_kind,
@@ -687,6 +997,7 @@ def eval_rule_tri_state(rule: Dict[str, Any], req: Dict[str, Any]) -> Dict[str, 
         "rule_id": rid,
         "doc_id": rule.get("doc_id"),
         "loc": rule.get("loc"),
+        "criteria_text": criteria_text,
         "trigger_tags": rule.get("trigger_tags") or [],
         "confidence": rule.get("confidence"),
         "dsl_kind": dsl_kind,
@@ -764,11 +1075,29 @@ def _summarize_option_eval(ev: Dict[str, Any]) -> Dict[str, Any]:
     risk = ev.get("risk") or {}
     tb = risk.get("timeline_buckets") or {}
     path = " → ".join(graph.get("path_node_labels") or [])
+
+    # Energization readiness summary (when requested)
+    req = ev.get("request") or {}
+    checklist = ev.get("energization_checklist") or []
+    counts = {"satisfied": 0, "missing": 0, "not_satisfied": 0, "unknown": 0, "not_applicable": 0}
+    if isinstance(checklist, list):
+        for it in checklist:
+            if not isinstance(it, dict):
+                continue
+            s = str(it.get("status") or "").strip().lower() or "unknown"
+            if s not in counts:
+                s = "unknown"
+            counts[s] += 1
+
     return {
         "path": path,
         "missing_inputs_count": len(ev.get("missing_inputs") or []),
         "missing_inputs": ev.get("missing_inputs") or [],
         "flags_count": len(ev.get("flags") or []),
+        "energization": {
+            "requested": bool(is_energization_mode(req)),
+            "checklist_counts": counts,
+        },
         "timeline_buckets": {
             "le_12_months": tb.get("le_12_months", "unknown"),
             "m12_24_months": tb.get("m12_24_months", "unknown"),
@@ -871,6 +1200,289 @@ def _analyze_levers(req: Dict[str, Any], graph: Dict[str, Any], rules_by_id: Dic
     return out
 
 
+def _bucket_rank(v: str) -> int:
+    """
+    Lower is better.
+    """
+    s = (v or "").strip().lower()
+    if s == "low":
+        return 0
+    if s == "medium":
+        return 1
+    if s == "high":
+        return 2
+    return 3  # unknown/other
+
+
+def _timeline_score(tb: Dict[str, Any]) -> int:
+    """
+    Lower is better. This is intentionally simple and explainable.
+    """
+    le12 = str(tb.get("le_12_months", "unknown")).lower()
+    m12_24 = str(tb.get("m12_24_months", "unknown")).lower()
+    gt24 = str(tb.get("gt_24_months", "unknown")).lower()
+    score = 0
+    if gt24 == "up":
+        score += 2
+    if m12_24 == "up":
+        score += 1
+    if le12 == "down":
+        score += 1
+    if le12 == "up":
+        score -= 1
+    return score
+
+
+def _top_risk_drivers(risk_trace: List[Dict[str, Any]], *, top_n: int = 6) -> List[Dict[str, Any]]:
+    items = [x for x in (risk_trace or []) if isinstance(x, dict) and x.get("kind") in {"rule", "heuristic", "context"}]
+    scored: List[Tuple[float, Dict[str, Any]]] = []
+    for x in items:
+        c = x.get("contributions") or {}
+        try:
+            up = float(c.get("upgrade") or 0.0)
+            wt = float(c.get("wait") or 0.0)
+            op = float(c.get("ops") or 0.0)
+        except Exception:
+            up = wt = op = 0.0
+        score = abs(up) + abs(wt) + abs(op)
+        scored.append((score, x))
+    scored.sort(key=lambda t: (-t[0], str(t[1].get("rule_id") or "")))
+    out: List[Dict[str, Any]] = []
+    for s, x in scored[: max(0, int(top_n))]:
+        out.append(
+            {
+                "kind": x.get("kind"),
+                "source": x.get("source"),
+                "rule_id": x.get("rule_id"),
+                "doc_id": x.get("doc_id"),
+                "loc": x.get("loc"),
+                "trigger_tags": x.get("trigger_tags") or [],
+                "contributions": x.get("contributions") or {},
+                "notes": x.get("notes") or [],
+                "score_abs": s,
+            }
+        )
+    return out
+
+
+def _recommendation_from_candidates(
+    *,
+    baseline: Dict[str, Any],
+    candidates: List[Dict[str, Any]],
+    req_is_energization: bool,
+) -> Dict[str, Any]:
+    """
+    Bounded recommendation within available candidates (baseline + options).
+    """
+    def _score(s: Dict[str, Any]) -> Tuple[int, int, int, int, int]:
+        miss = int(s.get("missing_inputs_count") or 0)
+        en = s.get("energization") or {}
+        cc = en.get("checklist_counts") or {}
+        not_sat = int(cc.get("not_satisfied") or 0)
+        missing = int(cc.get("missing") or 0)
+        # readiness: lower not_sat/missing is better when energization is requested
+        readiness_penalty = (not_sat * 2 + missing) if req_is_energization else 0
+
+        tb = s.get("timeline_buckets") or {}
+        timeline = _timeline_score(tb)
+        up = _bucket_rank(str(s.get("upgrade_exposure_bucket") or "unknown"))
+        ops = _bucket_rank(str(s.get("operational_exposure_bucket") or "unknown"))
+        return (miss, readiness_penalty, up, ops, timeline)
+
+    ranked = []
+    for c in candidates:
+        ranked.append((_score(c.get("summary") or {}), c))
+    ranked.sort(key=lambda t: (t[0], str(t[1].get("option_id") or "")))
+    best = ranked[0][1] if ranked else None
+
+    out = {
+        "mode": "bounded_v0",
+        "basis": {
+            "primary": "minimize missing inputs",
+            "then": "minimize energization checklist not_satisfied/missing" if req_is_energization else "then minimize bucket severity",
+            "risk_tiebreak": "prefer lower upgrade/ops bucket and better timeline score",
+            "context_note": "risk buckets include context snapshot adjustments when request.context is provided",
+        },
+        "recommended_option_id": (best.get("option_id") if isinstance(best, dict) else None),
+        "recommended_is_baseline": bool(best and best.get("option_id") == "baseline"),
+        "candidates_count": len(candidates),
+        "candidates_ranked": [
+            {
+                "option_id": c.get("option_id"),
+                "lever_id": c.get("lever_id"),
+                "score": list(_score(c.get("summary") or {})),
+                "summary": c.get("summary") or {},
+            }
+            for _sc, c in ranked[:8]
+        ],
+    }
+
+    # Short rationale: compare best vs baseline
+    if best and isinstance(best, dict):
+        bsum = baseline.get("summary") or {}
+        osum = best.get("summary") or {}
+        out["rationale"] = [
+            f"missing_inputs_count: {int(bsum.get('missing_inputs_count') or 0)} → {int(osum.get('missing_inputs_count') or 0)}",
+            f"upgrade_bucket: {bsum.get('upgrade_exposure_bucket','unknown')} → {osum.get('upgrade_exposure_bucket','unknown')}",
+            f"ops_bucket: {bsum.get('operational_exposure_bucket','unknown')} → {osum.get('operational_exposure_bucket','unknown')}",
+            f"path: {'same' if str(bsum.get('path') or '') == str(osum.get('path') or '') else 'changed'}",
+        ]
+        if req_is_energization:
+            bc = (bsum.get("energization") or {}).get("checklist_counts") or {}
+            oc = (osum.get("energization") or {}).get("checklist_counts") or {}
+            out["rationale"].append(f"energization not_satisfied: {int(bc.get('not_satisfied') or 0)} → {int(oc.get('not_satisfied') or 0)}")
+    return out
+
+
+def _decision_screening_status(ev: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Screening decision: "intake readiness" style summary.
+    """
+    miss = ev.get("missing_inputs") or []
+    miss_n = len(miss) if isinstance(miss, list) else 0
+    out: Dict[str, Any] = {"mode": "screening", "status": "unknown", "reasons": []}
+    if miss_n > 0:
+        out["status"] = "conditional"
+        out["reasons"].append(f"missing_inputs_count={miss_n}")
+    else:
+        out["status"] = "go"
+        out["reasons"].append("no missing inputs detected")
+    # Coverage hint
+    risk = ev.get("risk") or {}
+    if str(risk.get("status") or "") == "insufficient_rule_coverage":
+        out["reasons"].append("insufficient_rule_coverage")
+    return out
+
+
+def _decision_energization_status(ev: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Energization decision: readiness vs the requested/target energization window.
+    """
+    req = ev.get("request") or {}
+    miss = ev.get("missing_inputs") or []
+    miss_n = len(miss) if isinstance(miss, list) else 0
+    out: Dict[str, Any] = {"mode": "energization", "status": "unknown", "reasons": []}
+
+    if not is_energization_mode(req):
+        out["status"] = "unknown"
+        out["reasons"].append("energization_not_requested")
+        return out
+
+    w = req.get("requested_energization_window")
+    if isinstance(w, str) and w.strip():
+        out["reasons"].append(f"target_window={w.strip()}")
+
+    # Energization mode: use checklist statuses
+    checklist = ev.get("energization_checklist") or []
+    miss_gate = 0
+    not_sat_gate = 0
+    unknown_gate = 0
+    for it in checklist or []:
+        if not isinstance(it, dict):
+            continue
+        s = str(it.get("status") or "").strip().lower()
+        if s == "missing":
+            miss_gate += 1
+        elif s == "not_satisfied":
+            not_sat_gate += 1
+        elif s == "unknown":
+            unknown_gate += 1
+
+    if not checklist:
+        out["status"] = "unknown"
+        out["reasons"].append("no_checklist_rows")
+        return out
+
+    if (not_sat_gate == 0) and (miss_gate == 0) and (unknown_gate == 0) and (miss_n == 0):
+        out["status"] = "ready"
+        out["reasons"].append("all checklist gates satisfied")
+    elif not_sat_gate > 0:
+        out["status"] = "not_ready"
+        out["reasons"].append(f"checklist_not_satisfied={not_sat_gate}")
+    elif unknown_gate > 0 and (miss_gate == 0) and (not_sat_gate == 0):
+        out["status"] = "unknown"
+        out["reasons"].append(f"checklist_unknown={unknown_gate}")
+        out["reasons"].append("confirm applicability for unknown gates")
+        if miss_n:
+            out["reasons"].append(f"missing_inputs_count={miss_n}")
+    else:
+        out["status"] = "conditional"
+        out["reasons"].append(f"checklist_missing={miss_gate}")
+        if unknown_gate:
+            out["reasons"].append(f"checklist_unknown={unknown_gate}")
+        if miss_n:
+            out["reasons"].append(f"missing_inputs_count={miss_n}")
+    return out
+
+
+def _decision_status(ev: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Backward-compatible single decision summary.
+    """
+    req = ev.get("request") or {}
+    return _decision_energization_status(ev) if is_energization_mode(req) else _decision_screening_status(ev)
+
+
+def _next_actions(ev: Dict[str, Any], *, max_items: int = 10) -> List[Dict[str, Any]]:
+    """
+    Memo-friendly next actions (bounded list).
+    """
+    req = ev.get("request") or {}
+    is_en = is_energization_mode(req)
+    actions: List[Dict[str, Any]] = []
+    seen_keys: set[str] = set()
+
+    def _add(a: Dict[str, Any]) -> None:
+        k = json.dumps(a, sort_keys=True, ensure_ascii=False)
+        if k in seen_keys:
+            return
+        seen_keys.add(k)
+        actions.append(a)
+
+    # 1) Energization gates first (if requested)
+    if is_en:
+        for c in (ev.get("energization_checklist") or []):
+            if not isinstance(c, dict):
+                continue
+            status = str(c.get("status") or "").strip().lower()
+            if status not in {"missing", "not_satisfied"}:
+                continue
+            rid = str(c.get("rule_id") or "")
+            if not rid:
+                continue
+            memo_guidance = c.get("memo_guidance") if isinstance(c.get("memo_guidance"), dict) else None
+            missing_fields = [str(x) for x in (c.get("missing_fields") or []) if str(x).strip()]
+            required_fields = [str(x) for x in (c.get("required_fields") or []) if str(x).strip()]
+            traces = [str(x) for x in (c.get("traces") or []) if str(x).strip()]
+            _add(
+                {
+                    "kind": "energization_gate",
+                    "status": status,
+                    "rule_id": rid,
+                    "doc_id": c.get("doc_id"),
+                    "loc": c.get("loc"),
+                    "criteria_text": c.get("criteria_text"),
+                    "ask_fields": missing_fields[:6],
+                    "required_fields": required_fields[:12],
+                    "conditions": traces[:4],
+                    "memo_guidance": memo_guidance,
+                }
+            )
+            if len(actions) >= max_items:
+                return actions
+
+    # 2) Missing inputs (fields)
+    miss = ev.get("missing_inputs") or []
+    miss2 = [str(x) for x in miss] if isinstance(miss, list) else []
+    for f in miss2:
+        if not f or f == "is_requesting_energization":
+            continue
+        _add({"kind": "provide_field", "field": f})
+        if len(actions) >= max_items:
+            break
+    return actions
+
+
 def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_options: bool = True) -> Dict[str, Any]:
     req = normalize_request(req)
     edges: List[Dict[str, Any]] = graph.get("edges") or []
@@ -899,15 +1511,16 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                 chosen = e
                 chosen_traces = traces
                 break
-            missing_inputs.extend(missing_fields)
-            # Keep compact missing provenance (edge-level attribution).
-            for f in missing_fields:
-                mm = missing_meta.get(f) or {"field": f, "sources": [], "reason": "", "value": None}
-                mm["value"] = req.get(f) if f in req else None
-                # Edge predicates treat empty string/list as missing, but do not use completeness False-as-missing.
-                mm["reason"] = mm["reason"] or _classify_missing_reason(req=req, field=f, is_completeness=False)
-                mm["sources"].append({"kind": "edge_criteria", "edge_id": str(e.get("id") or "")})
-                missing_meta[f] = mm
+            if str(e.get("missing_policy") or "").strip().lower() != "ignore":
+                missing_inputs.extend(missing_fields)
+                # Keep compact missing provenance (edge-level attribution).
+                for f in missing_fields:
+                    mm = missing_meta.get(f) or {"field": f, "sources": [], "reason": "", "value": None}
+                    mm["value"] = req.get(f) if f in req else None
+                    # Edge predicates treat empty string/list as missing, but do not use completeness False-as-missing.
+                    mm["reason"] = mm["reason"] or _classify_missing_reason(req=req, field=f, is_completeness=False)
+                    mm["sources"].append({"kind": "edge_criteria", "edge_id": str(e.get("id") or "")})
+                    missing_meta[f] = mm
         if chosen is None:
             break
 
@@ -948,6 +1561,30 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                 "lever_id": "voltage_level_choice",
                 "status": "present_in_request",
                 "note": "Request includes multiple voltage options (can be evaluated as alternative options).",
+            }
+        )
+    if ("multiple_poi" in req) or ("poi_count" in req):
+        levers.append(
+            {
+                "lever_id": "poi_topology_choice",
+                "status": "present_in_request",
+                "note": "Request includes POI topology inputs (single vs multiple POIs), which can change screening path/options.",
+            }
+        )
+    if "is_co_located" in req:
+        levers.append(
+            {
+                "lever_id": "co_location_signal",
+                "status": "present_in_request",
+                "note": "Request includes a co-location/shared-infrastructure signal (configuration complexity lever).",
+            }
+        )
+    if "export_capability" in req:
+        levers.append(
+            {
+                "lever_id": "export_capability_choice",
+                "status": "present_in_request",
+                "note": "Request includes an export capability posture input (configuration lever; can affect ops/study exposure).",
             }
         )
 
@@ -993,6 +1630,12 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
         if not rule_predicates(r) and not required_fields_from_rule(r):
             continue
         chk = eval_rule_tri_state(r, req)
+        mg = normalize_memo_guidance(r)
+        if mg:
+            chk["memo_guidance"] = mg
+        # Carry minimal DSL structure for memo-grade lever guidance (does not affect evaluation).
+        chk["predicates"] = rule_predicates(r)
+        chk["fields_referenced"] = sorted(_fields_referenced_by_rule(r))
         rule_checks.append(chk)
 
         tags = set(r.get("trigger_tags") or [])
@@ -1000,7 +1643,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
         if ("energization_gate" in tags) or (stage.lower() == "energization"):
             # Only show energization checklist when user is explicitly requesting energization,
             # OR when the rule isn't gated (rare).
-            if req.get("is_requesting_energization") is True or not has_gate_predicate(r, field="is_requesting_energization", value=True):
+            if is_energization_mode(req) or not has_gate_predicate(r, field="is_requesting_energization", value=True):
                 energization_checklist.append(chk)
 
     energization_checklist = dedupe_checklist(energization_checklist)
@@ -1014,6 +1657,26 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
         dsl = ((r.get("criteria") or {}).get("dsl") or {})
         is_completeness = dsl.get("kind") == "completeness_check"
         if not is_completeness:
+            # Conditional gates: do not treat unknown applicability as "missing inputs".
+            # If applicability is False (not applicable) OR unknown, skip enforcement entirely.
+            if dsl.get("kind") == "conditional_gate":
+                app_fields = dsl.get("applicability_fields") or []
+                if isinstance(app_fields, list) and app_fields:
+                    applicable_known_true = True
+                    for f_app in [str(x) for x in app_fields if x]:
+                        v_app = get_field(req, f_app)
+                        if v_app is False:
+                            applicable_known_true = False
+                            break
+                        if _is_explicit_unknown_value(v_app):
+                            applicable_known_true = False
+                            break
+                        if v_app is not True:
+                            applicable_known_true = False
+                            break
+                    if not applicable_known_true:
+                        continue
+
             # Only enforce non-completeness required_fields when the rule is "in play".
             preds = rule_predicates(r)
             if preds:
@@ -1066,7 +1729,13 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                 missing_meta[f] = mm
                 continue
 
-    risk, risk_trace = risk_from_signals(req, unique_signal_rules, missing_inputs=sorted(set(missing_inputs)))
+    ctx_snapshot = normalize_context_snapshot(req.get("context"))
+    risk, risk_trace = risk_from_signals(
+        req,
+        unique_signal_rules,
+        missing_inputs=sorted(set(missing_inputs)),
+        context_snapshot=ctx_snapshot,
+    )
 
     # Uncertainty buckets (memo-friendly, compact, evidence-backed):
     # - Missing: absent/empty/false-as-missing fields
@@ -1142,6 +1811,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
     out = {
         "evaluated_at": now_iso(),
         "request": req,
+        "context_snapshot": ctx_snapshot,
         "graph": {
             "path_nodes": path_nodes,
             "path_node_labels": [nodes_by_id.get(n, {}).get("label", n) for n in path_nodes],
@@ -1196,6 +1866,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                     {
                         "option_id": f"voltage_{int(v_num) if v_num.is_integer() else v_num}",
                         "lever_id": "voltage_level_choice",
+                        "source": "user_provided_alternatives",
                         "patch": {"voltage_options_kv": [v_num]},
                         "summary": opt_summary,
                         "delta": _diff_option_summaries(baseline_summary, opt_summary),
@@ -1216,13 +1887,123 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                 {
                     "option_id": f"energization_plan_{other}",
                     "lever_id": "phased_energization",
+                    "source": "system_generated_toggle",
                     "patch": {"energization_plan": other},
                     "summary": opt_summary,
                     "delta": _diff_option_summaries(baseline_summary, opt_summary),
                 }
             )
 
+        # Lever 3: POI topology (single vs multiple POIs).
+        mp = req.get("multiple_poi")
+        if mp in (True, False):
+            other_mp = not bool(mp)
+            req2 = dict(req)
+            req2["multiple_poi"] = other_mp
+            # Keep poi_count aligned for readability (heuristic; does not claim correctness).
+            if other_mp is True:
+                try:
+                    pc = int(req.get("poi_count") or 2)
+                except Exception:
+                    pc = 2
+                req2["poi_count"] = max(2, pc)
+            else:
+                req2["poi_count"] = 1
+            ev2 = evaluate_graph(req2, graph, include_options=False)
+            opt_summary = _summarize_option_eval(ev2)
+            options.append(
+                {
+                    "option_id": f"poi_topology_{'multi' if other_mp else 'single'}",
+                    "lever_id": "poi_topology_choice",
+                    "source": "system_generated_toggle",
+                    "patch": {"multiple_poi": other_mp, "poi_count": req2.get("poi_count")},
+                    "summary": opt_summary,
+                    "delta": _diff_option_summaries(baseline_summary, opt_summary),
+                }
+            )
+
+        # Lever 4: co-location signal.
+        if req.get("is_co_located") in (True, False):
+            other_col = not bool(req.get("is_co_located"))
+            req2 = dict(req)
+            req2["is_co_located"] = other_col
+            ev2 = evaluate_graph(req2, graph, include_options=False)
+            opt_summary = _summarize_option_eval(ev2)
+            options.append(
+                {
+                    "option_id": f"co_located_{str(other_col).lower()}",
+                    "lever_id": "co_location_signal",
+                    "source": "system_generated_toggle",
+                    "patch": {"is_co_located": other_col},
+                    "summary": opt_summary,
+                    "delta": _diff_option_summaries(baseline_summary, opt_summary),
+                }
+            )
+
+        # Lever 5: export capability posture.
+        exp = str(req.get("export_capability") or "").strip().lower()
+        if exp in {"none", "possible", "planned", "unknown", ""}:
+            other_exp = "planned" if exp in {"none", "unknown", ""} else "none"
+            req2 = dict(req)
+            req2["export_capability"] = other_exp
+            ev2 = evaluate_graph(req2, graph, include_options=False)
+            opt_summary = _summarize_option_eval(ev2)
+            options.append(
+                {
+                    "option_id": f"export_{other_exp}",
+                    "lever_id": "export_capability_choice",
+                    "source": "system_generated_toggle",
+                    "patch": {"export_capability": other_exp},
+                    "summary": opt_summary,
+                    "delta": _diff_option_summaries(baseline_summary, opt_summary),
+                }
+            )
+
+        # Lever 6: voltage class (only when no explicit voltage options list is provided).
+        if not (isinstance(vopts, list) and len(vopts) >= 2):
+            cls = str(req.get("poi_voltage_class") or "").strip().lower()
+            if cls in {"distribution", "transmission"}:
+                other_cls = "transmission" if cls == "distribution" else "distribution"
+                req2 = dict(req)
+                # Explicit class override for what-if comparison (keeps v0 deterministic).
+                req2["poi_voltage_class"] = other_cls
+                # Clear voltage_choice_kv to avoid implying a numeric choice without evidence.
+                req2["voltage_choice_kv"] = None
+                ev2 = evaluate_graph(req2, graph, include_options=False)
+                opt_summary = _summarize_option_eval(ev2)
+                options.append(
+                    {
+                        "option_id": f"voltage_class_{other_cls}",
+                        "lever_id": "voltage_level_choice",
+                        "source": "system_generated_toggle",
+                        "patch": {"poi_voltage_class": other_cls, "voltage_choice_kv": None},
+                        "summary": opt_summary,
+                        "delta": _diff_option_summaries(baseline_summary, opt_summary),
+                    }
+                )
+
         out["options"] = options
+
+        # Bounded recommendation among baseline + generated options
+        base_candidate = {
+            "option_id": "baseline",
+            "lever_id": "baseline",
+            "patch": {},
+            "summary": baseline_summary,
+        }
+        candidates = [base_candidate] + list(options)
+        out["recommendation"] = _recommendation_from_candidates(
+            baseline=base_candidate,
+            candidates=candidates,
+            req_is_energization=is_energization_mode(req),
+        )
+
+    # Decision summary + next actions + top drivers (memo-friendly)
+    out["decision_screening"] = _decision_screening_status(out)
+    out["decision_energization"] = _decision_energization_status(out)
+    out["decision"] = out["decision_energization"] if is_energization_mode(req) else out["decision_screening"]
+    out["next_actions"] = _next_actions(out, max_items=10)
+    out["top_drivers"] = _top_risk_drivers(out.get("risk_trace") or [], top_n=6)
 
     return out
 

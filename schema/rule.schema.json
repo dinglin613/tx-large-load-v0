@@ -46,6 +46,48 @@
     "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
     "review_status": { "type": "string", "enum": ["draft", "reviewed", "published"] },
     "review_notes": { "type": "string" },
+    "memo_guidance": {
+      "type": "object",
+      "description": "Optional memo guidance for human next actions (not citation-audited). Policy: only populate and render when it can be verified against docs/raw and/or internal process materials, and keep it deterministic per rule.",
+      "properties": {
+        "verified": {
+          "type": "boolean",
+          "description": "If true, guidance is asserted to be verifiable against sources in docs/raw / process materials and may be shown in the memo UI. If false/absent, guidance should be treated as draft and not rendered."
+        },
+        "sources": {
+          "type": "array",
+          "description": "Sources supporting this guidance (doc_id + loc). These are not PDF-audited like rule citations, but they document where the guidance came from.",
+          "items": {
+            "type": "object",
+            "required": ["doc_id", "loc"],
+            "properties": {
+              "doc_id": { "type": "string", "minLength": 1 },
+              "loc": { "type": "string", "minLength": 1 },
+              "notes": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "owner": {
+          "type": "string",
+          "description": "Who should drive/push this action (examples: Developer, EPC, TDSP, TSP, ERCOT)."
+        },
+        "recipient": {
+          "type": "string",
+          "description": "Who should receive/confirm this action (examples: Lead TSP, TDSP, ERCOT)."
+        },
+        "evidence": {
+          "type": "array",
+          "description": "Concrete proof artifacts that indicate the action is complete (e.g., email confirmation, test report ID, ticket number).",
+          "items": { "type": "string" }
+        },
+        "what_to_do": {
+          "type": "string",
+          "description": "One-liner plain-language action (memo-friendly)."
+        }
+      },
+      "additionalProperties": true
+    },
     "version": { "type": "string", "minLength": 1 }
   },
   "additionalProperties": true

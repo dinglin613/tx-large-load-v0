@@ -37,7 +37,16 @@
       pre { background: var(--soft2); padding: 12px; border-radius: 10px; overflow-x: auto; border: 1px solid var(--border); }
       .kv { display: grid; grid-template-columns: 220px 1fr; gap: 6px 12px; }
       .k { color: #374151; }
-      .v { color: var(--fg); }
+      .v { color: var(--fg); min-width: 0; }
+
+      /* Horizontal scroll helpers (for long inline values like process paths) */
+      .scroll-x {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 2px;
+      }
+      .scroll-x code { display: inline-block; }
 
       .toc { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--soft2); }
       .toc { max-height: calc(100vh - 36px); overflow: auto; }
@@ -63,17 +72,18 @@
       .tab-panels .tab-panel.active { display: block; }
 
       /* Inline code styling for scanability */
-      code { color: var(--code); background: rgba(243,244,246,.75); border: 1px solid var(--border); padding: 1px 6px; border-radius: 8px; font-size: 12px; overflow-wrap: anywhere; }
+      code { color: var(--code); background: rgba(243,244,246,.75); border: 1px solid var(--border); padding: 1px 6px; border-radius: 8px; font-size: 12px; white-space: nowrap; }
       pre code { background: transparent; border: 0; padding: 0; border-radius: 0; font-size: inherit; }
       .chip code, .badge code { background: transparent; border: 0; padding: 0; border-radius: 0; }
 
-      table { width: 100%; border-collapse: collapse; }
+      /* Tables: allow horizontal scroll containers to prevent "vertical text" wrapping. */
+      table { width: max-content; min-width: 100%; border-collapse: collapse; table-layout: auto; }
       th, td { border-top: 1px solid var(--border); padding: 10px 8px; vertical-align: top; }
       th { text-align: left; font-size: 12px; color: #374151; background: var(--soft2); border-top: 1px solid var(--border); }
       td { font-size: 13px; }
       .nowrap { white-space: nowrap; }
       .small { font-size: 12px; }
-      .wrap { word-break: break-word; }
+      .wrap { overflow-wrap: break-word; word-break: normal; hyphens: auto; }
       .row-muted { color: var(--muted); }
       tbody tr:nth-child(even) { background: rgba(249,250,251,.9); }
       tbody tr:hover { background: rgba(37,99,235,.06); }
@@ -84,6 +94,58 @@
       details > summary { cursor: pointer; user-select: none; }
       details summary { font-size: 13px; color: #111827; }
       details .hint { margin: 8px 0 0 0; }
+
+      /* Lever "flip" cells: keep compact, expandable */
+      .lever-flips .chips { margin-top: 0; }
+      .chip.info { color: #1d4ed8; border-color: rgba(29,78,216,.22); background: rgba(29,78,216,.06); }
+      details.mini > summary { font-size: 12px; color: var(--accent); margin-top: 6px; }
+      .flip-box {
+        margin-top: 8px;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--soft2);
+        max-height: 180px;
+        overflow: auto;
+      }
+      .flip-box ul { margin: 6px 0 0 18px; padding: 0; }
+      .flip-box li { margin: 4px 0; }
+
+      /* Summary: action cards (Top next actions) */
+      .action-cards { display: grid; gap: 12px; }
+      .action-card {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #fff;
+        padding: 12px;
+      }
+      .action-head {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+      .action-title {
+        font-size: 13px;
+        font-weight: 650;
+        line-height: 1.35;
+        min-width: 0;
+      }
+      .action-title code { font-weight: 500; }
+      .action-grid {
+        display: grid;
+        grid-template-columns: 160px 1fr;
+        gap: 8px 12px;
+        margin-top: 10px;
+      }
+      .action-k { font-size: 12px; color: var(--muted); }
+      .action-v { font-size: 13px; min-width: 0; }
+      .action-details { margin-top: 10px; }
+      .action-details > summary { font-size: 12px; color: var(--accent); }
+      .done-list li { margin: 3px 0; }
+      @media (max-width: 640px) {
+        .action-grid { grid-template-columns: 1fr; }
+      }
 
       .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 8px; font-size: 12px; border: 1px solid var(--border); background: var(--soft2); }
       .badge.good { color: var(--good); border-color: rgba(6,95,70,.25); background: rgba(6,95,70,.06); }
@@ -169,6 +231,28 @@
             <h2>Summary</h2>
             <div class="id">v0</div>
           </div>
+          <div class="muted small">Executive summary (screening deliverable): status, next actions, and bounded recommendation (within generated options).</div>
+
+          <div class="chips" style="margin-top:10px">
+            {{decision_status_badge}}
+            {{decision_reason_chips}}
+          </div>
+          <div class="muted small" style="margin-top:8px">Screening = intake/screening readiness. Energization = readiness vs the target energization window (if provided).</div>
+
+          <div style="margin-top:10px">
+            {{next_actions_html}}
+          </div>
+
+          <details style="margin-top:10px">
+            <summary>Show bounded recommendation (within baseline + options)</summary>
+            {{recommendation_html}}
+          </details>
+
+          <details style="margin-top:10px">
+            <summary>Show top risk drivers (evidence-backed)</summary>
+            {{top_drivers_html}}
+          </details>
+
           <div class="kv">
             <div class="k">Operator area</div>
             <div class="v"><code>{{operator_area}}</code></div>
@@ -181,7 +265,7 @@
             <div class="k">Requesting energization?</div>
             <div class="v"><code>{{is_requesting_energization}}</code></div>
             <div class="k">Process path</div>
-            <div class="v"><code>{{path}}</code></div>
+            <div class="v"><div class="scroll-x"><code>{{path}}</code></div></div>
           </div>
         </div>
 
@@ -211,6 +295,17 @@
             <div class="hint muted small">Tip: keep raw JSON folded for faster reading; use “Missing inputs” and checklists below.</div>
             <pre>{{request_json}}</pre>
           </details>
+        </div>
+
+        <div class="card" id="sec-context">
+          <div class="section-title">
+            <h2>1b) Context snapshot (optional)</h2>
+            <div class="id">audit-friendly</div>
+          </div>
+          <div class="muted small">Optional system-state / discretion inputs provided by the user. These are recorded with source + confidence and can influence v0 risk/recommendation deterministically. They are not citation-audited like published rules.</div>
+          <div style="margin-top:10px">
+            {{context_snapshot_html}}
+          </div>
         </div>
 
         <div class="card" id="sec-path">
@@ -329,7 +424,7 @@
             <div class="id">lever variants</div>
           </div>
           <div class="muted small">
-            v0 can generate lightweight “what-if” variants for certain levers (e.g., voltage choice, phased vs single). These are comparative screenings, not final determinations.
+            v0 can generate lightweight “what-if” variants for certain levers (e.g., voltage choice, phased vs single). These are comparative screenings, not final determinations. The <code>source</code> column distinguishes user-provided alternatives vs system-generated toggles.
           </div>
           <div class="toolbar">
             <input id="optionsFilter" type="search" placeholder="Filter options by lever, option, risk bucket, missing field..." />
@@ -341,6 +436,7 @@
                 <tr>
                   <th class="nowrap">option_id</th>
                   <th class="nowrap">lever</th>
+                  <th class="nowrap">source</th>
                   <th>patch</th>
                   <th>path</th>
                   <th class="nowrap">missing</th>
@@ -387,7 +483,7 @@
             <h2>4c) Energization readiness checklist</h2>
             <div class="id">tri-state gates</div>
           </div>
-          <div class="muted small">Shown when <code>is_requesting_energization=true</code>. Status: <code>satisfied</code> / <code>missing</code> / <code>not_satisfied</code>.</div>
+          <div class="muted small">Shown when <code>is_requesting_energization=true</code>. Status: <code>satisfied</code> / <code>missing</code> / <code>not_satisfied</code> / <code>unknown</code> (needs applicability confirmation).</div>
           <div class="chips" style="margin-top:10px">
             {{checklist_stats_chips}}
           </div>
@@ -405,6 +501,7 @@
                   <th>loc</th>
                   <th>missing fields</th>
                   <th>predicate traces</th>
+                  <th>guidance</th>
                 </tr>
               </thead>
               <tbody>
