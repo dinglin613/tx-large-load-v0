@@ -722,7 +722,7 @@ def badge_for_status(status: str) -> str:
         cls = ""
     label = status
     if s == "unknown":
-        label = "暂不可判断/需确认适用性"
+        label = "Unknown (confirm applicability)"
     cls_attr = f" badge {cls}".strip()
     return f"<span class=\"{cls_attr}\"><code>{esc(label)}</code></span>"
 
