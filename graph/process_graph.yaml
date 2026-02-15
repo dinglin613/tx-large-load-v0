@@ -412,39 +412,47 @@ edges:
 
 levers_catalog:
   - lever_id: phased_energization
+    class: design
     label: Phased energization plan
     request_fields:
       - energization_plan
       - phases
   - lever_id: voltage_level_choice
+    class: design
     label: POI voltage level choice
     request_fields:
       - voltage_options_kv
       - voltage_choice_kv
       - poi_voltage_class
   - lever_id: poi_topology_choice
+    class: design
     label: POI topology (single vs multiple POIs)
     request_fields:
       - poi_count
       - multiple_poi
   - lever_id: co_location_signal
+    class: hard
     label: Co-location / shared infrastructure signal
     request_fields:
       - is_co_located
   - lever_id: export_capability_choice
+    class: design
     label: Export capability posture
     request_fields:
       - export_capability
   - lever_id: energization_posture_timing
+    class: design
     label: Energization posture & timing
     request_fields:
       - is_requesting_energization
       - requested_energization_window
   - lever_id: change_control_restudy
+    class: design
     label: Change control / re-study triggers
     request_fields:
       - material_change_flags
   - lever_id: agreements_security_ntp
+    class: design
     label: Agreements, financial security & notice-to-proceed
     request_fields:
       - llis_completed_and_ercot_approved
@@ -452,10 +460,12 @@ levers_catalog:
       - financial_security_posted
       - notice_to_proceed_received
   - lever_id: llis_data_package_readiness
+    class: design
     label: LLIS study data package readiness
     request_fields:
       - llis_data_package_submitted
   - lever_id: quarterly_stability_readiness
+    class: design
     label: ERCOT quarterly stability assessment readiness (if applicable)
     request_fields:
       - ercot_quarterly_stability_assessment_complete

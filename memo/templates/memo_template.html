@@ -238,6 +238,7 @@
             {{decision_reason_chips}}
           </div>
           <div class="muted small" style="margin-top:8px">Screening = intake/screening readiness. Energization = readiness vs the target energization window (if provided).</div>
+          <div class="muted small" style="margin-top:6px">Suggested reading order (first time): <strong>Summary → Levers → Options comparison → Risk buckets</strong>.</div>
 
           <div style="margin-top:10px">
             {{next_actions_html}}
@@ -385,7 +386,10 @@
             <h2>4) Levers detected</h2>
             <div class="id">structural hints</div>
           </div>
-          <div class="muted small">Levers are configurable inputs. See “Options comparison” for lightweight what-if variants when available.</div>
+          <div class="muted small">
+            Levers are decision inputs surfaced from the request + rules. Class legend: <code>design</code> (you can change it), <code>hard</code> (site/physical constraint), <code>external</code> (system/queue state).
+            See “Options comparison” for lightweight what-if variants when available.
+          </div>
 
           <details style="margin-top:10px" open>
             <summary>Top levers to decide next (v0)</summary>
@@ -400,6 +404,7 @@
               <thead>
                 <tr>
                   <th class="nowrap">lever_id</th>
+                  <th class="nowrap">class</th>
                   <th>note</th>
                 </tr>
               </thead>

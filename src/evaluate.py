@@ -1221,11 +1221,16 @@ def _analyze_levers(req: Dict[str, Any], graph: Dict[str, Any], rules_by_id: Dic
     if not isinstance(levers, list):
         return []
 
+    allowed_classes = {"hard", "design", "external", "unknown"}
+
     out: List[Dict[str, Any]] = []
     for lv in levers:
         if not isinstance(lv, dict) or not lv.get("lever_id"):
             continue
         lever_id = str(lv.get("lever_id"))
+        lever_class = str(lv.get("class") or lv.get("lever_class") or "unknown").strip().lower()
+        if lever_class not in allowed_classes:
+            lever_class = "unknown"
         label = str(lv.get("label") or "")
         req_fields = [str(x) for x in (lv.get("request_fields") or []) if x]
         # Presence is “exists” semantics (same as evaluator): None / "" / [] are treated as missing.
@@ -1245,6 +1250,7 @@ def _analyze_levers(req: Dict[str, Any], graph: Dict[str, Any], rules_by_id: Dic
         out.append(
             {
                 "lever_id": lever_id,
+                "lever_class": lever_class,
                 "label": label,
                 "request_fields": req_fields,
                 "present_fields": present,
@@ -1631,11 +1637,26 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
             break
 
     # Levers: purely structural (no claims)
+    lever_class_by_id: Dict[str, str] = {}
+    levers_catalog = graph.get("levers_catalog") or []
+    if isinstance(levers_catalog, list):
+        for lv in levers_catalog:
+            if not isinstance(lv, dict):
+                continue
+            lid = str(lv.get("lever_id") or "").strip()
+            if not lid:
+                continue
+            cls = str(lv.get("class") or lv.get("lever_class") or "unknown").strip().lower()
+            if cls not in {"hard", "design", "external", "unknown"}:
+                cls = "unknown"
+            lever_class_by_id[lid] = cls
+
     levers = []
     if req.get("energization_plan") == "phased":
         levers.append(
             {
                 "lever_id": "phased_energization",
+                "lever_class": lever_class_by_id.get("phased_energization", "unknown"),
                 "status": "present_in_request",
                 "note": "Request includes a phased energization plan (can be used as an option lever).",
             }
@@ -1644,6 +1665,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
         levers.append(
             {
                 "lever_id": "voltage_level_choice",
+                "lever_class": lever_class_by_id.get("voltage_level_choice", "unknown"),
                 "status": "present_in_request",
                 "note": "Request includes multiple voltage options (can be evaluated as alternative options).",
             }
@@ -1652,6 +1674,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
         levers.append(
             {
                 "lever_id": "poi_topology_choice",
+                "lever_class": lever_class_by_id.get("poi_topology_choice", "unknown"),
                 "status": "present_in_request",
                 "note": "Request includes POI topology inputs (single vs multiple POIs), which can change screening path/options.",
             }
@@ -1660,6 +1683,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
         levers.append(
             {
                 "lever_id": "co_location_signal",
+                "lever_class": lever_class_by_id.get("co_location_signal", "unknown"),
                 "status": "present_in_request",
                 "note": "Request includes a co-location/shared-infrastructure signal (configuration complexity lever).",
             }
@@ -1668,6 +1692,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
         levers.append(
             {
                 "lever_id": "export_capability_choice",
+                "lever_class": lever_class_by_id.get("export_capability_choice", "unknown"),
                 "status": "present_in_request",
                 "note": "Request includes an export capability posture input (configuration lever; can affect ops/study exposure).",
             }

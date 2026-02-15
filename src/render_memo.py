@@ -1346,11 +1346,25 @@ def render_levers_catalog_html(ev: Dict[str, Any]) -> str:
     if not isinstance(items, list) or not items:
         return "<div class=\"muted small\">None</div>"
 
+    def _lever_class_badge(cls: Any) -> str:
+        c = str(cls or "unknown").strip().lower()
+        if c not in {"hard", "design", "external", "unknown"}:
+            c = "unknown"
+        # Keep neutral styling; avoid implying good/bad.
+        if c == "design":
+            return f"<span class=\"chip info\"><span class=\"small\">class</span> <code>{esc(c)}</code></span>"
+        if c == "external":
+            return f"<span class=\"chip warn\"><span class=\"small\">class</span> <code>{esc(c)}</code></span>"
+        if c == "hard":
+            return f"<span class=\"chip\"><span class=\"small\">class</span> <code>{esc(c)}</code></span>"
+        return f"<span class=\"chip\"><span class=\"small\">class</span> <code>{esc(c)}</code></span>"
+
     rows: List[str] = []
     for it in items:
         if not isinstance(it, dict):
             continue
         lever_id = it.get("lever_id")
+        lever_class = it.get("lever_class")
         label = it.get("label") or ""
         present = it.get("present_fields") or []
         missing = it.get("missing_fields") or []
@@ -1360,6 +1374,7 @@ def render_levers_catalog_html(ev: Dict[str, Any]) -> str:
         rows.append(
             "<tr>"
             f"<td class=\"nowrap\"><code>{esc(lever_id)}</code></td>"
+            f"<td class=\"nowrap\">{_lever_class_badge(lever_class)}</td>"
             f"<td class=\"wrap\"><span class=\"small\">{esc(label)}</span></td>"
             f"<td class=\"wrap\">{code_list(present)}</td>"
             f"<td class=\"wrap\">{code_list(missing)}</td>"
@@ -1376,6 +1391,7 @@ def render_levers_catalog_html(ev: Dict[str, Any]) -> str:
         "<table>"
         "<thead><tr>"
         "<th class=\"nowrap\">lever_id</th>"
+        "<th class=\"nowrap\">class</th>"
         "<th>label</th>"
         "<th>present fields</th>"
         "<th>missing fields</th>"
@@ -1607,6 +1623,7 @@ def render_lever_next_actions_html(ev: Dict[str, Any], *, top_n: int = 5) -> str
         enriched.append(
             {
                 "lever_id": lever_id,
+                "lever_class": str(it.get("lever_class") or "unknown"),
                 "label": str(it.get("label") or ""),
                 "ask_missing_fields": missing_fields,
                 "ask_unknown_fields": unknown_lever_fields,
@@ -1670,9 +1687,19 @@ def render_lever_next_actions_html(ev: Dict[str, Any], *, top_n: int = 5) -> str
 
         flips_html = f"<div class=\"lever-flips\">{chips}{details}</div>"
 
+        cls = str(it.get("lever_class") or "unknown").strip().lower()
+        if cls not in {"hard", "design", "external", "unknown"}:
+            cls = "unknown"
+        cls_badge = (
+            f"<span class=\"chip info\"><span class=\"small\">class</span> <code>{esc(cls)}</code></span>" if cls == "design" else
+            (f"<span class=\"chip warn\"><span class=\"small\">class</span> <code>{esc(cls)}</code></span>" if cls == "external" else
+             f"<span class=\"chip\"><span class=\"small\">class</span> <code>{esc(cls)}</code></span>")
+        )
+
         rows.append(
             "<tr>"
             f"<td class=\"nowrap\"><code>{esc(it.get('lever_id'))}</code></td>"
+            f"<td class=\"nowrap\">{cls_badge}</td>"
             f"<td class=\"wrap\"><span class=\"small\">{esc(it.get('label'))}</span></td>"
             f"<td class=\"wrap\">{code_list(it.get('ask_missing_fields') or [])}{('<div class=\"muted small\" style=\"margin-top:6px\">unknown: ' + code_list(it.get('ask_unknown_fields') or []) + '</div>') if (it.get('ask_unknown_fields') or []) else ''}</td>"
             f"<td class=\"wrap\"><span class=\"small\"><code>{esc(it.get('delta_hint'))}</code></span></td>"
@@ -1686,6 +1713,7 @@ def render_lever_next_actions_html(ev: Dict[str, Any], *, top_n: int = 5) -> str
         "<table class=\"lever-next\">"
         "<thead><tr>"
         "<th class=\"nowrap\">lever</th>"
+        "<th class=\"nowrap\">class</th>"
         "<th>label</th>"
         "<th>ask next (fields)</th>"
         "<th class=\"nowrap\">observed delta</th>"
@@ -1693,7 +1721,7 @@ def render_lever_next_actions_html(ev: Dict[str, Any], *, top_n: int = 5) -> str
         "<th>rule check flips</th>"
         "</tr></thead>"
         "<tbody>"
-        + ("\n".join(rows) or "<tr><td colspan=\"6\" class=\"muted\">None</td></tr>")
+        + ("\n".join(rows) or "<tr><td colspan=\"7\" class=\"muted\">None</td></tr>")
         + "</tbody></table></div>"
     )
 
@@ -1753,13 +1781,24 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optiona
     missing_chips = chip_list(ev.get("missing_inputs") or [])
 
     levers = ev.get("levers") or []
-    levers_rows = "\n".join(
-        "<tr>"
-        f"<td class=\"nowrap\"><code>{esc(l.get('lever_id'))}</code></td>"
-        f"<td class=\"wrap\">{esc(l.get('note'))}</td>"
-        "</tr>"
-        for l in levers
-    ) or "<tr><td colspan=\"2\" class=\"muted\">None detected in request</td></tr>"
+    levers_rows_parts: List[str] = []
+    for l in levers:
+        cls = str(l.get("lever_class") or "unknown").strip().lower()
+        if cls not in {"hard", "design", "external", "unknown"}:
+            cls = "unknown"
+        cls_chip = (
+            f"<span class=\"chip info\"><span class=\"small\">class</span> <code>{esc(cls)}</code></span>" if cls == "design" else
+            (f"<span class=\"chip warn\"><span class=\"small\">class</span> <code>{esc(cls)}</code></span>" if cls == "external" else
+             f"<span class=\"chip\"><span class=\"small\">class</span> <code>{esc(cls)}</code></span>")
+        )
+        levers_rows_parts.append(
+            "<tr>"
+            f"<td class=\"nowrap\"><code>{esc(l.get('lever_id'))}</code></td>"
+            f"<td class=\"nowrap\">{cls_chip}</td>"
+            f"<td class=\"wrap\">{esc(l.get('note'))}</td>"
+            "</tr>"
+        )
+    levers_rows = "\n".join(levers_rows_parts) or "<tr><td colspan=\"3\" class=\"muted\">None detected in request</td></tr>"
 
     flags_rows = "\n".join(
         "<tr>"
@@ -1774,7 +1813,19 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optiona
 
     checklist_rows = render_checklist_rows(ev.get("energization_checklist") or [])
 
-    options_rows = render_options_rows(ev.get("options") or [])
+    lever_class_by_id: Dict[str, str] = {}
+    for it in (ev.get("levers_catalog_analysis") or []):
+        if not isinstance(it, dict):
+            continue
+        lid = str(it.get("lever_id") or "").strip()
+        if not lid:
+            continue
+        cls = str(it.get("lever_class") or "unknown").strip().lower()
+        if cls not in {"hard", "design", "external", "unknown"}:
+            cls = "unknown"
+        lever_class_by_id[lid] = cls
+
+    options_rows = render_options_rows(ev.get("options") or [], lever_class_by_id=lever_class_by_id)
 
     evidence_rows = "\n".join(
         "<tr>"
@@ -1891,7 +1942,7 @@ def render_checklist_rows(items: List[Dict[str, Any]]) -> str:
     return "\n".join(out)
 
 
-def render_options_rows(items: List[Dict[str, Any]]) -> str:
+def render_options_rows(items: List[Dict[str, Any]], *, lever_class_by_id: Optional[Dict[str, str]] = None) -> str:
     if not items:
         return (
             "<tr><td colspan=\"8\" class=\"muted\">"
@@ -1903,6 +1954,17 @@ def render_options_rows(items: List[Dict[str, Any]]) -> str:
     for it in items:
         opt_id = it.get("option_id")
         lever = it.get("lever_id")
+        lever_id_s = str(lever or "").strip()
+        cls = "unknown"
+        if isinstance(lever_class_by_id, dict) and lever_id_s:
+            cls = str(lever_class_by_id.get(lever_id_s) or "unknown").strip().lower()
+        if cls not in {"hard", "design", "external", "unknown"}:
+            cls = "unknown"
+        cls_chip = (
+            f"<span class=\"chip info\"><span class=\"small\">class</span> <code>{esc(cls)}</code></span>" if cls == "design" else
+            (f"<span class=\"chip warn\"><span class=\"small\">class</span> <code>{esc(cls)}</code></span>" if cls == "external" else
+             f"<span class=\"chip\"><span class=\"small\">class</span> <code>{esc(cls)}</code></span>")
+        )
         source = str(it.get("source") or "").strip() or "unknown"
         patch = it.get("patch") or {}
         summ = it.get("summary") or {}
@@ -1942,7 +2004,7 @@ def render_options_rows(items: List[Dict[str, Any]]) -> str:
         out.append(
             "<tr>"
             f"<td class=\"nowrap\"><code>{esc(opt_id)}</code></td>"
-            f"<td class=\"nowrap\"><code>{esc(lever)}</code></td>"
+            f"<td class=\"wrap\"><div class=\"chips\" style=\"margin-top:0\"><span class=\"chip\"><span class=\"small\">lever</span> <code>{esc(lever)}</code></span>{cls_chip}</div></td>"
             f"<td class=\"nowrap\"><code>{esc(source)}</code></td>"
             f"<td class=\"wrap\"><span class=\"small\"><code title=\"{esc(patch_s)}\">{esc(patch_s)}</code></span></td>"
             f"<td class=\"wrap\"><span class=\"small nowrap\" title=\"{esc(path)}\">{esc(path)}</span></td>"
