@@ -1198,6 +1198,140 @@ def _diff_option_summaries(base: Dict[str, Any], other: Dict[str, Any]) -> Dict[
     }
 
 
+def _edge_id_list(ev: Dict[str, Any]) -> List[str]:
+    graph = ev.get("graph") or {}
+    edges = graph.get("traversed_edges") or []
+    out: List[str] = []
+    for e in edges:
+        if not isinstance(e, dict):
+            continue
+        eid = str(e.get("edge_id") or "").strip()
+        if eid:
+            out.append(eid)
+    return out
+
+
+def _fields_referenced_by_predicates(preds: Any) -> List[str]:
+    out: List[str] = []
+    if not isinstance(preds, list):
+        return out
+    for p in preds:
+        if not isinstance(p, dict):
+            continue
+        f = p.get("field")
+        if not f:
+            continue
+        out.append(str(f))
+    # stable unique preserving order
+    seen = set()
+    uniq: List[str] = []
+    for f in out:
+        if f not in seen:
+            seen.add(f)
+            uniq.append(f)
+    return uniq
+
+
+def _rule_citations_for_rule_ids(rule_ids: Any, rules_by_id: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    if not isinstance(rule_ids, list):
+        return out
+    for rid in rule_ids:
+        rid_s = str(rid or "").strip()
+        if not rid_s:
+            continue
+        r = rules_by_id.get(rid_s)
+        if not r:
+            out.append({"rule_id": rid_s, "doc_id": None, "loc": None})
+            continue
+        out.append({"rule_id": rid_s, "doc_id": r.get("doc_id"), "loc": r.get("loc")})
+    return out
+
+
+def _compute_edge_diff_for_option(
+    *,
+    baseline_ev: Dict[str, Any],
+    option_ev: Dict[str, Any],
+    graph_edges_by_id: Dict[str, Dict[str, Any]],
+    rules_by_id: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
+    """
+    Compute a compact, memo-friendly edge diff between baseline and an option.
+
+    Goal: make "path_changed" auditable by showing exactly which edge(s) differ, why the branch changed
+    (predicate traces + relevant request field deltas), and the edge-level citations (rule_id/doc_id/loc).
+    """
+    b_graph = baseline_ev.get("graph") or {}
+    o_graph = option_ev.get("graph") or {}
+    b_edges = b_graph.get("traversed_edges") or []
+    o_edges = o_graph.get("traversed_edges") or []
+    if not isinstance(b_edges, list):
+        b_edges = []
+    if not isinstance(o_edges, list):
+        o_edges = []
+
+    b_ids = _edge_id_list(baseline_ev)
+    o_ids = _edge_id_list(option_ev)
+
+    # common prefix
+    i = 0
+    n = min(len(b_ids), len(o_ids))
+    while i < n and b_ids[i] == o_ids[i]:
+        i += 1
+
+    # common suffix (avoid overlap with prefix)
+    j = 0
+    while (j < (len(b_ids) - i)) and (j < (len(o_ids) - i)) and (b_ids[-1 - j] == o_ids[-1 - j]):
+        j += 1
+
+    b_mid_edges = b_edges[i : (len(b_edges) - j) if j else len(b_edges)]
+    o_mid_edges = o_edges[i : (len(o_edges) - j) if j else len(o_edges)]
+
+    b_req = baseline_ev.get("request") or {}
+    o_req = option_ev.get("request") or {}
+
+    def _compact_edge(e: Dict[str, Any], *, req_a: Dict[str, Any], req_b: Dict[str, Any]) -> Dict[str, Any]:
+        eid = str(e.get("edge_id") or "")
+        ge = graph_edges_by_id.get(eid) or {}
+        criteria = ge.get("criteria") or []
+        fields = _fields_referenced_by_predicates(criteria)
+        field_deltas = []
+        for f in fields:
+            va = get_field(req_a, f)
+            vb = get_field(req_b, f)
+            if va != vb:
+                field_deltas.append({"field": f, "from": va, "to": vb})
+        rule_ids = e.get("rule_ids") or []
+        return {
+            "edge_id": eid,
+            "from": e.get("from"),
+            "to": e.get("to"),
+            "criteria_traces": e.get("criteria_traces") or [],
+            "criteria_fields": fields,
+            "criteria_field_deltas": field_deltas,
+            "rule_ids": rule_ids,
+            "rule_citations": _rule_citations_for_rule_ids(rule_ids, rules_by_id),
+        }
+
+    b_mid = [_compact_edge(e, req_a=b_req, req_b=o_req) for e in b_mid_edges if isinstance(e, dict)]
+    o_mid = [_compact_edge(e, req_a=b_req, req_b=o_req) for e in o_mid_edges if isinstance(e, dict)]
+
+    return {
+        "path_same": (b_ids == o_ids),
+        "edge_ids_baseline": b_ids,
+        "edge_ids_option": o_ids,
+        "common_prefix_edge_ids": b_ids[:i],
+        "common_suffix_edge_ids": (b_ids[-j:] if j else []),
+        "diff_window": {
+            "start_index": i,
+            "baseline_segment_len": len(b_mid),
+            "option_segment_len": len(o_mid),
+        },
+        "baseline_segment": b_mid,
+        "option_segment": o_mid,
+    }
+
+
 def _fields_referenced_by_rule(rule: Dict[str, Any]) -> set[str]:
     dsl = ((rule.get("criteria") or {}).get("dsl") or {})
     fields: set[str] = set()
@@ -1580,6 +1714,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
     nodes_by_id = {n.get("id"): n for n in (graph.get("nodes") or [])}
     rules_by_id = load_published_rules()
     docs_by_id = index_docs(load_doc_registry())
+    graph_edges_by_id = {str(e.get("id")): e for e in edges if isinstance(e, dict) and e.get("id")}
 
     current = "N0"
     path_nodes: List[str] = [current]
@@ -1981,6 +2116,11 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                 req2["voltage_options"] = [v_num]
                 ev2 = evaluate_graph(req2, graph, include_options=False)
                 opt_summary = _summarize_option_eval(ev2)
+                delta = _diff_option_summaries(baseline_summary, opt_summary)
+                if delta.get("path_changed"):
+                    delta["edge_diff"] = _compute_edge_diff_for_option(
+                        baseline_ev=out, option_ev=ev2, graph_edges_by_id=graph_edges_by_id, rules_by_id=rules_by_id
+                    )
                 options.append(
                     {
                         "option_id": f"voltage_{int(v_num) if v_num.is_integer() else v_num}",
@@ -1988,7 +2128,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                         "source": "user_provided_alternatives",
                         "patch": {"voltage_options_kv": [v_num]},
                         "summary": opt_summary,
-                        "delta": _diff_option_summaries(baseline_summary, opt_summary),
+                        "delta": delta,
                     }
                 )
 
@@ -2002,6 +2142,11 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                 req2.pop("phases", None)
             ev2 = evaluate_graph(req2, graph, include_options=False)
             opt_summary = _summarize_option_eval(ev2)
+            delta = _diff_option_summaries(baseline_summary, opt_summary)
+            if delta.get("path_changed"):
+                delta["edge_diff"] = _compute_edge_diff_for_option(
+                    baseline_ev=out, option_ev=ev2, graph_edges_by_id=graph_edges_by_id, rules_by_id=rules_by_id
+                )
             options.append(
                 {
                     "option_id": f"energization_plan_{other}",
@@ -2009,7 +2154,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                     "source": "system_generated_toggle",
                     "patch": {"energization_plan": other},
                     "summary": opt_summary,
-                    "delta": _diff_option_summaries(baseline_summary, opt_summary),
+                    "delta": delta,
                 }
             )
 
@@ -2030,6 +2175,11 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                 req2["poi_count"] = 1
             ev2 = evaluate_graph(req2, graph, include_options=False)
             opt_summary = _summarize_option_eval(ev2)
+            delta = _diff_option_summaries(baseline_summary, opt_summary)
+            if delta.get("path_changed"):
+                delta["edge_diff"] = _compute_edge_diff_for_option(
+                    baseline_ev=out, option_ev=ev2, graph_edges_by_id=graph_edges_by_id, rules_by_id=rules_by_id
+                )
             options.append(
                 {
                     "option_id": f"poi_topology_{'multi' if other_mp else 'single'}",
@@ -2037,7 +2187,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                     "source": "system_generated_toggle",
                     "patch": {"multiple_poi": other_mp, "poi_count": req2.get("poi_count")},
                     "summary": opt_summary,
-                    "delta": _diff_option_summaries(baseline_summary, opt_summary),
+                    "delta": delta,
                 }
             )
 
@@ -2048,6 +2198,11 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
             req2["is_co_located"] = other_col
             ev2 = evaluate_graph(req2, graph, include_options=False)
             opt_summary = _summarize_option_eval(ev2)
+            delta = _diff_option_summaries(baseline_summary, opt_summary)
+            if delta.get("path_changed"):
+                delta["edge_diff"] = _compute_edge_diff_for_option(
+                    baseline_ev=out, option_ev=ev2, graph_edges_by_id=graph_edges_by_id, rules_by_id=rules_by_id
+                )
             options.append(
                 {
                     "option_id": f"co_located_{str(other_col).lower()}",
@@ -2055,7 +2210,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                     "source": "system_generated_toggle",
                     "patch": {"is_co_located": other_col},
                     "summary": opt_summary,
-                    "delta": _diff_option_summaries(baseline_summary, opt_summary),
+                    "delta": delta,
                 }
             )
 
@@ -2067,6 +2222,11 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
             req2["export_capability"] = other_exp
             ev2 = evaluate_graph(req2, graph, include_options=False)
             opt_summary = _summarize_option_eval(ev2)
+            delta = _diff_option_summaries(baseline_summary, opt_summary)
+            if delta.get("path_changed"):
+                delta["edge_diff"] = _compute_edge_diff_for_option(
+                    baseline_ev=out, option_ev=ev2, graph_edges_by_id=graph_edges_by_id, rules_by_id=rules_by_id
+                )
             options.append(
                 {
                     "option_id": f"export_{other_exp}",
@@ -2074,7 +2234,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                     "source": "system_generated_toggle",
                     "patch": {"export_capability": other_exp},
                     "summary": opt_summary,
-                    "delta": _diff_option_summaries(baseline_summary, opt_summary),
+                    "delta": delta,
                 }
             )
 
@@ -2096,6 +2256,11 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                 req2["poi_voltage_class"] = other_cls
                 ev2 = evaluate_graph(req2, graph, include_options=False)
                 opt_summary = _summarize_option_eval(ev2)
+                delta = _diff_option_summaries(baseline_summary, opt_summary)
+                if delta.get("path_changed"):
+                    delta["edge_diff"] = _compute_edge_diff_for_option(
+                        baseline_ev=out, option_ev=ev2, graph_edges_by_id=graph_edges_by_id, rules_by_id=rules_by_id
+                    )
                 options.append(
                     {
                         "option_id": f"voltage_class_{other_cls}",
@@ -2103,7 +2268,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                         "source": "system_generated_toggle",
                         "patch": {"poi_voltage_class": other_cls},
                         "summary": opt_summary,
-                        "delta": _diff_option_summaries(baseline_summary, opt_summary),
+                        "delta": delta,
                     }
                 )
 

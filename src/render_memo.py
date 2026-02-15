@@ -140,6 +140,81 @@ def chip_list(xs: List[Any]) -> str:
     return "\n".join(f"<span class=\"chip\"><code>{esc(x)}</code></span>" for x in xs2)
 
 
+def rule_ref_details(*, rule_id: Any, doc_id: Any, loc: Any, summary: str = "IDs & citation") -> str:
+    rid = str(rule_id or "").strip()
+    did = str(doc_id or "").strip()
+    l = str(loc or "").strip()
+    if not (rid or did or l):
+        return "<span class=\"muted small\">—</span>"
+    return (
+        "<details class=\"mini\">"
+        f"<summary>{esc(summary)}</summary>"
+        "<div class=\"flip-box\">"
+        "<div class=\"muted small\">rule_id</div>"
+        f"<div><code>{esc(rid)}</code></div>"
+        "<div class=\"muted small\" style=\"margin-top:8px\">doc_id</div>"
+        f"<div><code>{esc(did)}</code></div>"
+        "<div class=\"muted small\" style=\"margin-top:8px\">loc</div>"
+        f"<div class=\"muted\">{esc(l)}</div>"
+        "</div>"
+        "</details>"
+    )
+
+
+def render_timeline_model_html(ev: Dict[str, Any]) -> str:
+    """
+    Memo-friendly explanation of v0 timeline signals.
+    This is not a probability model; it is a deterministic mapping from rule/tag-driven totals.
+    """
+    risk = ev.get("risk") or {}
+
+    upgrade_score = 0.0
+    wait_score = 0.0
+    ops_score = 0.0
+    for rt in (ev.get("risk_trace") or []):
+        if not isinstance(rt, dict):
+            continue
+        if rt.get("kind") != "summary":
+            continue
+        try:
+            upgrade_score = float(rt.get("upgrade_score") or 0.0)
+            wait_score = float(rt.get("wait_score") or 0.0)
+            ops_score = float(rt.get("ops_score") or 0.0)
+        except Exception:
+            upgrade_score = wait_score = ops_score = 0.0
+        break
+
+    tb = risk.get("timeline_buckets") or {}
+    le_12 = str(tb.get("le_12_months", "unknown"))
+    m12_24 = str(tb.get("m12_24_months", "unknown"))
+    gt_24 = str(tb.get("gt_24_months", "unknown"))
+
+    parts = [
+        "<div class=\"muted small\">Deterministic mapping (v0; not probabilities)</div>",
+        "<ul class=\"small\" style=\"margin:6px 0 0 18px\">"
+        "<li><code>upgrade_score ≥ 3</code> ⇒ <code>upgrade_exposure_bucket=high</code>, set <code>&gt;24=up</code>, <code>12–24=up</code>, <code>≤12=down</code></li>"
+        "<li><code>0.75 ≤ upgrade_score &lt; 3</code> ⇒ <code>upgrade_exposure_bucket=medium</code>, set <code>12–24=up</code>, <code>≤12=down</code></li>"
+        "<li><code>upgrade_score &lt; 0.75</code> ⇒ <code>upgrade_exposure_bucket=low</code> (timeline may remain <code>unknown</code> unless shifted by wait pressure)</li>"
+        "<li><code>wait_score ≥ 2</code> ⇒ additional shift away from <code>≤12</code> into <code>12–24</code> (set <code>≤12=down</code>, <code>12–24=up</code>)</li>"
+        "</ul>",
+        "<div class=\"muted small\" style=\"margin-top:10px\">Observed totals (from triggered rules/tags)</div>",
+        "<div class=\"chips\">"
+        f"<span class=\"chip\"><span class=\"small\">upgrade_score</span> <code>{esc(upgrade_score)}</code></span>"
+        f"<span class=\"chip\"><span class=\"small\">wait_score</span> <code>{esc(wait_score)}</code></span>"
+        f"<span class=\"chip\"><span class=\"small\">ops_score</span> <code>{esc(ops_score)}</code></span>"
+        "</div>",
+        "<div class=\"muted small\" style=\"margin-top:10px\">Resulting timeline signals</div>",
+        "<div class=\"chips\">"
+        f"<span class=\"chip\"><span class=\"small\">≤12</span> <code>{esc(le_12)}</code></span>"
+        f"<span class=\"chip\"><span class=\"small\">12–24</span> <code>{esc(m12_24)}</code></span>"
+        f"<span class=\"chip\"><span class=\"small\">&gt;24</span> <code>{esc(gt_24)}</code></span>"
+        "</div>",
+        "<div class=\"muted small\" style=\"margin-top:10px\">Audit trail</div>",
+        "<div class=\"muted small\">See “Risk trace (raw JSON)” for per-rule tag contributions, and “Evidence” for <code>rule_id → doc_id/loc</code>.</div>",
+    ]
+    return "\n".join(parts)
+
+
 def render_memo_guidance_html(mg: Any) -> str:
     """
     Render rule-level memo guidance (Owner / Recipient / Evidence / What to do).
@@ -1081,6 +1156,166 @@ def render_recommendation_html(ev: Dict[str, Any]) -> str:
     return "\n".join(parts)
 
 
+def _humanize_field_id(fid: Any) -> str:
+    s = str(fid or "").strip()
+    if not s:
+        return ""
+    acr = {"ercot", "tdsp", "tsp", "llis", "ille", "nom", "qsa", "sso", "dme", "poi", "cod"}
+    words = []
+    for w in s.replace("_", " ").split():
+        wl = w.lower()
+        if wl in acr:
+            words.append(wl.upper())
+        else:
+            words.append(w[:1].upper() + w[1:])
+    return " ".join(words)
+
+
+def _deliverable_hint(field: str) -> str:
+    m = {
+        "one_line_diagram": "One-line diagram (PDF)",
+        "load_projection_5y": "5-year load projection (spreadsheet/PDF)",
+        "llis_formal_request_submitted": "Formal LLIS initiation request + confirmation",
+        "llis_data_package_submitted": "Study data package submission receipt (files + transmittal)",
+        "ack_change_notification_obligation": "Signed acknowledgement letter/email",
+        "phases": "Phasing schedule table (MW increments + dates) in Load Commissioning Plan",
+        "telemetry_operational_and_accurate": "Telemetry commissioning evidence (test results + signoff)",
+        "nom_included": "NOM inclusion confirmation (ERCOT notice/screenshot)",
+        "agreements_executed": "Executed agreements + financial security receipt",
+    }
+    return m.get(field, "Supporting evidence artifact (as applicable)")
+
+
+def render_executive_brief_html(ev: Dict[str, Any]) -> str:
+    """
+    Non-technical brief: forwardable, minimal jargon/IDs. Uses existing eval fields only.
+    """
+    req = ev.get("request") or {}
+    dec_s = ev.get("decision_screening") or {}
+    dec_e = ev.get("decision_energization") or {}
+
+    screening_status = str(dec_s.get("status") or "unknown")
+    e_reasons = " ".join(str(x) for x in (dec_e.get("reasons") or []) if str(x).strip()).lower()
+    energ_note = "not requested" if ("energization_not_requested" in e_reasons or "not_requested" in e_reasons) else str(dec_e.get("status") or "unknown")
+
+    miss = [str(x) for x in (ev.get("missing_inputs") or []) if str(x).strip()]
+    miss_set = set(miss)
+
+    missing_reqs: List[Dict[str, Any]] = []
+    for rc in (ev.get("rule_checks") or []):
+        if not isinstance(rc, dict):
+            continue
+        if str(rc.get("status") or "") != "missing":
+            continue
+        mf = [str(x) for x in (rc.get("missing_fields") or []) if str(x).strip()]
+        hit = [f for f in mf if f in miss_set]
+        if not hit:
+            continue
+        crit = str(rc.get("criteria_text") or "").strip()
+        for f in hit:
+            missing_reqs.append({"field": f, "requirement": crit})
+        if len(missing_reqs) >= 12:
+            break
+
+    seen = set()
+    missing_reqs2: List[Dict[str, Any]] = []
+    for it in missing_reqs:
+        f = str(it.get("field") or "")
+        if not f or f in seen:
+            continue
+        seen.add(f)
+        missing_reqs2.append(it)
+    if not missing_reqs2:
+        missing_reqs2 = [{"field": f, "requirement": ""} for f in miss[:8]]
+
+    # Recommendation (bounded)
+    rec = ev.get("recommendation") or {}
+    rid = str(rec.get("recommended_option_id") or "baseline")
+    is_base = bool(rec.get("recommended_is_baseline"))
+    rationale = rec.get("rationale") or []
+    r1 = str(rationale[0]) if isinstance(rationale, list) and rationale else ""
+    reco_line = f"Keep baseline ({rid})" if is_base else f"Prefer option {rid}"
+
+    # Risk line (signals, not probabilities)
+    risk = ev.get("risk") or {}
+    tb = risk.get("timeline_buckets") or {}
+    risk_line = (
+        f"Timeline signals: <=12={tb.get('le_12_months','unknown')}, "
+        f"12-24={tb.get('m12_24_months','unknown')}, "
+        f">24={tb.get('gt_24_months','unknown')}; "
+        f"upgrade={risk.get('upgrade_exposure_bucket','unknown')}, "
+        f"ops={risk.get('operational_exposure_bucket','unknown')}."
+    )
+
+    drivers = []
+    for d in (ev.get("top_drivers") or []):
+        if not isinstance(d, dict):
+            continue
+        s = str(d.get("summary") or "").strip() or str(d.get("rule_id") or "").strip()
+        if s:
+            drivers.append(s)
+        if len(drivers) >= 3:
+            break
+
+    snap = (
+        f"Operator={req.get('operator_area','?')}, TDSP={req.get('tdsp_area','?')}, "
+        f"Load={req.get('load_mw_total','?')}MW, COD target={req.get('cod_target_window','n/a')}."
+    )
+
+    blocking_items = []
+    for it in missing_reqs2[:3]:
+        f = str(it.get("field") or "").strip()
+        reqtxt = str(it.get("requirement") or "").strip()
+        headline = _humanize_field_id(f) or f
+        note = (f"<div class=\"muted small\">{esc(reqtxt)}</div>" if reqtxt else "")
+        blocking_items.append("<li><strong>" + esc(headline) + "</strong>" + note + "</li>")
+    blocking_html = "<ul>" + ("".join(blocking_items) if blocking_items else "<li class=\"muted small\">None</li>") + "</ul>"
+
+    action_rows = []
+    for it in missing_reqs2[:8]:
+        f = str(it.get("field") or "").strip()
+        reqtxt = str(it.get("requirement") or "").strip()
+        action_rows.append(
+            "<tr>"
+            f"<td class=\"wrap\"><strong>{esc(_humanize_field_id(f) or f)}</strong><div class=\"muted small\">{esc(reqtxt) if reqtxt else ''}</div></td>"
+            f"<td class=\"nowrap\"><code>Customer</code></td>"
+            f"<td class=\"wrap\"><span class=\"small\">{esc(_deliverable_hint(f))}</span></td>"
+            "</tr>"
+        )
+    actions_table = (
+        "<div style=\"overflow-x:auto;margin-top:8px\">"
+        "<table>"
+        "<thead><tr><th>Blocking now - deliverable</th><th class=\"nowrap\">owner</th><th>what to produce</th></tr></thead>"
+        "<tbody>"
+        + ("".join(action_rows) if action_rows else "<tr><td colspan=\"3\" class=\"muted\">None</td></tr>")
+        + "</tbody></table></div>"
+    )
+
+    parts = []
+    parts.append(f"<div class=\"muted small\">Project snapshot: <code>{esc(req.get('project_name'))}</code> — {esc(snap)}</div>")
+    parts.append("<div style=\"margin-top:10px\" class=\"kv\">")
+    parts.append("<div class=\"k\">1) Current conclusion</div>")
+    parts.append(f"<div class=\"v\"><strong>Screening:</strong> {esc(screening_status)}; <strong>Energization:</strong> {esc(energ_note)}</div>")
+    parts.append("<div class=\"k\">2) Blocking now</div>")
+    parts.append(f"<div class=\"v\">{blocking_html}</div>")
+    parts.append("<div class=\"k\">3) Next actions</div>")
+    parts.append("<div class=\"v\">Complete the blocking deliverables below (owners + concrete outputs).</div>")
+    parts.append("<div class=\"k\">4) Config options & recommendation (bounded)</div>")
+    parts.append(f"<div class=\"v\"><strong>{esc(reco_line)}</strong><div class=\"muted small\">{esc(r1) if r1 else ''}</div></div>")
+    parts.append("<div class=\"k\">5) Major risks & external uncertainty</div>")
+    parts.append(
+        "<div class=\"v\">"
+        + esc(risk_line)
+        + (("<div class=\"muted small\" style=\"margin-top:6px\">Top drivers: " + esc("; ".join(drivers)) + "</div>") if drivers else "")
+        + "<div class=\"muted small\" style=\"margin-top:6px\">Final requirements may depend on ERCOT/TSP/TDSP discretion, queue/system state, and site verification. Full evidence is available below.</div>"
+        + "</div>"
+    )
+    parts.append("</div>")
+    parts.append("<div style=\"margin-top:10px\"><strong>Blocking-now checklist (owner + deliverable)</strong></div>")
+    parts.append(actions_table)
+    return "\n".join(parts)
+
+
 def render_top_drivers_html(ev: Dict[str, Any]) -> str:
     items = ev.get("top_drivers") or []
     if not isinstance(items, list) or not items:
@@ -1270,14 +1505,17 @@ def render_context_snapshot_html(ev: Dict[str, Any]) -> str:
         rt = contrib_by_id.get(rid) or {}
         contrib = rt.get("contributions")
 
+        src_cell = esc(src) if src else '<span class="muted small">n/a</span>'
+        notes_cell = esc(notes) if notes else '<span class="muted small">n/a</span>'
+
         rows.append(
             "<tr>"
             f"<td class=\"nowrap\"><code>{esc(sid)}</code></td>"
             f"<td class=\"nowrap\"><code>{esc(typ)}</code></td>"
             f"<td class=\"wrap\"><span class=\"small\">{esc(json.dumps(val, ensure_ascii=False) if not isinstance(val, str) else val)}</span></td>"
             f"<td class=\"nowrap\"><code>{esc(conf)}</code></td>"
-            f"<td class=\"wrap\"><span class=\"small\">{esc(src) if src else '<span class=\"muted small\">n/a</span>'}</span></td>"
-            f"<td class=\"wrap\"><span class=\"small\">{esc(notes) if notes else '<span class=\"muted small\">n/a</span>'}</span></td>"
+            f"<td class=\"wrap\"><span class=\"small\">{src_cell}</span></td>"
+            f"<td class=\"wrap\"><span class=\"small\">{notes_cell}</span></td>"
             f"<td class=\"nowrap\">{_fmt_contrib(contrib)}</td>"
             "</tr>"
         )
@@ -1371,6 +1609,7 @@ def render_levers_catalog_html(ev: Dict[str, Any]) -> str:
         n = it.get("referenced_rule_count") or 0
         rids = it.get("referenced_rule_ids") or []
         rids_preview = [str(x) for x in rids[:8]]
+        more_html = ' <span class="muted small">…</span>' if len(rids) > len(rids_preview) else ""
         rows.append(
             "<tr>"
             f"<td class=\"nowrap\"><code>{esc(lever_id)}</code></td>"
@@ -1379,7 +1618,7 @@ def render_levers_catalog_html(ev: Dict[str, Any]) -> str:
             f"<td class=\"wrap\">{code_list(present)}</td>"
             f"<td class=\"wrap\">{code_list(missing)}</td>"
             f"<td class=\"nowrap\"><code>{esc(n)}</code></td>"
-            f"<td class=\"wrap\">{code_list(rids_preview)}{' <span class=\"muted small\">…</span>' if len(rids) > len(rids_preview) else ''}</td>"
+            f"<td class=\"wrap\">{code_list(rids_preview)}{more_html}</td>"
             "</tr>"
         )
 
@@ -1696,12 +1935,19 @@ def render_lever_next_actions_html(ev: Dict[str, Any], *, top_n: int = 5) -> str
              f"<span class=\"chip\"><span class=\"small\">class</span> <code>{esc(cls)}</code></span>")
         )
 
+        ask_missing = it.get("ask_missing_fields") or []
+        ask_unknown = it.get("ask_unknown_fields") or []
+        unk_html = ""
+        if isinstance(ask_unknown, list) and ask_unknown:
+            unk_html = '<div class="muted small" style="margin-top:6px">unknown: ' + code_list(ask_unknown) + "</div>"
+        ask_cell = code_list(ask_missing) + unk_html
+
         rows.append(
             "<tr>"
             f"<td class=\"nowrap\"><code>{esc(it.get('lever_id'))}</code></td>"
             f"<td class=\"nowrap\">{cls_badge}</td>"
             f"<td class=\"wrap\"><span class=\"small\">{esc(it.get('label'))}</span></td>"
-            f"<td class=\"wrap\">{code_list(it.get('ask_missing_fields') or [])}{('<div class=\"muted small\" style=\"margin-top:6px\">unknown: ' + code_list(it.get('ask_unknown_fields') or []) + '</div>') if (it.get('ask_unknown_fields') or []) else ''}</td>"
+            f"<td class=\"wrap\">{ask_cell}</td>"
             f"<td class=\"wrap\"><span class=\"small\"><code>{esc(it.get('delta_hint'))}</code></span></td>"
             f"<td class=\"wrap\"><code>{esc(it.get('referenced_rule_count'))}</code></td>"
             f"<td class=\"wrap\">{flips_html}</td>"
@@ -1856,6 +2102,9 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optiona
     path_graph = render_path_graph(ev)
     full_graph_svg = render_full_process_graph_svg(ev)
 
+    # PDF embed: assume PDFs are rendered to memo/outputs/pdfs/ with the same safe filename as HTML.
+    pdf_filename = f"{safe_filename(str(req.get('project_name', 'memo')))}.pdf"
+
     return (
         tpl.replace("{{project_name}}", esc(req.get("project_name")))
         .replace("{{rendered_at}}", esc(datetime.now(timezone.utc).isoformat()))
@@ -1866,6 +2115,8 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optiona
         .replace("{{cod_target_window}}", esc(req.get("cod_target_window")))
         .replace("{{is_requesting_energization}}", esc(req.get("is_requesting_energization")))
         .replace("{{request_json}}", esc(json.dumps(req, ensure_ascii=False, indent=2)))
+        .replace("{{executive_brief_html}}", render_executive_brief_html(ev))
+        .replace("{{pdf_filename}}", esc(pdf_filename))
         .replace("{{context_snapshot_html}}", render_context_snapshot_html(ev))
         .replace("{{path}}", esc(" → ".join(path_labels)))
         .replace("{{decision_status_badge}}", render_decision_status_badge(ev))
@@ -1891,6 +2142,7 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optiona
         .replace("{{bucket_gt_24}}", esc(tb.get("gt_24_months", "unknown")))
         .replace("{{upgrade_exposure}}", esc(risk.get("upgrade_exposure_bucket", "unknown")))
         .replace("{{operational_exposure}}", esc(risk.get("operational_exposure_bucket", "unknown")))
+        .replace("{{timeline_model_html}}", render_timeline_model_html(ev))
         .replace("{{evidence_rows}}", evidence_rows)
         .replace("{{evidence_stats_chips}}", evidence_stats_chips)
         .replace("{{evidence_total_count}}", esc(evidence_total_count))
@@ -1913,10 +2165,12 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optiona
 def render_checklist_rows(items: List[Dict[str, Any]]) -> str:
     rows = [c for c in items if c.get("status") != "not_applicable"]
     if not rows:
-        return "<tr><td colspan=\"7\" class=\"muted\">Not requested (set <code>is_requesting_energization=true</code> to evaluate)</td></tr>"
+        return "<tr><td colspan=\"5\" class=\"muted\">Not requested (set <code>is_requesting_energization=true</code> to evaluate)</td></tr>"
 
     out: List[str] = []
     for c in rows:
+        crit = str(c.get("criteria_text") or "").strip()
+        crit_html = esc(crit) if crit else '<span class="muted small">(no criteria text)</span>'
         missing = c.get("missing_fields") or []
         traces = c.get("traces") or []
         mg_html = render_memo_guidance_html(c.get("memo_guidance"))
@@ -1928,12 +2182,11 @@ def render_checklist_rows(items: List[Dict[str, Any]]) -> str:
                 f"<div class=\"flip-box\">{mg_html}</div>"
                 "</details>"
             )
+        src = rule_ref_details(rule_id=c.get("rule_id"), doc_id=c.get("doc_id"), loc=c.get("loc"))
         out.append(
             "<tr>"
             f"<td class=\"nowrap\">{badge_for_status(str(c.get('status') or 'unknown'))}</td>"
-            f"<td class=\"nowrap\"><code>{esc(c.get('rule_id'))}</code></td>"
-            f"<td class=\"nowrap\"><code>{esc(c.get('doc_id'))}</code></td>"
-            f"<td class=\"wrap\"><span class=\"muted\">{esc(c.get('loc'))}</span></td>"
+            f"<td class=\"wrap\"><div class=\"stmt\">{crit_html}</div>{src}</td>"
             f"<td class=\"wrap\">{code_list(missing)}</td>"
             f"<td class=\"wrap\">{trace_list(traces)}</td>"
             f"<td class=\"wrap\">{guidance_cell}</td>"
@@ -1945,12 +2198,117 @@ def render_checklist_rows(items: List[Dict[str, Any]]) -> str:
 def render_options_rows(items: List[Dict[str, Any]], *, lever_class_by_id: Optional[Dict[str, str]] = None) -> str:
     if not items:
         return (
-            "<tr><td colspan=\"8\" class=\"muted\">"
+            "<tr><td colspan=\"9\" class=\"muted\">"
             "None (provide multiple <code>voltage_options_kv</code> or set <code>energization_plan</code> to compare)"
             "</td></tr>"
         )
 
     out: List[str] = []
+
+    def _edge_diff_cell(delta: Dict[str, Any]) -> str:
+        if not bool(delta.get("path_changed")):
+            return '<span class="muted small">path_same</span>'
+
+        ed = delta.get("edge_diff")
+        if not isinstance(ed, dict):
+            return '<span class="muted small">(no edge_diff)</span>'
+
+        dw = ed.get("diff_window") or {}
+        try:
+            start_i = int(dw.get("start_index"))
+        except Exception:
+            start_i = None
+
+        bseg = ed.get("baseline_segment") or []
+        oseg = ed.get("option_segment") or []
+        if not isinstance(bseg, list):
+            bseg = []
+        if not isinstance(oseg, list):
+            oseg = []
+
+        def _render_edge_seg(seg: List[Dict[str, Any]], title: str) -> str:
+            parts: List[str] = [f'<div class="muted small" style="margin-top:6px"><strong>{esc(title)}</strong></div>']
+            if not seg:
+                parts.append('<div class="muted small">(none)</div>')
+                return "".join(parts)
+
+            for e in seg[:8]:
+                if not isinstance(e, dict):
+                    continue
+                eid = e.get("edge_id")
+                fr = e.get("from")
+                to = e.get("to")
+                traces = [str(x) for x in (e.get("criteria_traces") or []) if str(x).strip()]
+                trace_html = trace_list(traces[:6]) if traces else '<span class="muted small">(no predicate traces)</span>'
+
+                deltas = e.get("criteria_field_deltas") or []
+                if not isinstance(deltas, list):
+                    deltas = []
+                delta_rows = []
+                for d in deltas[:10]:
+                    if not isinstance(d, dict):
+                        continue
+                    delta_rows.append(
+                        f'<li><code>{esc(d.get("field"))}</code>: '
+                        f'<span class="muted">{esc(d.get("from"))}</span> → '
+                        f'<span class="muted">{esc(d.get("to"))}</span></li>'
+                    )
+                delta_html = ""
+                if delta_rows:
+                    delta_html = (
+                        '<div class="muted small" style="margin-top:6px">trigger field deltas</div>'
+                        + "<ul>"
+                        + "".join(delta_rows)
+                        + "</ul>"
+                    )
+
+                cites = e.get("rule_citations") or []
+                if not isinstance(cites, list):
+                    cites = []
+                cite_rows = []
+                for c in cites[:12]:
+                    if not isinstance(c, dict):
+                        continue
+                    cite_rows.append(
+                        f'<li><code>{esc(c.get("rule_id"))}</code> — '
+                        f'<code>{esc(c.get("doc_id") or "")}</code> — '
+                        f'<span class="muted">{esc(c.get("loc") or "")}</span></li>'
+                    )
+                cite_html = (
+                    '<div class="muted small" style="margin-top:6px">edge citations (rule → doc loc)</div>'
+                    + "<ul>"
+                    + ("".join(cite_rows) if cite_rows else '<li class="muted small">(none)</li>')
+                    + "</ul>"
+                )
+
+                parts.append(
+                    "<div style=\"margin-top:10px\">"
+                    + f'<div><code>{esc(eid)}</code> <span class="muted">{esc(fr)} → {esc(to)}</span></div>'
+                    + f'<div class="trace-wrap" style="margin-top:6px">{trace_html}</div>'
+                    + delta_html
+                    + cite_html
+                    + "</div>"
+                )
+
+            if len(seg) > 8:
+                parts.append(f'<div class="muted small" style="margin-top:6px">(+{len(seg)-8} more edges)</div>')
+
+            return "".join(parts)
+
+        hint = f"diff_start_index={start_i}" if start_i is not None else "diff"
+        body = (
+            f'<div class="muted small">{esc(hint)}</div>'
+            + _render_edge_seg(bseg, "baseline edges (changed segment)")
+            + _render_edge_seg(oseg, "option edges (changed segment)")
+        )
+
+        return (
+            '<details class="mini">'
+            "<summary>Edge diff + why</summary>"
+            f'<div class="flip-box">{body}</div>'
+            "</details>"
+        )
+
     for it in items:
         opt_id = it.get("option_id")
         lever = it.get("lever_id")
@@ -2011,6 +2369,7 @@ def render_options_rows(items: List[Dict[str, Any]], *, lever_class_by_id: Optio
             f"<td class=\"wrap\"><code>{esc(miss_count)}</code> {code_list(miss[:8])}</td>"
             f"<td class=\"wrap\"><span class=\"small\"><code>{esc(delta_text)}</code></span></td>"
             f"<td class=\"wrap\"><span class=\"small\">{esc(risk_text)}</span></td>"
+            f"<td class=\"wrap\">{_edge_diff_cell(delta)}</td>"
             "</tr>"
         )
     return "\n".join(out)

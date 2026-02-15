@@ -202,6 +202,7 @@
       <aside class="sidebar">
         <div class="toc">
           <h3>Decision Memo (v0)</h3>
+          <a href="#sec-brief">Executive brief</a>
           <a href="#sec-summary">Summary</a>
           <a href="#sec-scope">Scope & disclaimers</a>
           <a href="#sec-input">Input snapshot</a>
@@ -216,8 +217,8 @@
           <a href="#sec-provenance">Provenance</a>
           <div class="meta">
             <div><span class="row-muted">Project</span>: <code>DC_ONCOR_120MW_Distribution_Voltage_DSP_Info_Missing</code></div>
-            <div><span class="row-muted">Rendered</span>: <code>2026-02-15T00:48:30.596966+00:00</code></div>
-            <div style="margin-top:8px"><span class="row-muted">Evaluated</span>: <code>2026-02-15T00:47:03+00:00</code></div>
+            <div><span class="row-muted">Rendered</span>: <code>2026-02-15T06:52:35.863725+00:00</code></div>
+            <div style="margin-top:8px"><span class="row-muted">Evaluated</span>: <code>2026-02-15T03:22:18+00:00</code></div>
           </div>
         </div>
       </aside>
@@ -225,6 +226,44 @@
       <main class="main">
         <h1>DC_ONCOR_120MW_Distribution_Voltage_DSP_Info_Missing</h1>
         <div class="muted small">This memo is rule-driven and audit-friendly (doc_id + loc + artifact sha256).</div>
+
+        <div class="card" id="sec-brief">
+          <div class="section-title">
+            <h2>Executive decision brief</h2>
+            <div class="id">non-technical</div>
+          </div>
+          <div class="muted small">
+            This section is designed to be forwarded internally (PM / legal / procurement / leadership). It avoids internal IDs and focuses on decisions + actions.
+          </div>
+          <div style="margin-top:10px">
+            <div class="muted small">Project snapshot: <code>DC_ONCOR_120MW_Distribution_Voltage_DSP_Info_Missing</code> — Operator=ERCOT, TDSP=ONCOR, Load=120MW, COD target=2027Q1.</div>
+<div style="margin-top:10px" class="kv">
+<div class="k">1) Current conclusion</div>
+<div class="v"><strong>Screening:</strong> conditional; <strong>Energization:</strong> not requested</div>
+<div class="k">2) Blocking now</div>
+<div class="v"><ul><li><strong>Ack Change Notification Obligation</strong><div class="muted small">Prior to initiation of LLIS, written acknowledgement from the ILLE of obligations (including notification of project changes per Section 9.2.3) is required (Planning Guide Section 9.2.2(1)(c)).</div></li><li><strong>LLIS Formal Request Submitted</strong><div class="muted small">Prior to initiation of LLIS, a formal request to initiate the LLIS process is required (Planning Guide Section 9.2.2(1)(d)).</div></li><li><strong>Dsp Facility Info Provided</strong><div class="muted small">For distribution-voltage Large Load interconnections, the affected DSP must provide the lead TSP with facility information needed to complete required studies (Planning Guide Section 9.3.1(4)).</div></li></ul></div>
+<div class="k">3) Next actions</div>
+<div class="v">Complete the blocking deliverables below (owners + concrete outputs).</div>
+<div class="k">4) Config options & recommendation (bounded)</div>
+<div class="v"><strong>Keep baseline (baseline)</strong><div class="muted small">missing_inputs_count: 4 → 4</div></div>
+<div class="k">5) Major risks & external uncertainty</div>
+<div class="v">Timeline signals: &lt;=12=down, 12-24=up, &gt;24=up; upgrade=high, ops=low.<div class="muted small" style="margin-top:6px">Top drivers: PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED; PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED; PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED</div><div class="muted small" style="margin-top:6px">Final requirements may depend on ERCOT/TSP/TDSP discretion, queue/system state, and site verification. Full evidence is available below.</div></div>
+</div>
+<div style="margin-top:10px"><strong>Blocking-now checklist (owner + deliverable)</strong></div>
+<div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th>Blocking now - deliverable</th><th class="nowrap">owner</th><th>what to produce</th></tr></thead><tbody><tr><td class="wrap"><strong>Ack Change Notification Obligation</strong><div class="muted small">Prior to initiation of LLIS, written acknowledgement from the ILLE of obligations (including notification of project changes per Section 9.2.3) is required (Planning Guide Section 9.2.2(1)(c)).</div></td><td class="nowrap"><code>Customer</code></td><td class="wrap"><span class="small">Signed acknowledgement letter/email</span></td></tr><tr><td class="wrap"><strong>LLIS Formal Request Submitted</strong><div class="muted small">Prior to initiation of LLIS, a formal request to initiate the LLIS process is required (Planning Guide Section 9.2.2(1)(d)).</div></td><td class="nowrap"><code>Customer</code></td><td class="wrap"><span class="small">Formal LLIS initiation request + confirmation</span></td></tr><tr><td class="wrap"><strong>Dsp Facility Info Provided</strong><div class="muted small">For distribution-voltage Large Load interconnections, the affected DSP must provide the lead TSP with facility information needed to complete required studies (Planning Guide Section 9.3.1(4)).</div></td><td class="nowrap"><code>Customer</code></td><td class="wrap"><span class="small">Supporting evidence artifact (as applicable)</span></td></tr><tr><td class="wrap"><strong>LLIS Data Package Submitted</strong><div class="muted small">Prior to initiation of the LLIS process, submission of the study data package required by the lead TSP (steady state, short-circuit, motor start, stability inputs and other necessary data) is required (Planning Guide Section 9.2.2(1)(a)).</div></td><td class="nowrap"><code>Customer</code></td><td class="wrap"><span class="small">Study data package submission receipt (files + transmittal)</span></td></tr></tbody></table></div>
+          </div>
+          <details style="margin-top:10px">
+            <summary>Show / download 1-click PDF version</summary>
+            <div class="hint muted small">If the PDF exists in <code>memo/outputs/pdfs/</code>, it can be previewed below and downloaded.</div>
+            <div style="margin-top:10px">
+              <a class="btn" href="pdfs/DC_ONCOR_120MW_Distribution_Voltage_DSP_Info_Missing.pdf" target="_blank" rel="noopener">Open PDF</a>
+              <a class="btn" href="pdfs/DC_ONCOR_120MW_Distribution_Voltage_DSP_Info_Missing.pdf" download>Download PDF</a>
+            </div>
+            <div style="margin-top:10px; border:1px solid var(--border); border-radius:12px; overflow:hidden">
+              <iframe src="pdfs/DC_ONCOR_120MW_Distribution_Voltage_DSP_Info_Missing.pdf" style="width:100%; height:720px; border:0"></iframe>
+            </div>
+          </details>
+        </div>
 
         <div class="card" id="sec-summary">
           <div class="section-title">
@@ -747,13 +786,14 @@
                   <th class="nowrap">missing</th>
                   <th class="nowrap">delta</th>
                   <th class="nowrap">risk</th>
+                  <th>edge diff + why</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td class="nowrap"><code>energization_plan_phased</code></td><td class="wrap"><div class="chips" style="margin-top:0"><span class="chip"><span class="small">lever</span> <code>phased_energization</code></span><span class="chip info"><span class="small">class</span> <code>design</code></span></div></td><td class="nowrap"><code>system_generated_toggle</code></td><td class="wrap"><span class="small"><code title="{&quot;energization_plan&quot;: &quot;phased&quot;}">{&quot;energization_plan&quot;: &quot;phased&quot;}</code></span></td><td class="wrap"><span class="small nowrap" title="Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Phased plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Phased plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>5</code> <code>ack_change_notification_obligation</code> <code>dsp_facility_info_provided</code> <code>llis_data_package_submitted</code> <code>llis_formal_request_submitted</code> <code>phases</code></td><td class="wrap"><span class="small"><code>path_changed | missing:+1 | upgrade:high→high | ops:low→low</code></span></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td></tr>
-<tr><td class="nowrap"><code>poi_topology_multi</code></td><td class="wrap"><div class="chips" style="margin-top:0"><span class="chip"><span class="small">lever</span> <code>poi_topology_choice</code></span><span class="chip info"><span class="small">class</span> <code>design</code></span></div></td><td class="nowrap"><code>system_generated_toggle</code></td><td class="wrap"><span class="small"><code title="{&quot;multiple_poi&quot;: true, &quot;poi_count&quot;: 2}">{&quot;multiple_poi&quot;: true, &quot;poi_count&quot;: 2}</code></span></td><td class="wrap"><span class="small nowrap" title="Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>4</code> <code>ack_change_notification_obligation</code> <code>dsp_facility_info_provided</code> <code>llis_data_package_submitted</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small"><code>path_same | missing:0 | upgrade:high→high | ops:low→low</code></span></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td></tr>
-<tr><td class="nowrap"><code>co_located_true</code></td><td class="wrap"><div class="chips" style="margin-top:0"><span class="chip"><span class="small">lever</span> <code>co_location_signal</code></span><span class="chip"><span class="small">class</span> <code>hard</code></span></div></td><td class="nowrap"><code>system_generated_toggle</code></td><td class="wrap"><span class="small"><code title="{&quot;is_co_located&quot;: true}">{&quot;is_co_located&quot;: true}</code></span></td><td class="wrap"><span class="small nowrap" title="Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>4</code> <code>ack_change_notification_obligation</code> <code>dsp_facility_info_provided</code> <code>llis_data_package_submitted</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small"><code>path_same | missing:0 | upgrade:high→high | ops:low→low</code></span></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td></tr>
-<tr><td class="nowrap"><code>export_planned</code></td><td class="wrap"><div class="chips" style="margin-top:0"><span class="chip"><span class="small">lever</span> <code>export_capability_choice</code></span><span class="chip info"><span class="small">class</span> <code>design</code></span></div></td><td class="nowrap"><code>system_generated_toggle</code></td><td class="wrap"><span class="small"><code title="{&quot;export_capability&quot;: &quot;planned&quot;}">{&quot;export_capability&quot;: &quot;planned&quot;}</code></span></td><td class="wrap"><span class="small nowrap" title="Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>4</code> <code>ack_change_notification_obligation</code> <code>dsp_facility_info_provided</code> <code>llis_data_package_submitted</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small"><code>path_same | missing:0 | upgrade:high→high | ops:low→high</code></span></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:high</span></td></tr>
+                <tr><td class="nowrap"><code>energization_plan_phased</code></td><td class="wrap"><div class="chips" style="margin-top:0"><span class="chip"><span class="small">lever</span> <code>phased_energization</code></span><span class="chip info"><span class="small">class</span> <code>design</code></span></div></td><td class="nowrap"><code>system_generated_toggle</code></td><td class="wrap"><span class="small"><code title="{&quot;energization_plan&quot;: &quot;phased&quot;}">{&quot;energization_plan&quot;: &quot;phased&quot;}</code></span></td><td class="wrap"><span class="small nowrap" title="Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Phased plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Phased plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>5</code> <code>ack_change_notification_obligation</code> <code>dsp_facility_info_provided</code> <code>llis_data_package_submitted</code> <code>llis_formal_request_submitted</code> <code>phases</code></td><td class="wrap"><span class="small"><code>path_changed | missing:+1 | upgrade:high→high | ops:low→low</code></span></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td><td class="wrap"><details class="mini"><summary>Edge diff + why</summary><div class="flip-box"><div class="muted small">diff_start_index=2</div><div class="muted small" style="margin-top:6px"><strong>baseline edges (changed segment)</strong></div><div style="margin-top:10px"><div><code>E2S</code> <span class="muted">N2 → N3S</span></div><div class="trace-wrap" style="margin-top:6px"><span class="trace-wrap"><code>exists(load_mw_total)=True</code><code>exists(tdsp_area)=True</code><code>energization_plan==single (single)</code></span></div><div class="muted small" style="margin-top:6px">trigger field deltas</div><ul><li><code>energization_plan</code>: <span class="muted">single</span> → <span class="muted">phased</span></li></ul><div class="muted small" style="margin-top:6px">edge citations (rule → doc loc)</div><ul><li><code>LL_QA_001_LARGE_LOAD_DEFINITION</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.3, &quot;How does ERCOT define a large load?&quot;</span></li><li><code>ONC_003_LOAD_PROJECTION</code> — <code>ONCOR_STD_520_106</code> — <span class="muted">Section 4.1.8, p.6</span></li><li><code>ONC_004_ONE_LINE_DIAGRAM</code> — <code>ONCOR_STD_520_106</code> — <span class="muted">Section 4.1.6, p.6</span></li></ul></div><div style="margin-top:10px"><div><code>E3S_CFG_DISTRIBUTION_VOLTAGE</code> <span class="muted">N3S → N3C</span></div><div class="trace-wrap" style="margin-top:6px"><span class="trace-wrap"><code>poi_voltage_class==distribution (distribution)</code></span></div><div class="muted small" style="margin-top:6px">edge citations (rule → doc loc)</div><ul><li><code>ONC_001_TRANSMISSION_VOLTAGE_SCOPE</code> — <code>ONCOR_STD_520_106</code> — <span class="muted">Section 1.1, p.1</span></li></ul></div><div class="muted small" style="margin-top:6px"><strong>option edges (changed segment)</strong></div><div style="margin-top:10px"><div><code>E2P</code> <span class="muted">N2 → N3P</span></div><div class="trace-wrap" style="margin-top:6px"><span class="trace-wrap"><code>exists(load_mw_total)=True</code><code>exists(tdsp_area)=True</code><code>energization_plan==phased (phased)</code></span></div><div class="muted small" style="margin-top:6px">trigger field deltas</div><ul><li><code>energization_plan</code>: <span class="muted">single</span> → <span class="muted">phased</span></li></ul><div class="muted small" style="margin-top:6px">edge citations (rule → doc loc)</div><ul><li><code>LL_QA_001_LARGE_LOAD_DEFINITION</code> — <code>ERCOT_LARGE_LOAD_QA</code> — <span class="muted">p.3, &quot;How does ERCOT define a large load?&quot;</span></li><li><code>PG9_028_LCP_PHASES_REQUIRED_IF_PHASED_PLAN</code> — <code>ERCOT_PLANNING_GUIDE</code> — <span class="muted">p.131, Section 9.2.4(1) (&quot;The LCP must specify the load increments and timeline by which the ILLE intends to increase peak Demand&quot;)</span></li><li><code>ONC_003_LOAD_PROJECTION</code> — <code>ONCOR_STD_520_106</code> — <span class="muted">Section 4.1.8, p.6</span></li><li><code>ONC_004_ONE_LINE_DIAGRAM</code> — <code>ONCOR_STD_520_106</code> — <span class="muted">Section 4.1.6, p.6</span></li></ul></div><div style="margin-top:10px"><div><code>E3P_CFG_DISTRIBUTION_VOLTAGE</code> <span class="muted">N3P → N3C</span></div><div class="trace-wrap" style="margin-top:6px"><span class="trace-wrap"><code>poi_voltage_class==distribution (distribution)</code></span></div><div class="muted small" style="margin-top:6px">edge citations (rule → doc loc)</div><ul><li><code>ONC_001_TRANSMISSION_VOLTAGE_SCOPE</code> — <code>ONCOR_STD_520_106</code> — <span class="muted">Section 1.1, p.1</span></li></ul></div></div></details></td></tr>
+<tr><td class="nowrap"><code>poi_topology_multi</code></td><td class="wrap"><div class="chips" style="margin-top:0"><span class="chip"><span class="small">lever</span> <code>poi_topology_choice</code></span><span class="chip info"><span class="small">class</span> <code>design</code></span></div></td><td class="nowrap"><code>system_generated_toggle</code></td><td class="wrap"><span class="small"><code title="{&quot;multiple_poi&quot;: true, &quot;poi_count&quot;: 2}">{&quot;multiple_poi&quot;: true, &quot;poi_count&quot;: 2}</code></span></td><td class="wrap"><span class="small nowrap" title="Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>4</code> <code>ack_change_notification_obligation</code> <code>dsp_facility_info_provided</code> <code>llis_data_package_submitted</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small"><code>path_same | missing:0 | upgrade:high→high | ops:low→low</code></span></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td><td class="wrap"><span class="muted small">path_same</span></td></tr>
+<tr><td class="nowrap"><code>co_located_true</code></td><td class="wrap"><div class="chips" style="margin-top:0"><span class="chip"><span class="small">lever</span> <code>co_location_signal</code></span><span class="chip"><span class="small">class</span> <code>hard</code></span></div></td><td class="nowrap"><code>system_generated_toggle</code></td><td class="wrap"><span class="small"><code title="{&quot;is_co_located&quot;: true}">{&quot;is_co_located&quot;: true}</code></span></td><td class="wrap"><span class="small nowrap" title="Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>4</code> <code>ack_change_notification_obligation</code> <code>dsp_facility_info_provided</code> <code>llis_data_package_submitted</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small"><code>path_same | missing:0 | upgrade:high→high | ops:low→low</code></span></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:low</span></td><td class="wrap"><span class="muted small">path_same</span></td></tr>
+<tr><td class="nowrap"><code>export_planned</code></td><td class="wrap"><div class="chips" style="margin-top:0"><span class="chip"><span class="small">lever</span> <code>export_capability_choice</code></span><span class="chip info"><span class="small">class</span> <code>design</code></span></div></td><td class="nowrap"><code>system_generated_toggle</code></td><td class="wrap"><span class="small"><code title="{&quot;export_capability&quot;: &quot;planned&quot;}">{&quot;export_capability&quot;: &quot;planned&quot;}</code></span></td><td class="wrap"><span class="small nowrap" title="Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo">Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Configuration Branching (v0 what-if) → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</span></td><td class="wrap"><code>4</code> <code>ack_change_notification_obligation</code> <code>dsp_facility_info_provided</code> <code>llis_data_package_submitted</code> <code>llis_formal_request_submitted</code></td><td class="wrap"><span class="small"><code>path_same | missing:0 | upgrade:high→high | ops:low→high</code></span></td><td class="wrap"><span class="small">≤12:down | 12–24:up | &gt;24:up | upgrade:high | ops:high</span></td><td class="wrap"><span class="muted small">path_same</span></td></tr>
               </tbody>
             </table>
           </div>
@@ -809,16 +849,14 @@
               <thead>
                 <tr>
                   <th class="nowrap">status</th>
-                  <th class="nowrap">rule_id</th>
-                  <th class="nowrap">doc_id</th>
-                  <th>loc</th>
+                  <th>requirement (human-readable)</th>
                   <th>missing fields</th>
                   <th>predicate traces</th>
                   <th>guidance</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="7" class="muted">Not requested (set <code>is_requesting_energization=true</code> to evaluate)</td></tr>
+                <tr><td colspan="5" class="muted">Not requested (set <code>is_requesting_energization=true</code> to evaluate)</td></tr>
               </tbody>
             </table>
           </div>
@@ -829,20 +867,36 @@
             <h2>5) Risk buckets</h2>
             <div class="id">rule-driven v0</div>
           </div>
+          <div class="muted small" style="margin-bottom:10px">
+            <strong>Important</strong>: timeline signals are <strong>directional, qualitative shifts</strong> derived from deterministic rule/tag scoring (v0). They are <strong>not probabilities</strong>.
+            Legend: <code>up</code> = pressure toward that window; <code>down</code> = pressure away; <code>unknown</code> = insufficient rule coverage.
+          </div>
           <div class="kv">
             <div class="k">Status</div>
             <div class="v"><code>rule_driven_v0</code></div>
-            <div class="k">P(≤12 months)</div>
+            <div class="k">Timeline signal (≤12 months)</div>
             <div class="v"><code>down</code></div>
-            <div class="k">P(12–24 months)</div>
+            <div class="k">Timeline signal (12–24 months)</div>
             <div class="v"><code>up</code></div>
-            <div class="k">P(&gt;24 months)</div>
+            <div class="k">Timeline signal (&gt;24 months)</div>
             <div class="v"><code>up</code></div>
             <div class="k">Upgrade exposure bucket</div>
             <div class="v"><code>high</code></div>
             <div class="k">Operational exposure bucket</div>
             <div class="v"><code>low</code></div>
           </div>
+
+          <details style="margin-top:10px">
+            <summary>Show how timeline signals are computed (v0 mapping)</summary>
+            <div class="muted small">Deterministic mapping (v0; not probabilities)</div>
+<ul class="small" style="margin:6px 0 0 18px"><li><code>upgrade_score ≥ 3</code> ⇒ <code>upgrade_exposure_bucket=high</code>, set <code>&gt;24=up</code>, <code>12–24=up</code>, <code>≤12=down</code></li><li><code>0.75 ≤ upgrade_score &lt; 3</code> ⇒ <code>upgrade_exposure_bucket=medium</code>, set <code>12–24=up</code>, <code>≤12=down</code></li><li><code>upgrade_score &lt; 0.75</code> ⇒ <code>upgrade_exposure_bucket=low</code> (timeline may remain <code>unknown</code> unless shifted by wait pressure)</li><li><code>wait_score ≥ 2</code> ⇒ additional shift away from <code>≤12</code> into <code>12–24</code> (set <code>≤12=down</code>, <code>12–24=up</code>)</li></ul>
+<div class="muted small" style="margin-top:10px">Observed totals (from triggered rules/tags)</div>
+<div class="chips"><span class="chip"><span class="small">upgrade_score</span> <code>9.0</code></span><span class="chip"><span class="small">wait_score</span> <code>27.0</code></span><span class="chip"><span class="small">ops_score</span> <code>0.0</code></span></div>
+<div class="muted small" style="margin-top:10px">Resulting timeline signals</div>
+<div class="chips"><span class="chip"><span class="small">≤12</span> <code>down</code></span><span class="chip"><span class="small">12–24</span> <code>up</code></span><span class="chip"><span class="small">&gt;24</span> <code>up</code></span></div>
+<div class="muted small" style="margin-top:10px">Audit trail</div>
+<div class="muted small">See “Risk trace (raw JSON)” for per-rule tag contributions, and “Evidence” for <code>rule_id → doc_id/loc</code>.</div>
+          </details>
 
           <div class="section-title" style="margin-top:14px">
             <h2 style="margin:0">Evidence (rules + heuristics)</h2>
@@ -1489,13 +1543,13 @@
             <div class="k">Graph version</div>
             <div class="v"><code>0.1</code></div>
             <div class="k">Graph sha256</div>
-            <div class="v"><code>8d1ed9f0bc473c3bf1e26b144abd54732eafbca21da8c54b62a02d9897b9ebf8</code></div>
+            <div class="v"><code>a7da4e11d22f2f3288f0fd9f3dc0e96672e733ed750d3e1d5b717a2a25419ff5</code></div>
             <div class="k">Rules source</div>
             <div class="v"><code>rules/published.jsonl</code></div>
             <div class="k">Rules sha256</div>
-            <div class="v"><code>7e297e50776238fdec34374fb5424e1ffe3e89f7056db29b0a4aab9dcddbd07a</code></div>
+            <div class="v"><code>823be13bfec0424027265210bb5c218d9c002baae74611365a24fca26b0d2574</code></div>
             <div class="k">Citation audit (PDF)</div>
-            <div class="v"><code>off</code> / <code>not_run</code> (errors: <code></code>, warns: <code></code>)</div>
+            <div class="v"><code>warn</code> / <code>True</code> (errors: <code>0</code>, warns: <code>0</code>)</div>
           </div>
           <details style="margin-top:10px">
             <summary>Show citation audit findings</summary>
@@ -1513,7 +1567,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td colspan="6" class="muted">Not run</td></tr>
+                  <tr><td colspan="6" class="muted">No issues (all ok)</td></tr>
                 </tbody>
               </table>
             </div>
