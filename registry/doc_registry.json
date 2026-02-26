@@ -116,5 +116,221 @@
         "retrieved_date": "2026-02-13"
       }
     ]
+  },
+  {
+    "doc_id": "ERCOT_LARGE_LOAD_QA_REV20251215",
+    "title": "ERCOT Large Load Interconnection Process Q&A (Rev. 12.15.25)",
+    "source_url": "https://www.ercot.com/files/docs/2025/12/24/Large-Load-Interconnection-Process-Q-A.pdf",
+    "retrieved_date": "2026-02-26",
+    "effective_date": "2025-12-15",
+    "hash": "e1fba2a7986a8de346331fb6dbc28897b3371d96e621e0a3e69ca90fc14d22f0",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "qa"
+    ],
+    "notes": "Supersedes the 2025-06-01 Q&A (ERCOT_LARGE_LOAD_QA). Use this doc_id for any rules citing clauses added or revised in Rev. 12.15.25. Download from source_url and place at docs/snapshots/ERCOT_LARGE_LOAD_QA_REV20251215__2025-12-15.pdf then run src/ingest.py to fill sha256. NOTE (2026-02-26): sha256 matches ERCOT_LARGE_LOAD_QA artifact — ERCOT updated the document in-place at the same URL. The downloaded file is confirmed Rev.12.15.25 (cover page states \"Rev. 12.15.25\").",
+    "artifacts": [
+      {
+        "kind": "pdf",
+        "path": "docs/snapshots/ERCOT_LARGE_LOAD_QA_REV20251215__2025-12-15.pdf",
+        "sha256": "e1fba2a7986a8de346331fb6dbc28897b3371d96e621e0a3e69ca90fc14d22f0",
+        "size_bytes": 246070,
+        "retrieved_date": "2026-02-26"
+      }
+    ]
+  },
+  {
+    "doc_id": "ERCOT_LLI_BATCH_STUDY_PPT_20260122",
+    "title": "ERCOT Large Load Batch Studies – LLWG Presentation (2026-01-22)",
+    "source_url": "https://www.ercot.com/files/docs/2026/01/21/ERCOT-Large-Load-Batch-Studies-LLWG_01222026.pptx",
+    "retrieved_date": "2026-02-26",
+    "effective_date": "2026-01-22",
+    "hash": "03d4f5cfb192d48e55907ef2f89b7218516c6aed7d1caaeda44ca3233cbe45a5",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "batch_study",
+      "llwg"
+    ],
+    "notes": "ERCOT Large Load Working Group (LLWG) presentation on the proposed batch study process for Large Load Interconnection Studies. Source is PPTX; save a PDF export or HTML snapshot to docs/snapshots/ and run src/ingest.py to fill sha256.",
+    "artifacts": [
+      {
+        "kind": "pptx",
+        "path": "docs/snapshots/ERCOT_LLI_BATCH_STUDY_PPT_20260122__2026-01-22.pptx",
+        "sha256": "03d4f5cfb192d48e55907ef2f89b7218516c6aed7d1caaeda44ca3233cbe45a5",
+        "size_bytes": 1892158,
+        "retrieved_date": "2026-02-26"
+      }
+    ]
+  },
+  {
+    "doc_id": "ERCOT_LLI_WORKSHOP_20260226",
+    "title": "ERCOT Large Load Interconnection Batch Study Process Workshop #3 (2026-02-26)",
+    "source_url": "https://www.ercot.com/calendar/02262026-Batch-Study-Process-for",
+    "retrieved_date": "2026-02-26",
+    "effective_date": "2026-02-26",
+    "hash": "3d28c5a55d3ae2c8b6abb22975aa477f1b4fe3f13cf783dfb48781ea47d9edaf",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "batch_study",
+      "workshop"
+    ],
+    "notes": "ERCOT calendar event details for Batch Study Process Workshop #3 (today). Save a webpage snapshot to docs/snapshots/ via src/ingest_context.py or manually. No sha256 until file is downloaded.",
+    "artifacts": [
+      {
+        "kind": "html_snapshot",
+        "path": "docs/snapshots/ERCOT_LLI_WORKSHOP_20260226__2026-02-26.html",
+        "sha256": "3d28c5a55d3ae2c8b6abb22975aa477f1b4fe3f13cf783dfb48781ea47d9edaf",
+        "size_bytes": 61006,
+        "retrieved_date": "2026-02-26"
+      }
+    ]
+  },
+  {
+    "doc_id": "ERCOT_MARKET_NOTICE_A122325_01",
+    "title": "ERCOT Market Notice M-A122325-01: Large Load Interconnection Studies Update",
+    "source_url": "https://www.ercot.com/services/comm/mkt_notices/M-A122325-01",
+    "retrieved_date": "2026-02-26",
+    "effective_date": "2025-12-23",
+    "hash": "c1d2335acaaae1a4d629337340abcbe6aea63c73c7f574342430e0a68aa76a68",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "market_notice",
+      "batch_study"
+    ],
+    "notes": "First in the M-A122325 series announcing ERCOT's intent to implement a batch study process for LLIS. Save a webpage snapshot to docs/snapshots/.",
+    "artifacts": [
+      {
+        "kind": "html_snapshot",
+        "path": "docs/snapshots/ERCOT_MARKET_NOTICE_A122325_01__2025-12-23.html",
+        "sha256": "c1d2335acaaae1a4d629337340abcbe6aea63c73c7f574342430e0a68aa76a68",
+        "size_bytes": 8934,
+        "retrieved_date": "2026-02-26"
+      }
+    ]
+  },
+  {
+    "doc_id": "ERCOT_MARKET_NOTICE_A122325_02",
+    "title": "ERCOT Market Notice M-A122325-02: Large Load Interconnection Studies Update",
+    "source_url": "https://www.ercot.com/services/comm/mkt_notices/M-A122325-02",
+    "retrieved_date": "2026-02-26",
+    "effective_date": "2025-12-23",
+    "hash": "6e36dec03b5d2cde54a657bd4d0e79545bde1bca9a1402dddea9ef070b5205b9",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "market_notice",
+      "batch_study"
+    ],
+    "notes": "Second notice in series. Save a webpage snapshot to docs/snapshots/.",
+    "artifacts": [
+      {
+        "kind": "html_snapshot",
+        "path": "docs/snapshots/ERCOT_MARKET_NOTICE_A122325_02__2025-12-23.html",
+        "sha256": "6e36dec03b5d2cde54a657bd4d0e79545bde1bca9a1402dddea9ef070b5205b9",
+        "size_bytes": 7258,
+        "retrieved_date": "2026-02-26"
+      }
+    ]
+  },
+  {
+    "doc_id": "ERCOT_MARKET_NOTICE_A122325_03",
+    "title": "ERCOT Market Notice M-A122325-03: Large Load Interconnection Studies Update",
+    "source_url": "https://www.ercot.com/services/comm/mkt_notices/M-A122325-03",
+    "retrieved_date": "2026-02-26",
+    "effective_date": "2025-12-23",
+    "hash": "6539080a0125b3114544681b3ad94e9f4a063ed2f4094d709a3669dc1719bcf1",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "market_notice",
+      "batch_study"
+    ],
+    "notes": "Third notice in series. Save a webpage snapshot to docs/snapshots/.",
+    "artifacts": [
+      {
+        "kind": "html_snapshot",
+        "path": "docs/snapshots/ERCOT_MARKET_NOTICE_A122325_03__2025-12-23.html",
+        "sha256": "6539080a0125b3114544681b3ad94e9f4a063ed2f4094d709a3669dc1719bcf1",
+        "size_bytes": 8328,
+        "retrieved_date": "2026-02-26"
+      }
+    ]
+  },
+  {
+    "doc_id": "ERCOT_MARKET_NOTICE_A122325_05",
+    "title": "ERCOT Market Notice M-A122325-05: Large Load Interconnection Studies Update",
+    "source_url": "https://www.ercot.com/services/comm/mkt_notices/M-A122325-05",
+    "retrieved_date": "2026-02-26",
+    "effective_date": "2025-12-23",
+    "hash": "ee9e908b02f1ea623a4d5af61dd807f6bf8ace6ce9c1efa584bde05f4e853e65",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "market_notice",
+      "batch_study"
+    ],
+    "notes": "Fifth notice in series. Save a webpage snapshot to docs/snapshots/.",
+    "artifacts": [
+      {
+        "kind": "html_snapshot",
+        "path": "docs/snapshots/ERCOT_MARKET_NOTICE_A122325_05__2025-12-23.html",
+        "sha256": "ee9e908b02f1ea623a4d5af61dd807f6bf8ace6ce9c1efa584bde05f4e853e65",
+        "size_bytes": 6264,
+        "retrieved_date": "2026-02-26"
+      }
+    ]
+  },
+  {
+    "doc_id": "ERCOT_MARKET_NOTICE_A022326_01",
+    "title": "ERCOT Market Notice M-A022326-01: Large Load Interconnection Studies Update (Far West)",
+    "source_url": "https://www.ercot.com/services/comm/mkt_notices/M-A022326-01",
+    "retrieved_date": "2026-02-26",
+    "effective_date": "2026-02-23",
+    "hash": "32956dda69810429f2cb192a13cafb2586a36e32d2f5126680e6d49f551340fd",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "market_notice",
+      "far_west",
+      "reliability_constraint"
+    ],
+    "notes": "Market notice describing constraints for Far West Texas LLIS projects (no-solar scenario; additional reliability assumptions). Key source for geo_risk_far_west and study_assumption_change signals. Save a webpage snapshot to docs/snapshots/.",
+    "artifacts": [
+      {
+        "kind": "html_snapshot",
+        "path": "docs/snapshots/ERCOT_MARKET_NOTICE_A022326_01__2026-02-23.html",
+        "sha256": "32956dda69810429f2cb192a13cafb2586a36e32d2f5126680e6d49f551340fd",
+        "size_bytes": 8674,
+        "retrieved_date": "2026-02-26"
+      }
+    ]
+  },
+  {
+    "doc_id": "PUCT_PROJECT_58481_LARGE_LOAD",
+    "title": "PUCT Project No. 58481 – Large Load Interconnection Proceeding (Rule Draft/Discussion)",
+    "source_url": "https://interchange.puc.texas.gov/Documents/58481_91_1575552.PDF",
+    "retrieved_date": "2026-02-26",
+    "effective_date": "",
+    "hash": "0f19c9ae3319a15bb2ed0df73dbe7cc909b9ffefd066fad37034f1d1e715450d",
+    "scope_tags": [
+      "PUCT",
+      "large_load",
+      "regulatory",
+      "rule_draft"
+    ],
+    "notes": "PUCT regulatory proceeding related to Large Load interconnection rules. Document no. 58481. Download and place at docs/snapshots/PUCT_PROJECT_58481_LARGE_LOAD__2026-02-26.pdf then run src/ingest.py to fill sha256. Additional documents in this docket should be added as separate artifacts or doc_ids as they become relevant.",
+    "artifacts": [
+      {
+        "kind": "pdf",
+        "path": "docs/snapshots/PUCT_PROJECT_58481_LARGE_LOAD__2026-02-26.pdf",
+        "sha256": "0f19c9ae3319a15bb2ed0df73dbe7cc909b9ffefd066fad37034f1d1e715450d",
+        "size_bytes": 333246,
+        "retrieved_date": "2026-02-26"
+      }
+    ]
   }
 ]

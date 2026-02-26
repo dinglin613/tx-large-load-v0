@@ -63,6 +63,29 @@ TAG_RISK_CONTRIB: Dict[str, Dict[str, float]] = {
     "compliance_risk": {"ops": 1.0},
     "metering_requirement": {"ops": 0.5},
     # NOTE: energization_gate is intentionally not a risk contributor; it is a gating concept.
+
+    # ── NEW v0 tags (added 2026-02-26) ──────────────────────────────────────
+    # Process / governance dependency
+    # batch_study: project timing may depend on ERCOT batch study cycle.
+    "batch_study": {"wait": 2.0},
+    # fast_track: fast-track/priority path available; reduces wait pressure (negative delta).
+    "fast_track": {"wait": -0.5},
+    # governance_dependency: outcome depends on ERCOT/PUCT policy decision not yet final.
+    "governance_dependency": {"wait": 1.5},
+
+    # Geographic / reliability constraint
+    # geo_risk_far_west: Far West Texas area-specific reliability constraints (e.g., no-solar scenario).
+    "geo_risk_far_west": {"upgrade": 1.5, "wait": 1.0},
+    # study_assumption_change: study results may be invalidated by changed system assumptions (e.g., generator retirements, new constraints).
+    "study_assumption_change": {"wait": 1.5, "upgrade": 0.5},
+    # restudy_risk: elevated likelihood of a restudy being required (general; complements re_study which is event-triggered).
+    "restudy_risk": {"wait": 1.5},
+
+    # Regulatory / PUCT
+    # puct_rule_pending: outcome depends on pending PUCT rulemaking (rule not yet effective).
+    "puct_rule_pending": {"wait": 1.0},
+    # compliance_dependency: project may be subject to compliance requirements whose final form is uncertain.
+    "compliance_dependency": {"wait": 0.5, "ops": 0.5},
 }
 
 
@@ -77,6 +100,9 @@ KNOWN_NON_RISK_TAGS = {
     "pscad_required",
     "mqt_required",
     "transmission_scope",
+    # New non-risk labels added 2026-02-26
+    "policy_update",        # marks rules that describe a policy/market process change (informational)
+    "market_notice",        # marks rules sourced from ERCOT market notices (informational)
 }
 
 ALL_KNOWN_TAGS = set(TAG_RISK_CONTRIB.keys()) | set(KNOWN_NON_RISK_TAGS)

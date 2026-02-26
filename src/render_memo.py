@@ -19,6 +19,29 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE_PATH = REPO_ROOT / "memo" / "templates" / "memo_template.html"
 GRAPH_PATH = REPO_ROOT / "graph" / "process_graph.yaml"
 REQUEST_SCHEMA_PATH = REPO_ROOT / "schema" / "request.schema.json"
+CONTEXT_SNAPSHOT_PATH = REPO_ROOT / "context" / "context_snapshot.jsonl"
+
+
+def load_external_context_snapshots() -> List[Dict[str, Any]]:
+    """
+    Load all entries from context/context_snapshot.jsonl (produced by src/ingest_context.py).
+    Returns an empty list if the file does not exist.
+    Each entry represents one fetched external source snapshot with
+    source_id, label, url, category, confidence, sha256, snapshot_date, notes, fetch_status.
+    """
+    if not CONTEXT_SNAPSHOT_PATH.exists():
+        return []
+    rows: List[Dict[str, Any]] = []
+    with CONTEXT_SNAPSHOT_PATH.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rows.append(json.loads(line))
+            except Exception:
+                pass
+    return rows
 
 
 _REQ_FIELD_DESC_CACHE: Dict[str, str] | None = None
@@ -1539,7 +1562,82 @@ def render_context_snapshot_html(ev: Dict[str, Any]) -> str:
         + ("\n".join(rows) if rows else "<tr><td colspan=\"7\" class=\"muted\">None</td></tr>")
         + "</tbody></table></div>"
     )
-    return head + table
+
+    # ── External context snapshot layer (from src/ingest_context.py) ────────
+    ext_rows = load_external_context_snapshots()
+    ext_html = ""
+    if ext_rows:
+        # Group by most-recent snapshot per source_id
+        latest: Dict[str, Dict[str, Any]] = {}
+        for r in ext_rows:
+            sid = str(r.get("source_id") or "")
+            d = str(r.get("snapshot_date") or "")
+            if sid not in latest or d > str(latest[sid].get("snapshot_date") or ""):
+                latest[sid] = r
+        sorted_ext = sorted(latest.values(), key=lambda x: (x.get("category", ""), x.get("source_id", "")))
+
+        cat_labels = {"authoritative": "Authoritative (web snapshot)", "non_authoritative": "Non-authoritative (context lead / low-confidence)"}
+        ext_table_rows: List[str] = []
+        for r in sorted_ext:
+            sid = esc(str(r.get("source_id") or ""))
+            label = esc(str(r.get("label") or r.get("source_id") or ""))
+            url = str(r.get("url") or "")
+            cat = str(r.get("category") or "")
+            conf = r.get("confidence")
+            sha = str(r.get("sha256") or "")
+            snap_date = esc(str(r.get("snapshot_date") or ""))
+            notes = esc(str(r.get("notes") or ""))
+            status = esc(str(r.get("fetch_status") or ""))
+            snap_path = esc(str(r.get("snapshot_path") or ""))
+
+            conf_cell = f"<code>{esc(str(conf))}</code>" if conf is not None else '<span class="muted small">n/a</span>'
+            sha_cell = f"<code class='muted small'>{esc(sha[:16])}…</code>" if sha else '<span class="muted small">pending</span>'
+            url_cell = f'<a href="{esc(url)}" class="small" target="_blank">{esc(url[:60])}{"…" if len(url) > 60 else ""}</a>' if url else ""
+            cat_pill = (
+                "<span class=\"chip\" style=\"background:#fff3cd;color:#856404\">non_authoritative</span>"
+                if cat == "non_authoritative"
+                else "<span class=\"chip\" style=\"background:#d4edda;color:#155724\">authoritative</span>"
+            )
+            ext_table_rows.append(
+                "<tr>"
+                f"<td><code>{sid}</code></td>"
+                f"<td class=\"wrap\">{label}</td>"
+                f"<td>{cat_pill}</td>"
+                f"<td>{conf_cell}</td>"
+                f"<td class=\"wrap small\">{url_cell}</td>"
+                f"<td class=\"nowrap\">{sha_cell}</td>"
+                f"<td class=\"nowrap\">{snap_date}</td>"
+                f"<td class=\"nowrap\">{status}</td>"
+                f"<td class=\"wrap small muted\">{notes[:120]}{'…' if len(str(r.get('notes') or '')) > 120 else ''}</td>"
+                "</tr>"
+            )
+        ext_html = (
+            "<div class=\"muted small\" style=\"margin-top:18px;font-weight:600\">"
+            "External context sources (non-audit — from <code>context/context_snapshot.jsonl</code>)</div>"
+            "<div class=\"muted small\" style=\"margin-bottom:6px\">"
+            "⚠ These are <strong>not</strong> citation-audited rule evidence. "
+            "Non-authoritative entries carry low confidence and should not be used to make regulatory determinations. "
+            "Run <code>python src/ingest_context.py</code> to refresh snapshots."
+            "</div>"
+            "<div style=\"overflow-x:auto\">"
+            "<table><thead><tr>"
+            "<th>source_id</th><th>label</th><th>category</th>"
+            "<th>confidence</th><th>url</th><th>sha256</th>"
+            "<th>date</th><th>status</th><th>notes</th>"
+            "</tr></thead><tbody>"
+            + ("\n".join(ext_table_rows) if ext_table_rows else "<tr><td colspan='9' class='muted'>No external snapshots found</td></tr>")
+            + "</tbody></table></div>"
+        )
+    elif not ext_rows:
+        ext_html = (
+            "<div class=\"muted small\" style=\"margin-top:14px\">"
+            "No external context snapshots found. "
+            "Run <code>python src/ingest_context.py</code> to fetch configured sources "
+            "(see <code>context/context_sources.json</code>)."
+            "</div>"
+        )
+
+    return head + table + ext_html
 
 
 def render_evidence_grouped_by_tag(evidence: List[Dict[str, Any]]) -> str:

@@ -1,0 +1,52 @@
+[
+  {
+    "source_id": "datacenter_fyi_oncor",
+    "label": "datacenter.fyi – Oncor area large-load projects",
+    "url": "https://datacenter.fyi/oncor",
+    "category": "non_authoritative",
+    "default_confidence": 0.2,
+    "notes": "Third-party aggregation of data-center / large-load queue projects in the Oncor service territory. Information may be stale, incomplete, or incorrectly attributed. Use only as a screening lead; do NOT use as evidence in published rules.",
+    "extracted_fields_hint": ["project_name", "claimed_mw", "claimed_queue_pos", "claimed_energization_year", "poi_hint"],
+    "enabled": true
+  },
+  {
+    "source_id": "datacenter_fyi_ercot_all",
+    "label": "datacenter.fyi – All ERCOT large-load projects",
+    "url": "https://datacenter.fyi",
+    "category": "non_authoritative",
+    "default_confidence": 0.2,
+    "notes": "Third-party aggregation of ERCOT large-load projects across all TDSP areas. Same caveats as oncor-specific view.",
+    "extracted_fields_hint": ["project_name", "claimed_mw", "tdsp_area", "claimed_queue_pos"],
+    "enabled": true
+  },
+  {
+    "source_id": "ercot_large_load_integration_page",
+    "label": "ERCOT Large Load Integration landing page",
+    "url": "https://www.ercot.com/services/rq/large-load-integration",
+    "category": "authoritative",
+    "default_confidence": 0.9,
+    "notes": "ERCOT's official Large Load Integration page – primary source for current Q&A PDF links, process overview, and announcements. Snapshot periodically to detect Q&A version updates.",
+    "extracted_fields_hint": ["qa_pdf_url", "qa_effective_date", "process_description"],
+    "enabled": true
+  },
+  {
+    "source_id": "ercot_calendar_batch_workshop",
+    "label": "ERCOT Calendar – Batch Study Process Workshops",
+    "url": "https://www.ercot.com/calendar",
+    "category": "authoritative",
+    "default_confidence": 0.85,
+    "notes": "ERCOT calendar events for Batch Study Process workshops. Snapshot before/after each workshop to capture event details and any linked materials.",
+    "extracted_fields_hint": ["event_title", "event_date", "event_url", "materials_url"],
+    "enabled": true
+  },
+  {
+    "source_id": "texas_tribune_ercot_datacenter",
+    "label": "Texas Tribune – ERCOT data center / large load reporting",
+    "url": "https://www.texastribune.org/2026/01/19/ercot-texas-data-centers-electricty-demand/",
+    "category": "non_authoritative",
+    "default_confidence": 0.35,
+    "notes": "News reporting on ERCOT's new framework for data center/large load demand. Useful as background context for memo narrative. Higher confidence than pure commercial sites because Texas Tribune is a credible news outlet, but still non-authoritative for regulatory facts.",
+    "extracted_fields_hint": ["headline", "key_claims", "publication_date"],
+    "enabled": true
+  }
+]
