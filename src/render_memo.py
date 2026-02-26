@@ -1209,49 +1209,85 @@ def _deliverable_hint(field: str) -> str:
     return m.get(field, "Supporting evidence artifact (as applicable)")
 
 
+def _tag_to_plain(tag: str) -> str:
+    """Map a risk tag identifier to a short plain-language phrase."""
+    _map = {
+        "upgrade_risk_high": "high transmission upgrade risk",
+        "upgrade_risk_medium": "medium transmission upgrade risk",
+        "upgrade_risk_low": "low transmission upgrade risk",
+        "wait_risk_high": "high queue-wait / delay risk",
+        "wait_risk_medium": "medium queue-wait / delay risk",
+        "wait_risk_low": "low queue-wait / delay risk",
+        "ops_risk_high": "high operational complexity",
+        "ops_risk_medium": "medium operational complexity",
+        "ops_risk_low": "low operational complexity",
+        "geo_risk_far_west": "Far West Texas geo constraint",
+        "phased_load": "phased load commissioning",
+        "batch_study": "in a batch-study cycle",
+        "restudy_risk": "restudy / POI-change risk",
+        "energization_risk": "energization readiness risk",
+        "queue_state_dependent": "outcome depends on queue state",
+    }
+    s = tag.strip().lower()
+    return _map.get(s, tag.replace("_", " "))
+
+
 def render_executive_brief_html(ev: Dict[str, Any]) -> str:
     """
-    Non-technical brief: forwardable, minimal jargon/IDs. Uses existing eval fields only.
+    Decision Card: forwardable first-screen brief.
+    6 blocks: status, recommended move, top-3 actions, top-3 risk drivers,
+    what-could-change-this, confidence note.  No rule_id / doc_id on first screen.
     """
     req = ev.get("request") or {}
     dec_s = ev.get("decision_screening") or {}
     dec_e = ev.get("decision_energization") or {}
 
+    # ── Block 1: status ──────────────────────────────────────────────────────
     screening_status = str(dec_s.get("status") or "unknown")
     e_reasons = " ".join(str(x) for x in (dec_e.get("reasons") or []) if str(x).strip()).lower()
     energ_note = "not requested" if ("energization_not_requested" in e_reasons or "not_requested" in e_reasons) else str(dec_e.get("status") or "unknown")
 
+    # Status chip CSS classes
+    def _status_cls(s: str) -> str:
+        s = s.lower()
+        if s in {"go", "ready", "satisfied"}: return "good"
+        if s in {"conditional", "missing"}: return "warn"
+        if s in {"no_go", "not_ready", "not_satisfied"}: return "bad"
+        return ""
+
+    scr_cls = _status_cls(screening_status)
+    enr_cls = _status_cls(energ_note)
+
+    status_row = (
+        "<div class=\"chips\" style=\"margin-bottom:6px\">"
+        f"<span class=\"chip {scr_cls}\"><span class=\"small\">Screening</span> <code>{esc(screening_status)}</code></span>"
+        f"<span class=\"chip {enr_cls}\"><span class=\"small\">Energization</span> <code>{esc(energ_note)}</code></span>"
+        "</div>"
+    )
+
+    # ── collect missing inputs for blocks 2 & 3 ─────────────────────────────
     miss = [str(x) for x in (ev.get("missing_inputs") or []) if str(x).strip()]
     miss_set = set(miss)
 
     missing_reqs: List[Dict[str, Any]] = []
     for rc in (ev.get("rule_checks") or []):
-        if not isinstance(rc, dict):
-            continue
-        if str(rc.get("status") or "") != "missing":
-            continue
+        if not isinstance(rc, dict): continue
+        if str(rc.get("status") or "") != "missing": continue
         mf = [str(x) for x in (rc.get("missing_fields") or []) if str(x).strip()]
-        hit = [f for f in mf if f in miss_set]
-        if not hit:
-            continue
-        crit = str(rc.get("criteria_text") or "").strip()
-        for f in hit:
-            missing_reqs.append({"field": f, "requirement": crit})
-        if len(missing_reqs) >= 12:
-            break
+        for f in (f for f in mf if f in miss_set):
+            missing_reqs.append({"field": f, "requirement": str(rc.get("criteria_text") or "").strip()})
+        if len(missing_reqs) >= 12: break
 
-    seen = set()
+    seen: set = set()
     missing_reqs2: List[Dict[str, Any]] = []
     for it in missing_reqs:
         f = str(it.get("field") or "")
-        if not f or f in seen:
-            continue
-        seen.add(f)
-        missing_reqs2.append(it)
+        if not f or f in seen: continue
+        seen.add(f); missing_reqs2.append(it)
     if not missing_reqs2:
         missing_reqs2 = [{"field": f, "requirement": ""} for f in miss[:8]]
 
-    # Recommendation (bounded)
+    # ── Block 2: recommended move ─────────────────────────────────────────────
     rec = ev.get("recommendation") or {}
     rid = str(rec.get("recommended_option_id") or "baseline")
     is_base = bool(rec.get("recommended_is_baseline"))
@@ -1259,83 +1295,164 @@ def render_executive_brief_html(ev: Dict[str, Any]) -> str:
     r1 = str(rationale[0]) if isinstance(rationale, list) and rationale else ""
     reco_line = f"Keep baseline ({rid})" if is_base else f"Prefer option {rid}"
 
-    # Risk line (signals, not probabilities)
-    risk = ev.get("risk") or {}
-    tb = risk.get("timeline_buckets") or {}
-    risk_line = (
-        f"Timeline signals: <=12={tb.get('le_12_months','unknown')}, "
-        f"12-24={tb.get('m12_24_months','unknown')}, "
-        f">24={tb.get('gt_24_months','unknown')}; "
-        f"upgrade={risk.get('upgrade_exposure_bucket','unknown')}, "
-        f"ops={risk.get('operational_exposure_bucket','unknown')}."
-    )
-
-    drivers = []
+    # Build natural-language "because" clause from rationale + top driver
+    because_parts = []
+    if r1:
+        because_parts.append(r1)
+    top_driver_plain = ""
     for d in (ev.get("top_drivers") or []):
-        if not isinstance(d, dict):
-            continue
-        s = str(d.get("summary") or "").strip() or str(d.get("rule_id") or "").strip()
-        if s:
-            drivers.append(s)
-        if len(drivers) >= 3:
+        if not isinstance(d, dict): continue
+        tags = [str(t) for t in (d.get("trigger_tags") or []) if str(t).strip()]
+        if tags:
+            top_driver_plain = _tag_to_plain(tags[0])
             break
+    if top_driver_plain and not because_parts:
+        because_parts.append(f"driven by {top_driver_plain}")
+    because_clause = (" — " + because_parts[0]) if because_parts else ""
 
-    snap = (
-        f"Operator={req.get('operator_area','?')}, TDSP={req.get('tdsp_area','?')}, "
-        f"Load={req.get('load_mw_total','?')}MW, COD target={req.get('cod_target_window','n/a')}."
+    reco_block = (
+        "<div class=\"decision-card-reco\" style=\"margin:10px 0 4px\">"
+        f"<strong>We recommend: {esc(reco_line)}</strong>{esc(because_clause)}"
+        "</div>"
     )
 
-    blocking_items = []
+    # ── Block 3: top 3 minimum-deliverable actions ────────────────────────────
+    action_items: List[str] = []
     for it in missing_reqs2[:3]:
         f = str(it.get("field") or "").strip()
-        reqtxt = str(it.get("requirement") or "").strip()
-        headline = _humanize_field_id(f) or f
-        note = (f"<div class=\"muted small\">{esc(reqtxt)}</div>" if reqtxt else "")
-        blocking_items.append("<li><strong>" + esc(headline) + "</strong>" + note + "</li>")
-    blocking_html = "<ul>" + ("".join(blocking_items) if blocking_items else "<li class=\"muted small\">None</li>") + "</ul>"
-
-    action_rows = []
-    for it in missing_reqs2[:8]:
-        f = str(it.get("field") or "").strip()
-        reqtxt = str(it.get("requirement") or "").strip()
-        action_rows.append(
-            "<tr>"
-            f"<td class=\"wrap\"><strong>{esc(_humanize_field_id(f) or f)}</strong><div class=\"muted small\">{esc(reqtxt) if reqtxt else ''}</div></td>"
-            f"<td class=\"nowrap\"><code>Customer</code></td>"
-            f"<td class=\"wrap\"><span class=\"small\">{esc(_deliverable_hint(f))}</span></td>"
-            "</tr>"
+        lbl = _humanize_field_id(f) or f
+        hint = _deliverable_hint(f)
+        action_items.append(
+            f"<li style=\"margin-bottom:6px\">"
+            f"<strong>{esc(lbl)}</strong>"
+            f"<span class=\"muted small\" style=\"margin-left:6px\">→ deliver: {esc(hint)}</span>"
+            f"</li>"
         )
-    actions_table = (
-        "<div style=\"overflow-x:auto;margin-top:8px\">"
-        "<table>"
-        "<thead><tr><th>Blocking now - deliverable</th><th class=\"nowrap\">owner</th><th>what to produce</th></tr></thead>"
-        "<tbody>"
-        + ("".join(action_rows) if action_rows else "<tr><td colspan=\"3\" class=\"muted\">None</td></tr>")
-        + "</tbody></table></div>"
+    if missing_reqs2:
+        remaining = len(missing_reqs2) - min(3, len(missing_reqs2))
+        more_note = (f"<li class=\"muted small\">…and {remaining} more — see Missing Inputs below</li>" if remaining > 0 else "")
+        actions_block = (
+            "<div style=\"margin:10px 0 4px\"><strong>Minimum deliverables (48 h)</strong></div>"
+            "<ul style=\"margin:4px 0 0 18px\">"
+            + "".join(action_items) + more_note +
+            "</ul>"
+        )
+    else:
+        actions_block = "<div class=\"muted small\" style=\"margin:10px 0\">No blocking inputs — all required fields satisfied.</div>"
+
+    # ── Block 4: top 3 risk drivers (plain-language bullets, no IDs) ──────────
+    driver_bullets: List[str] = []
+    driver_rows_for_table: List[Dict[str, Any]] = []
+    for d in (ev.get("top_drivers") or []):
+        if not isinstance(d, dict): continue
+        driver_rows_for_table.append(d)
+        if len(driver_bullets) < 3:
+            tags = [str(t) for t in (d.get("trigger_tags") or []) if str(t).strip()]
+            summary = str(d.get("summary") or "").strip()
+            tag_plain = _tag_to_plain(tags[0]) if tags else ""
+            c = d.get("contributions") or {}
+            up = int(c.get("upgrade", 0) or 0)
+            wait = int(c.get("wait", 0) or 0)
+            ops = int(c.get("ops", 0) or 0)
+            # impact phrase: dominant contributor
+            dominant = max([("upgrade exposure", up), ("queue wait", wait), ("ops complexity", ops)], key=lambda x: x[1])
+            impact_label = dominant[0] if dominant[1] > 0 else "risk pressure"
+            desc = summary if summary else (f"Increases {impact_label}" if tag_plain else "Flagged risk driver")
+            bullet_text = f"<strong>{esc(tag_plain.capitalize() or 'Risk driver')}</strong>: {esc(desc)}"
+            driver_bullets.append(f"<li style=\"margin-bottom:4px\">{bullet_text}</li>")
+
+    if driver_bullets:
+        # Evidence detail table (collapsed)
+        ev_rows = []
+        for d in driver_rows_for_table[:8]:
+            c2 = d.get("contributions") or {}
+            ev_rows.append(
+                "<tr>"
+                f"<td class=\"wrap\"><span class=\"muted small\">{esc(d.get('summary') or d.get('rule_id'))}</span></td>"
+                f"<td class=\"wrap\">{code_list(d.get('trigger_tags') or [])}</td>"
+                f"<td class=\"nowrap\"><span class=\"small\"><code>up:{esc(c2.get('upgrade',0))}</code> "
+                f"<code>wait:{esc(c2.get('wait',0))}</code> <code>ops:{esc(c2.get('ops',0))}</code></span></td>"
+                "</tr>"
+            )
+        evidence_detail = (
+            "<details style=\"margin-top:8px\" class=\"analyst-only\">"
+            "<summary class=\"muted small\">Show evidence table (rule-level)</summary>"
+            "<div style=\"overflow-x:auto;margin-top:6px\"><table>"
+            "<thead><tr><th>driver</th><th>tags</th><th class=\"nowrap\">contrib</th></tr></thead>"
+            "<tbody>" + "\n".join(ev_rows) + "</tbody>"
+            "</table></div></details>"
+        )
+        drivers_block = (
+            "<div style=\"margin:10px 0 4px\"><strong>Top risk drivers</strong></div>"
+            "<ul style=\"margin:4px 0 0 18px\">"
+            + "".join(driver_bullets) +
+            "</ul>"
+            + evidence_detail
+        )
+    else:
+        drivers_block = "<div class=\"muted small\" style=\"margin:10px 0\">No top drivers flagged.</div>"
+
+    # ── Block 5: what could change this decision ──────────────────────────────
+    unc = ev.get("uncertainties") or {}
+    unknowns = [str(x.get("field") or x) for x in (unc.get("unknown") or []) if x][:4]
+    queue_deps = [str(x) for x in (unc.get("queue_state_dependent") or []) if str(x).strip()][:3]
+    change_items: List[str] = []
+    for f in unknowns:
+        change_items.append(f"<li class=\"small\">Confirm value of <strong>{esc(_humanize_field_id(f) or f)}</strong></li>")
+    for dep in queue_deps:
+        change_items.append(f"<li class=\"small\">Queue/system state: <span class=\"muted\">{esc(dep)}</span></li>")
+    if change_items:
+        change_block = (
+            "<div style=\"margin:10px 0 4px\"><strong>What could change this</strong></div>"
+            "<ul style=\"margin:4px 0 0 18px\">"
+            + "".join(change_items) +
+            "</ul>"
+        )
+    else:
+        change_block = ""
+
+    # ── Block 6: confidence / scope note ─────────────────────────────────────
+    rule_checks = ev.get("rule_checks") or []
+    n_rules = len(rule_checks)
+    evidence = ev.get("evidence") or []
+    n_docs = len({str(e.get("doc_id") or "") for e in evidence if str(e.get("doc_id") or "") and str(e.get("doc_id") or "") != "NON_CITED_HEURISTIC"})
+    confidence_block = (
+        "<div class=\"muted small\" style=\"margin:12px 0 0;border-top:1px solid var(--border);padding-top:8px\">"
+        f"v0 screening · {n_rules} rules matched · {n_docs} docs cited · "
+        "not a study substitute · evidence details in sections below"
+        "</div>"
+    )
+
+    # ── 3-line status grammar at very top ────────────────────────────────────
+    risk = ev.get("risk") or {}
+    tb = risk.get("timeline_buckets") or {}
+    upgrade_bucket = str(risk.get("upgrade_exposure_bucket") or "unknown")
+    why_one = ""
+    if top_driver_plain:
+        why_one = f"Primary pressure: {top_driver_plain}."
+    elif miss:
+        why_one = f"Missing inputs blocking progress: {_humanize_field_id(miss[0])}."
+    three_line = (
+        "<div class=\"decision-card-header\" style=\"border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px\">"
+        f"<div><span class=\"muted small\">Status</span>&ensp;"
+        f"<span class=\"chip {scr_cls} small\">Screening: {esc(screening_status)}</span>"
+        f"&ensp;<span class=\"chip {enr_cls} small\">Energization: {esc(energ_note)}</span>"
+        f"&ensp;<span class=\"chip small\">Upgrade exposure: {esc(upgrade_bucket)}</span>"
+        "</div>"
+        f"<div style=\"margin-top:4px\"><span class=\"muted small\">Primary recommendation</span>&ensp;"
+        f"<strong>{esc(reco_line)}</strong></div>"
+        + (f"<div style=\"margin-top:4px\" class=\"muted small\">Why: {esc(why_one)}</div>" if why_one else "")
+        + "</div>"
     )
 
     parts = []
-    parts.append(f"<div class=\"muted small\">Project snapshot: <code>{esc(req.get('project_name'))}</code> — {esc(snap)}</div>")
-    parts.append("<div style=\"margin-top:10px\" class=\"kv\">")
-    parts.append("<div class=\"k\">1) Current conclusion</div>")
-    parts.append(f"<div class=\"v\"><strong>Screening:</strong> {esc(screening_status)}; <strong>Energization:</strong> {esc(energ_note)}</div>")
-    parts.append("<div class=\"k\">2) Blocking now</div>")
-    parts.append(f"<div class=\"v\">{blocking_html}</div>")
-    parts.append("<div class=\"k\">3) Next actions</div>")
-    parts.append("<div class=\"v\">Complete the blocking deliverables below (owners + concrete outputs).</div>")
-    parts.append("<div class=\"k\">4) Config options & recommendation (bounded)</div>")
-    parts.append(f"<div class=\"v\"><strong>{esc(reco_line)}</strong><div class=\"muted small\">{esc(r1) if r1 else ''}</div></div>")
-    parts.append("<div class=\"k\">5) Major risks & external uncertainty</div>")
-    parts.append(
-        "<div class=\"v\">"
-        + esc(risk_line)
-        + (("<div class=\"muted small\" style=\"margin-top:6px\">Top drivers: " + esc("; ".join(drivers)) + "</div>") if drivers else "")
-        + "<div class=\"muted small\" style=\"margin-top:6px\">Final requirements may depend on ERCOT/TSP/TDSP discretion, queue/system state, and site verification. Full evidence is available below.</div>"
-        + "</div>"
-    )
-    parts.append("</div>")
-    parts.append("<div style=\"margin-top:10px\"><strong>Blocking-now checklist (owner + deliverable)</strong></div>")
-    parts.append(actions_table)
+    parts.append(three_line)
+    parts.append(reco_block)
+    parts.append(actions_block)
+    parts.append(drivers_block)
+    if change_block:
+        parts.append(change_block)
+    parts.append(confidence_block)
     return "\n".join(parts)
 
 
@@ -1343,6 +1460,29 @@ def render_top_drivers_html(ev: Dict[str, Any]) -> str:
     items = ev.get("top_drivers") or []
     if not isinstance(items, list) or not items:
         return "<div class=\"muted small\">None</div>"
+
+    # ── First screen: plain-language bullets (no rule_id / doc_id) ──────────
+    bullets: List[str] = []
+    for it in items[:3]:
+        if not isinstance(it, dict):
+            continue
+        tags = [str(t) for t in (it.get("trigger_tags") or []) if str(t).strip()]
+        summary = str(it.get("summary") or "").strip()
+        tag_plain = _tag_to_plain(tags[0]) if tags else "risk driver"
+        c = it.get("contributions") or {}
+        up = int(c.get("upgrade", 0) or 0)
+        wait = int(c.get("wait", 0) or 0)
+        ops = int(c.get("ops", 0) or 0)
+        dominant = max([("upgrade exposure", up), ("queue wait", wait), ("ops complexity", ops)], key=lambda x: x[1])
+        impact_label = dominant[0] if dominant[1] > 0 else "risk pressure"
+        desc = summary if summary else f"Increases {impact_label}"
+        bullets.append(
+            f"<li style=\"margin-bottom:4px\">"
+            f"<strong>{esc(tag_plain.capitalize())}</strong>: {esc(desc)}"
+            "</li>"
+        )
+
+    # ── Evidence detail table (collapsed, analyst-only) ──────────────────────
     rows: List[str] = []
     for it in items[:8]:
         if not isinstance(it, dict):
@@ -1354,15 +1494,27 @@ def render_top_drivers_html(ev: Dict[str, Any]) -> str:
             f"<td class=\"nowrap\"><code>{esc(it.get('doc_id'))}</code></td>"
             f"<td class=\"wrap\"><span class=\"muted\">{esc(it.get('loc'))}</span></td>"
             f"<td class=\"wrap\">{code_list(it.get('trigger_tags') or [])}</td>"
-            f"<td class=\"nowrap\"><span class=\"small\"><code>up:{esc(c.get('upgrade',0))}</code> <code>wait:{esc(c.get('wait',0))}</code> <code>ops:{esc(c.get('ops',0))}</code></span></td>"
+            f"<td class=\"nowrap\"><span class=\"small\"><code>up:{esc(c.get('upgrade',0))}</code> "
+            f"<code>wait:{esc(c.get('wait',0))}</code> <code>ops:{esc(c.get('ops',0))}</code></span></td>"
             "</tr>"
         )
-    return (
+
+    evidence_table = (
+        "<details style=\"margin-top:8px\" class=\"analyst-only\">"
+        "<summary class=\"muted small\">Show evidence table (rule_id / doc_id / loc)</summary>"
         "<div style=\"overflow-x:auto;margin-top:8px\"><table>"
-        "<thead><tr><th class=\"nowrap\">rule_id</th><th class=\"nowrap\">doc_id</th><th>loc</th><th>tags</th><th class=\"nowrap\">contrib</th></tr></thead>"
+        "<thead><tr><th class=\"nowrap\">rule_id</th><th class=\"nowrap\">doc_id</th>"
+        "<th>loc</th><th>tags</th><th class=\"nowrap\">contrib</th></tr></thead>"
         "<tbody>"
         + ("\n".join(rows) or "<tr><td colspan=\"5\" class=\"muted\">None</td></tr>")
-        + "</tbody></table></div>"
+        + "</tbody></table></div></details>"
+    )
+
+    return (
+        "<ul style=\"margin:4px 0 0 18px\">"
+        + ("\n".join(bullets) or "<li class=\"muted small\">None</li>")
+        + "</ul>"
+        + evidence_table
     )
 
 def _count_status(items: List[Dict[str, Any]]) -> Dict[str, int]:
