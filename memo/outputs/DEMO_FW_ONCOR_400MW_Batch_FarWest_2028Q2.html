@@ -240,23 +240,23 @@
       <aside class="sidebar">
         <div class="toc">
           <h3>Decision Memo (v0)</h3>
-          <a href="#sec-brief">Executive brief</a>
-          <a href="#sec-summary">Summary</a>
+          <a href="#sec-brief">Decision brief</a>
+          <a href="#sec-summary">Summary &amp; next actions</a>
           <a href="#sec-scope">Scope &amp; disclaimers</a>
-          <a href="#sec-input">Input snapshot</a>
+          <a href="#sec-input">Project details</a>
           <a href="#sec-path">Process path</a>
-          <a href="#sec-missing">Missing inputs</a>
-          <a href="#sec-uncertainty">Uncertainty &amp; dependencies</a>
-          <a href="#sec-levers">Levers</a>
+          <a href="#sec-missing">Missing information</a>
+          <a href="#sec-uncertainty">Open questions</a>
+          <a href="#sec-levers">Decision levers</a>
           <a href="#sec-options">Options comparison</a>
           <a href="#sec-flags" class="analyst-only">Parallel flags</a>
           <a href="#sec-checklist">Energization checklist</a>
-          <a href="#sec-risk">Risk buckets &amp; evidence</a>
+          <a href="#sec-risk">Risk assessment</a>
           <a href="#sec-provenance" class="analyst-only">Provenance</a>
           <div class="meta">
             <div><span class="row-muted">Project</span>: <code>DEMO_FW_ONCOR_400MW_Batch_FarWest_2028Q2</code></div>
-            <div><span class="row-muted">Rendered</span>: <code>2026-02-26T23:18:07.117005+00:00</code></div>
-            <div style="margin-top:8px"><span class="row-muted">Evaluated</span>: <code>2026-02-26T23:17:58+00:00</code></div>
+            <div><span class="row-muted">Rendered</span>: <code>2026-02-26T23:46:03.872526+00:00</code></div>
+            <div style="margin-top:8px"><span class="row-muted">Evaluated</span>: <code>2026-02-26T23:46:03+00:00</code></div>
           </div>
           <div class="mode-toggle-bar">
             <button class="mode-btn" id="modeBtnExec" onclick="setMode('exec')" title="Executive view: hides raw evidence, IDs, and audit tables">Exec view</button>
@@ -281,17 +281,12 @@
             This section is designed to be forwarded internally (PM / legal / procurement / leadership). It avoids internal IDs and focuses on decisions + actions.
           </div>
           <div style="margin-top:10px">
-            <div class="decision-card-header" style="border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px"><div><span class="muted small">Status</span>&ensp;<span class="chip warn small">Screening: conditional</span>&ensp;<span class="chip  small">Energization: not requested</span>&ensp;<span class="chip small">Upgrade exposure: high</span></div><div style="margin-top:4px"><span class="muted small">Primary recommendation</span>&ensp;<strong>Prefer option voltage_138</strong></div><div style="margin-top:4px" class="muted small">Why: Primary pressure: Far West Texas geo constraint.</div></div>
-<div class="decision-card-reco" style="margin:10px 0 4px"><strong>We recommend: Prefer option voltage_138</strong> — missing_inputs_count: 3 → 3</div>
-<div style="margin:10px 0 4px"><strong>Minimum deliverables (48 h)</strong></div><ul style="margin:4px 0 0 18px"><li style="margin-bottom:6px"><strong>Ack Change Notification Obligation</strong><span class="muted small" style="margin-left:6px">→ deliver: Signed acknowledgement letter/email</span></li><li style="margin-bottom:6px"><strong>LLIS Formal Request Submitted</strong><span class="muted small" style="margin-left:6px">→ deliver: Formal LLIS initiation request + confirmation</span></li><li style="margin-bottom:6px"><strong>LLIS Data Package Submitted</strong><span class="muted small" style="margin-left:6px">→ deliver: Study data package submission receipt (files + transmittal)</span></li></ul>
-<div style="margin:10px 0 4px"><strong>Top risk drivers</strong></div><ul style="margin:4px 0 0 18px"><li style="margin-bottom:4px"><strong>Far west texas geo constraint</strong>: Increases upgrade exposure</li><li style="margin-bottom:4px"><strong>Far west texas geo constraint</strong>: Increases queue wait</li><li style="margin-bottom:4px"><strong>Far west texas geo constraint</strong>: Increases queue wait</li></ul><details style="margin-top:8px" class="analyst-only"><summary class="muted small">Show evidence table (rule-level)</summary><div style="overflow-x:auto;margin-top:6px"><table><thead><tr><th>driver</th><th>tags</th><th class="nowrap">contrib</th></tr></thead><tbody><tr><td class="wrap"><span class="muted small">FAR_WEST_003_AREA_SPECIFIC_UPGRADE_EXPOSURE</span></td><td class="wrap"><code>geo_risk_far_west</code> <code>new_line</code> <code>study_assumption_change</code> <code>timeline_risk</code> <code>upgrade_exposure</code></td><td class="nowrap"><span class="small"><code>up:5.5</code> <code>wait:3.5</code> <code>ops:0.0</code></span></td></tr>
-<tr><td class="wrap"><span class="muted small">FAR_WEST_001_NO_SOLAR_SCENARIO_CONSTRAINT</span></td><td class="wrap"><code>geo_risk_far_west</code> <code>market_notice</code> <code>restudy_risk</code> <code>study_assumption_change</code> <code>timeline_risk</code> <code>upgrade_exposure</code></td><td class="nowrap"><span class="small"><code>up:2.5</code> <code>wait:5.0</code> <code>ops:0.0</code></span></td></tr>
-<tr><td class="wrap"><span class="muted small">FAR_WEST_002_STUDY_ASSUMPTIONS_MAY_CHANGE_GENERATOR_LANDSCAPE</span></td><td class="wrap"><code>geo_risk_far_west</code> <code>restudy_risk</code> <code>study_assumption_change</code> <code>timeline_risk</code></td><td class="nowrap"><span class="small"><code>up:2.0</code> <code>wait:5.0</code> <code>ops:0.0</code></span></td></tr>
-<tr><td class="wrap"><span class="muted small">RESTUDY_001_MATERIAL_CHANGE_UNDER_BATCH_CYCLE</span></td><td class="wrap"><code>batch_study</code> <code>queue_dependency</code> <code>re_study</code> <code>restudy_risk</code> <code>timeline_risk</code></td><td class="nowrap"><span class="small"><code>up:0.0</code> <code>wait:7.0</code> <code>ops:0.0</code></span></td></tr>
-<tr><td class="wrap"><span class="muted small">RESTUDY_002_QUEUE_DISRUPTION_NEARBY_MUST_STUDY</span></td><td class="wrap"><code>batch_study</code> <code>queue_density</code> <code>restudy_risk</code> <code>study_dependency</code> <code>timeline_risk</code></td><td class="nowrap"><span class="small"><code>up:0.0</code> <code>wait:6.0</code> <code>ops:0.0</code></span></td></tr>
-<tr><td class="wrap"><span class="muted small">POLICY_001_TEXAS_TRIBUNE_DATA_CENTER_ERCOT_NEW_FRAMEWORK</span></td><td class="wrap"><code>batch_study</code> <code>governance_dependency</code> <code>queue_density</code> <code>timeline_risk</code></td><td class="nowrap"><span class="small"><code>up:0.0</code> <code>wait:5.5</code> <code>ops:0.0</code></span></td></tr></tbody></table></div></details>
-<div style="margin:10px 0 4px"><strong>What could change this</strong></div><ul style="margin:4px 0 0 18px"><li class="small">Queue/system state: <span class="muted">{&#x27;rule_id&#x27;: &#x27;BATCH_005_QUEUE_POSITION_GOVERNANCE_DEPENDENCY&#x27;, &#x27;doc_id&#x27;: &#x27;ERCOT_MARKET_NOTICE_A122325_01&#x27;, &#x27;loc&#x27;: &#x27;M-A122325-01, LONG DESCRIPTION: &quot;The rapid increase in Large Load interconnection requests has created structural challenges, including coordination across TSPs, repeated restudies, and a growing backlog of requests.&quot;&#x27;, &#x27;trigger_tags&#x27;: [&#x27;batch_study&#x27;, &#x27;governance_dependency&#x27;, &#x27;process_latency&#x27;, &#x27;queue_dependency&#x27;]}</span></li><li class="small">Queue/system state: <span class="muted">{&#x27;rule_id&#x27;: &#x27;RESTUDY_001_MATERIAL_CHANGE_UNDER_BATCH_CYCLE&#x27;, &#x27;doc_id&#x27;: &#x27;ERCOT_LLI_BATCH_STUDY_PPT_20260122&#x27;, &#x27;loc&#x27;: &#x27;ERCOT-Large-Load-Batch-Studies-LLWG_01222026.pptx (material change handling in batch process)&#x27;, &#x27;trigger_tags&#x27;: [&#x27;batch_study&#x27;, &#x27;queue_dependency&#x27;, &#x27;re_study&#x27;, &#x27;restudy_risk&#x27;, &#x27;timeline_risk&#x27;]}</span></li><li class="small">Queue/system state: <span class="muted">{&#x27;rule_id&#x27;: &#x27;RESTUDY_002_QUEUE_DISRUPTION_NEARBY_MUST_STUDY&#x27;, &#x27;doc_id&#x27;: &#x27;ERCOT_MARKET_NOTICE_A122325_01&#x27;, &#x27;loc&#x27;: &#x27;M-A122325-01, LONG DESCRIPTION: structural challenges including &quot;coordination across TSPs, repeated restudies, and a growing backlog.&quot; Also corroborated by Q&amp;A Rev.12.15.25 p.10: &quot;A common reason re-studies are needed is that another large load customer in the same area becomes a must-study load.&quot;&#x27;, &#x27;trigger_tags&#x27;: [&#x27;batch_study&#x27;, &#x27;queue_density&#x27;, &#x27;restudy_risk&#x27;, &#x27;study_dependency&#x27;, &#x27;timeline_risk&#x27;]}</span></li></ul>
-<div class="muted small" style="margin:12px 0 0;border-top:1px solid var(--border);padding-top:8px">v0 screening · 89 rules matched · 0 docs cited · not a study substitute · evidence details in sections below</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:14px"><span class="chip warn" style="font-size:13px;padding:5px 12px">Screening: <strong>Conditional — action required</strong></span><span class="chip " style="font-size:13px;padding:5px 12px">Energization: <strong>Not applicable</strong></span><span class="chip" style="font-size:13px;padding:5px 12px">Upgrade exposure: <strong>High</strong></span></div>
+<div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:4px">Recommendation</div><div style="font-size:14px">We recommend the 138 kV connection option. This option best addresses the project&#x27;s primary concern: Far West Texas geographic constraint.</div></div>
+<div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:6px">What to do next</div><ol style="margin:0;padding-left:20px"><li style="margin-bottom:8px"><div style="font-weight:600">Ack Change Notification Obligation</div><div style="color:var(--muted);font-size:13px;margin-top:2px">Produce: Signed acknowledgement letter/email</div></li><li style="margin-bottom:8px"><div style="font-weight:600">LLIS Formal Request Submitted</div><div style="color:var(--muted);font-size:13px;margin-top:2px">Produce: Formal LLIS initiation request + confirmation</div></li><li style="margin-bottom:8px"><div style="font-weight:600">LLIS Data Package Submitted</div><div style="color:var(--muted);font-size:13px;margin-top:2px">Produce: Study data package submission receipt (files + transmittal)</div></li></ol></div>
+<div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:6px">Key risk factors</div><ul style="margin:0;padding-left:20px"><li style="margin-bottom:8px"><div style="font-weight:600">Far West Texas geographic constraint</div><div style="color:#374151;font-size:13px;margin-top:2px">The project is located in Far West Texas, a constrained transmission area with known upgrade pressure.</div></li><li style="margin-bottom:8px"><div style="font-weight:600">Batch-study cycle dependency</div><div style="color:#374151;font-size:13px;margin-top:2px">This project is subject to a batch-study cycle — the next study window and its timeline need to be confirmed.</div></li></ul></div>
+<div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:6px">What could change this</div><ul style="margin:0;padding-left:20px"><li style="font-size:13px;margin-bottom:4px">Queue or study status: <strong>Batch-study cycle dependency</strong></li></ul></div>
+<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;color:var(--muted);font-size:12px;line-height:1.6">This is a preliminary screening assessment, not a final engineering determination. There are 3 information items still needed. Final requirements will be confirmed by ERCOT, your transmission service provider, and your TDSP.</div>
           </div>
           <details style="margin-top:10px">
             <summary>Show / download 1-click PDF version</summary>
@@ -309,20 +304,17 @@
         <div class="card" id="sec-summary">
           <div class="section-title">
             <h2>Summary</h2>
-            <div class="id">v0</div>
+            <div class="id">screening</div>
           </div>
-          <div class="muted small">Executive summary (screening deliverable): status, next actions, and bounded recommendation (within generated options).</div>
 
-          <div class="chips" style="margin-top:10px">
+          <div class="chips" style="margin-top:6px">
             <span class="chip warn"><span class="small">screening</span> <code>conditional</code></span>
 <span class="chip"><span class="small">energization</span> <code>unknown</code></span>
             <span class="chip"><span class="small">screening</span> <code>missing_inputs_count=3</code></span>
 <span class="chip"><span class="small">energization</span> <code>energization_not_requested</code></span>
           </div>
-          <div class="muted small" style="margin-top:8px">Screening = intake/screening readiness. Energization = readiness vs the target energization window (if provided).</div>
-          <div class="muted small" style="margin-top:6px">Suggested reading order (first time): <strong>Summary → Levers → Options comparison → Risk buckets</strong>.</div>
 
-          <div style="margin-top:10px">
+          <div style="margin-top:12px">
             <div class="muted small">Top next actions</div>
 <div class="action-cards" style="margin-top:8px">
 <div class="action-card">
@@ -368,7 +360,7 @@
           </div>
 
           <details style="margin-top:10px">
-            <summary>Show bounded recommendation (within baseline + options)</summary>
+            <summary>Show recommendation details (options compared)</summary>
             <div class="chips">
 <span class="chip good"><span class="small">recommended</span> <code>voltage_138</code></span>
 <span class="chip"><span class="small">baseline?</span> <code>False</code></span>
@@ -396,38 +388,11 @@
 </table></div>
 <div class="muted small" style="margin-top:10px">Note: v0 recommendation is bounded to baseline + generated options; it is not a global optimizer.</div>
           </details>
-
-          <details style="margin-top:10px">
-            <summary>Show top risk drivers (evidence-backed)</summary>
-            <ul style="margin:4px 0 0 18px"><li style="margin-bottom:4px"><strong>Far west texas geo constraint</strong>: Increases upgrade exposure</li>
-<li style="margin-bottom:4px"><strong>Far west texas geo constraint</strong>: Increases queue wait</li>
-<li style="margin-bottom:4px"><strong>Far west texas geo constraint</strong>: Increases queue wait</li></ul><details style="margin-top:8px" class="analyst-only"><summary class="muted small">Show evidence table (rule_id / doc_id / loc)</summary><div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th class="nowrap">rule_id</th><th class="nowrap">doc_id</th><th>loc</th><th>tags</th><th class="nowrap">contrib</th></tr></thead><tbody><tr><td class="nowrap"><code>FAR_WEST_003_AREA_SPECIFIC_UPGRADE_EXPOSURE</code></td><td class="nowrap"><code>ERCOT_MARKET_NOTICE_A022326_01</code></td><td class="wrap"><span class="muted">M-A022326-01, LONG DESCRIPTION: &quot;ERCOT will not approve LLIS studies for Large Load additions in the Far West unless they include a no-solar scenario.&quot; Counties: Andrews, Borden, Brewster, Coke, Concho, Crane, Crockett, Culberson, Dawson, Ector, Edwards, Fisher, Glasscock, Howard, Irion, Jeff Davis, Jones, Kinney, Loving, Lynn, Martin, Midland, Mitchell, Nolan, Pecos, Presidio, Reagan, Reeves, Schleicher, Scurry, Sterling, Sutton, Terrell, Tom Green, Upton, Val Verde, Ward, Winkler.</span></td><td class="wrap"><code>geo_risk_far_west</code> <code>new_line</code> <code>study_assumption_change</code> <code>timeline_risk</code> <code>upgrade_exposure</code></td><td class="nowrap"><span class="small"><code>up:5.5</code> <code>wait:3.5</code> <code>ops:0.0</code></span></td></tr>
-<tr><td class="nowrap"><code>FAR_WEST_001_NO_SOLAR_SCENARIO_CONSTRAINT</code></td><td class="nowrap"><code>ERCOT_MARKET_NOTICE_A022326_01</code></td><td class="wrap"><span class="muted">M-A022326-01, full notice – LONG DESCRIPTION: &quot;Effective immediately, ERCOT requires TSPs to include a no-solar scenario as part of LLIS for Large Loads proposing to interconnect within the list of counties identified in this Market Notice.&quot;</span></td><td class="wrap"><code>geo_risk_far_west</code> <code>market_notice</code> <code>restudy_risk</code> <code>study_assumption_change</code> <code>timeline_risk</code> <code>upgrade_exposure</code></td><td class="nowrap"><span class="small"><code>up:2.5</code> <code>wait:5.0</code> <code>ops:0.0</code></span></td></tr>
-<tr><td class="nowrap"><code>FAR_WEST_002_STUDY_ASSUMPTIONS_MAY_CHANGE_GENERATOR_LANDSCAPE</code></td><td class="nowrap"><code>ERCOT_MARKET_NOTICE_A022326_01</code></td><td class="wrap"><span class="muted">M-A022326-01, LONG DESCRIPTION: &quot;ERCOT considers the identification of this risk to be a material change that impacts one or more LLIS study assumptions for interconnection requests in the identified counties.&quot; Per PG §9.4(8).</span></td><td class="wrap"><code>geo_risk_far_west</code> <code>restudy_risk</code> <code>study_assumption_change</code> <code>timeline_risk</code></td><td class="nowrap"><span class="small"><code>up:2.0</code> <code>wait:5.0</code> <code>ops:0.0</code></span></td></tr>
-<tr><td class="nowrap"><code>RESTUDY_001_MATERIAL_CHANGE_UNDER_BATCH_CYCLE</code></td><td class="nowrap"><code>ERCOT_LLI_BATCH_STUDY_PPT_20260122</code></td><td class="wrap"><span class="muted">ERCOT-Large-Load-Batch-Studies-LLWG_01222026.pptx (material change handling in batch process)</span></td><td class="wrap"><code>batch_study</code> <code>queue_dependency</code> <code>re_study</code> <code>restudy_risk</code> <code>timeline_risk</code></td><td class="nowrap"><span class="small"><code>up:0.0</code> <code>wait:7.0</code> <code>ops:0.0</code></span></td></tr>
-<tr><td class="nowrap"><code>RESTUDY_002_QUEUE_DISRUPTION_NEARBY_MUST_STUDY</code></td><td class="nowrap"><code>ERCOT_MARKET_NOTICE_A122325_01</code></td><td class="wrap"><span class="muted">M-A122325-01, LONG DESCRIPTION: structural challenges including &quot;coordination across TSPs, repeated restudies, and a growing backlog.&quot; Also corroborated by Q&amp;A Rev.12.15.25 p.10: &quot;A common reason re-studies are needed is that another large load customer in the same area becomes a must-study load.&quot;</span></td><td class="wrap"><code>batch_study</code> <code>queue_density</code> <code>restudy_risk</code> <code>study_dependency</code> <code>timeline_risk</code></td><td class="nowrap"><span class="small"><code>up:0.0</code> <code>wait:6.0</code> <code>ops:0.0</code></span></td></tr>
-<tr><td class="nowrap"><code>POLICY_001_TEXAS_TRIBUNE_DATA_CENTER_ERCOT_NEW_FRAMEWORK</code></td><td class="nowrap"><code>ERCOT_MARKET_NOTICE_A122325_01</code></td><td class="wrap"><span class="muted">M-A122325-01 (context: public reporting of ERCOT shift to data-center batch study framework)</span></td><td class="wrap"><code>batch_study</code> <code>governance_dependency</code> <code>queue_density</code> <code>timeline_risk</code></td><td class="nowrap"><span class="small"><code>up:0.0</code> <code>wait:5.5</code> <code>ops:0.0</code></span></td></tr></tbody></table></div></details>
-          </details>
-
-          <div class="kv">
-            <div class="k">Operator area</div>
-            <div class="v"><code>ERCOT</code></div>
-            <div class="k">TDSP area</div>
-            <div class="v"><code>ONCOR</code></div>
-            <div class="k">Load (MW total)</div>
-            <div class="v"><code>400</code></div>
-            <div class="k">COD target window</div>
-            <div class="v"><code>2028Q2</code></div>
-            <div class="k">Requesting energization?</div>
-            <div class="v"><code>False</code></div>
-            <div class="k">Process path</div>
-            <div class="v"><div class="scroll-x"><code>Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Material Change / Re-study Screening → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</code></div></div>
-          </div>
         </div>
 
         <div class="card" id="sec-scope">
           <div class="section-title">
-            <h2>Scope & disclaimers</h2>
+            <h2>Scope &amp; disclaimers</h2>
             <div class="id">screening only</div>
           </div>
           <div class="muted small">
@@ -441,14 +406,28 @@
           </ul>
         </div>
 
-        <div class="card analyst-only" id="sec-input">
+        <div class="card" id="sec-input">
           <div class="section-title">
-            <h2>1) Input snapshot</h2>
-            <div class="id">raw JSON (folded)</div>
+            <h2>1) Project details</h2>
+            <div class="id">input snapshot</div>
           </div>
-          <details>
+          <div class="kv" style="margin-top:8px">
+            <div class="k">Operator area</div>
+            <div class="v"><code>ERCOT</code></div>
+            <div class="k">TDSP area</div>
+            <div class="v"><code>ONCOR</code></div>
+            <div class="k">Load (MW total)</div>
+            <div class="v"><code>400</code></div>
+            <div class="k">COD target window</div>
+            <div class="v"><code>2028Q2</code></div>
+            <div class="k">Requesting energization?</div>
+            <div class="v"><code>False</code></div>
+            <div class="k">Process path</div>
+            <div class="v"><div class="scroll-x"><code>Intake → Large Load Intake (ERCOT) → Completeness Check → Study Path (ERCOT) — Single plan → Material Change / Re-study Screening → TDSP Routing → Facility Review (TDSP) → Risk Flags → Decision Memo</code></div></div>
+          </div>
+          <details style="margin-top:10px" class="analyst-only">
             <summary>Show raw request JSON</summary>
-            <div class="hint muted small">Tip: keep raw JSON folded for faster reading; use "Missing inputs" and checklists below.</div>
+            <div class="hint muted small">Full request object as submitted to the evaluator.</div>
             <pre>{
   &quot;project_name&quot;: &quot;DEMO_FW_ONCOR_400MW_Batch_FarWest_2028Q2&quot;,
   &quot;project_type&quot;: &quot;large_load&quot;,
@@ -532,18 +511,21 @@
             <div class="id">first satisfied edge wins</div>
           </div>
           <div class="muted small">Full process graph (from <code>graph/process_graph.yaml</code>) with the selected path highlighted.</div>
-          <div class="toolbar" style="margin-top:10px">
-            <span class="muted small">Zoom</span>
-            <button class="btn" data-graph-zoom="fit">Fit</button>
-            <button class="btn" data-graph-zoom="1">100%</button>
-            <button class="btn" data-graph-zoom="1.25">125%</button>
-            <button class="btn" data-graph-zoom="1.5">150%</button>
-            <button class="btn" data-graph-zoom="2">200%</button>
-            <button class="btn" data-graph-zoom="reset">Reset</button>
-            <span class="muted small">Tip: use scroll to pan</span>
-          </div>
-          <div class="graph-wrap" id="fullGraphWrap">
-            <svg class="graph" width="3360" height="334" viewBox="0 0 3360 334" role="img" aria-label="process graph">
+
+          <details style="margin-top:10px" class="analyst-only">
+            <summary>Show full process graph</summary>
+            <div class="toolbar" style="margin-top:10px">
+              <span class="muted small">Zoom</span>
+              <button class="btn" data-graph-zoom="fit">Fit</button>
+              <button class="btn" data-graph-zoom="1">100%</button>
+              <button class="btn" data-graph-zoom="1.25">125%</button>
+              <button class="btn" data-graph-zoom="1.5">150%</button>
+              <button class="btn" data-graph-zoom="2">200%</button>
+              <button class="btn" data-graph-zoom="reset">Reset</button>
+              <span class="muted small">Tip: use scroll to pan</span>
+            </div>
+            <div class="graph-wrap" id="fullGraphWrap">
+              <svg class="graph" width="3360" height="334" viewBox="0 0 3360 334" role="img" aria-label="process graph">
 <defs>
 <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9ca3af"></path></marker>
 <marker id="arrowSel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"></path></marker>
@@ -673,7 +655,8 @@
 <text x="218" y="-2" font-size="12" fill="#6b7280">selected path edge</text>
 </g>
 </svg>
-          </div>
+            </div>
+          </details>
 
           <details style="margin-top:10px">
             <summary>Show selected path (compact)</summary>
@@ -2772,6 +2755,32 @@
         })();
 
         bindScrollSpy();
+      })();
+
+      /* ── Audience mode toggle ──────────────────────────────────────────── */
+      function setMode(m) {
+        if (m !== "exec" && m !== "analyst") m = "analyst";
+        document.documentElement.dataset.mode = m;
+        /* Update button active states */
+        var btnExec    = document.getElementById("modeBtnExec");
+        var btnAnalyst = document.getElementById("modeBtnAnalyst");
+        if (btnExec)    btnExec.classList.toggle("active",    m === "exec");
+        if (btnAnalyst) btnAnalyst.classList.toggle("active", m === "analyst");
+        /* Persist in URL without reload */
+        try {
+          var sp = new URLSearchParams(window.location.search);
+          sp.set("mode", m);
+          window.history.replaceState(null, "", "?" + sp.toString() + window.location.hash);
+        } catch (e) {}
+      }
+
+      /* Initialise button state to match whatever mode was set on load */
+      (function syncModeButtons() {
+        var m = document.documentElement.dataset.mode || "analyst";
+        var btnExec    = document.getElementById("modeBtnExec");
+        var btnAnalyst = document.getElementById("modeBtnAnalyst");
+        if (btnExec)    btnExec.classList.toggle("active",    m === "exec");
+        if (btnAnalyst) btnAnalyst.classList.toggle("active", m === "analyst");
       })();
     </script>
   </body>

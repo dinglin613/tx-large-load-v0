@@ -240,18 +240,18 @@
       <aside class="sidebar">
         <div class="toc">
           <h3>Decision Memo (v0)</h3>
-          <a href="#sec-brief">Executive brief</a>
-          <a href="#sec-summary">Summary</a>
+          <a href="#sec-brief">Decision brief</a>
+          <a href="#sec-summary">Summary &amp; next actions</a>
           <a href="#sec-scope">Scope &amp; disclaimers</a>
-          <a href="#sec-input">Input snapshot</a>
+          <a href="#sec-input">Project details</a>
           <a href="#sec-path">Process path</a>
-          <a href="#sec-missing">Missing inputs</a>
-          <a href="#sec-uncertainty">Uncertainty &amp; dependencies</a>
-          <a href="#sec-levers">Levers</a>
+          <a href="#sec-missing">Missing information</a>
+          <a href="#sec-uncertainty">Open questions</a>
+          <a href="#sec-levers">Decision levers</a>
           <a href="#sec-options">Options comparison</a>
           <a href="#sec-flags" class="analyst-only">Parallel flags</a>
           <a href="#sec-checklist">Energization checklist</a>
-          <a href="#sec-risk">Risk buckets &amp; evidence</a>
+          <a href="#sec-risk">Risk assessment</a>
           <a href="#sec-provenance" class="analyst-only">Provenance</a>
           <div class="meta">
             <div><span class="row-muted">Project</span>: <code>{{project_name}}</code></div>
@@ -299,50 +299,27 @@
         <div class="card" id="sec-summary">
           <div class="section-title">
             <h2>Summary</h2>
-            <div class="id">v0</div>
+            <div class="id">screening</div>
           </div>
-          <div class="muted small">Executive summary (screening deliverable): status, next actions, and bounded recommendation (within generated options).</div>
 
-          <div class="chips" style="margin-top:10px">
+          <div class="chips" style="margin-top:6px">
             {{decision_status_badge}}
             {{decision_reason_chips}}
           </div>
-          <div class="muted small" style="margin-top:8px">Screening = intake/screening readiness. Energization = readiness vs the target energization window (if provided).</div>
-          <div class="muted small" style="margin-top:6px">Suggested reading order (first time): <strong>Summary → Levers → Options comparison → Risk buckets</strong>.</div>
 
-          <div style="margin-top:10px">
+          <div style="margin-top:12px">
             {{next_actions_html}}
           </div>
 
           <details style="margin-top:10px">
-            <summary>Show bounded recommendation (within baseline + options)</summary>
+            <summary>Show recommendation details (options compared)</summary>
             {{recommendation_html}}
           </details>
-
-          <details style="margin-top:10px">
-            <summary>Show top risk drivers (evidence-backed)</summary>
-            {{top_drivers_html}}
-          </details>
-
-          <div class="kv">
-            <div class="k">Operator area</div>
-            <div class="v"><code>{{operator_area}}</code></div>
-            <div class="k">TDSP area</div>
-            <div class="v"><code>{{tdsp_area}}</code></div>
-            <div class="k">Load (MW total)</div>
-            <div class="v"><code>{{load_mw_total}}</code></div>
-            <div class="k">COD target window</div>
-            <div class="v"><code>{{cod_target_window}}</code></div>
-            <div class="k">Requesting energization?</div>
-            <div class="v"><code>{{is_requesting_energization}}</code></div>
-            <div class="k">Process path</div>
-            <div class="v"><div class="scroll-x"><code>{{path}}</code></div></div>
-          </div>
         </div>
 
         <div class="card" id="sec-scope">
           <div class="section-title">
-            <h2>Scope & disclaimers</h2>
+            <h2>Scope &amp; disclaimers</h2>
             <div class="id">screening only</div>
           </div>
           <div class="muted small">
@@ -356,14 +333,28 @@
           </ul>
         </div>
 
-        <div class="card analyst-only" id="sec-input">
+        <div class="card" id="sec-input">
           <div class="section-title">
-            <h2>1) Input snapshot</h2>
-            <div class="id">raw JSON (folded)</div>
+            <h2>1) Project details</h2>
+            <div class="id">input snapshot</div>
           </div>
-          <details>
+          <div class="kv" style="margin-top:8px">
+            <div class="k">Operator area</div>
+            <div class="v"><code>{{operator_area}}</code></div>
+            <div class="k">TDSP area</div>
+            <div class="v"><code>{{tdsp_area}}</code></div>
+            <div class="k">Load (MW total)</div>
+            <div class="v"><code>{{load_mw_total}}</code></div>
+            <div class="k">COD target window</div>
+            <div class="v"><code>{{cod_target_window}}</code></div>
+            <div class="k">Requesting energization?</div>
+            <div class="v"><code>{{is_requesting_energization}}</code></div>
+            <div class="k">Process path</div>
+            <div class="v"><div class="scroll-x"><code>{{path}}</code></div></div>
+          </div>
+          <details style="margin-top:10px" class="analyst-only">
             <summary>Show raw request JSON</summary>
-            <div class="hint muted small">Tip: keep raw JSON folded for faster reading; use "Missing inputs" and checklists below.</div>
+            <div class="hint muted small">Full request object as submitted to the evaluator.</div>
             <pre>{{request_json}}</pre>
           </details>
         </div>
@@ -385,19 +376,23 @@
             <div class="id">first satisfied edge wins</div>
           </div>
           <div class="muted small">Full process graph (from <code>graph/process_graph.yaml</code>) with the selected path highlighted.</div>
-          <div class="toolbar" style="margin-top:10px">
-            <span class="muted small">Zoom</span>
-            <button class="btn" data-graph-zoom="fit">Fit</button>
-            <button class="btn" data-graph-zoom="1">100%</button>
-            <button class="btn" data-graph-zoom="1.25">125%</button>
-            <button class="btn" data-graph-zoom="1.5">150%</button>
-            <button class="btn" data-graph-zoom="2">200%</button>
-            <button class="btn" data-graph-zoom="reset">Reset</button>
-            <span class="muted small">Tip: use scroll to pan</span>
-          </div>
-          <div class="graph-wrap" id="fullGraphWrap">
-            {{full_graph_svg}}
-          </div>
+
+          <details style="margin-top:10px" class="analyst-only">
+            <summary>Show full process graph</summary>
+            <div class="toolbar" style="margin-top:10px">
+              <span class="muted small">Zoom</span>
+              <button class="btn" data-graph-zoom="fit">Fit</button>
+              <button class="btn" data-graph-zoom="1">100%</button>
+              <button class="btn" data-graph-zoom="1.25">125%</button>
+              <button class="btn" data-graph-zoom="1.5">150%</button>
+              <button class="btn" data-graph-zoom="2">200%</button>
+              <button class="btn" data-graph-zoom="reset">Reset</button>
+              <span class="muted small">Tip: use scroll to pan</span>
+            </div>
+            <div class="graph-wrap" id="fullGraphWrap">
+              {{full_graph_svg}}
+            </div>
+          </details>
 
           <details style="margin-top:10px">
             <summary>Show selected path (compact)</summary>
@@ -944,6 +939,32 @@
         })();
 
         bindScrollSpy();
+      })();
+
+      /* ── Audience mode toggle ──────────────────────────────────────────── */
+      function setMode(m) {
+        if (m !== "exec" && m !== "analyst") m = "analyst";
+        document.documentElement.dataset.mode = m;
+        /* Update button active states */
+        var btnExec    = document.getElementById("modeBtnExec");
+        var btnAnalyst = document.getElementById("modeBtnAnalyst");
+        if (btnExec)    btnExec.classList.toggle("active",    m === "exec");
+        if (btnAnalyst) btnAnalyst.classList.toggle("active", m === "analyst");
+        /* Persist in URL without reload */
+        try {
+          var sp = new URLSearchParams(window.location.search);
+          sp.set("mode", m);
+          window.history.replaceState(null, "", "?" + sp.toString() + window.location.hash);
+        } catch (e) {}
+      }
+
+      /* Initialise button state to match whatever mode was set on load */
+      (function syncModeButtons() {
+        var m = document.documentElement.dataset.mode || "analyst";
+        var btnExec    = document.getElementById("modeBtnExec");
+        var btnAnalyst = document.getElementById("modeBtnAnalyst");
+        if (btnExec)    btnExec.classList.toggle("active",    m === "exec");
+        if (btnAnalyst) btnAnalyst.classList.toggle("active", m === "analyst");
       })();
     </script>
   </body>

@@ -1210,249 +1210,334 @@ def _deliverable_hint(field: str) -> str:
 
 
 def _tag_to_plain(tag: str) -> str:
-    """Map a risk tag identifier to a short plain-language phrase."""
+    """Map a risk tag to a short plain-language phrase (no underscores, no codes)."""
     _map = {
-        "upgrade_risk_high": "high transmission upgrade risk",
-        "upgrade_risk_medium": "medium transmission upgrade risk",
-        "upgrade_risk_low": "low transmission upgrade risk",
-        "wait_risk_high": "high queue-wait / delay risk",
-        "wait_risk_medium": "medium queue-wait / delay risk",
-        "wait_risk_low": "low queue-wait / delay risk",
-        "ops_risk_high": "high operational complexity",
-        "ops_risk_medium": "medium operational complexity",
-        "ops_risk_low": "low operational complexity",
-        "geo_risk_far_west": "Far West Texas geo constraint",
-        "phased_load": "phased load commissioning",
-        "batch_study": "in a batch-study cycle",
-        "restudy_risk": "restudy / POI-change risk",
-        "energization_risk": "energization readiness risk",
-        "queue_state_dependent": "outcome depends on queue state",
+        "upgrade_risk_high":    "high transmission upgrade risk",
+        "upgrade_risk_medium":  "medium transmission upgrade risk",
+        "upgrade_risk_low":     "low transmission upgrade risk",
+        "wait_risk_high":       "long queue-wait risk",
+        "wait_risk_medium":     "moderate queue-wait risk",
+        "wait_risk_low":        "low queue-wait risk",
+        "ops_risk_high":        "high operational complexity",
+        "ops_risk_medium":      "moderate operational complexity",
+        "ops_risk_low":         "low operational complexity",
+        "geo_risk_far_west":    "Far West Texas geographic constraint",
+        "phased_load":          "phased load commissioning",
+        "batch_study":          "batch-study cycle dependency",
+        "restudy_risk":         "restudy risk (POI change)",
+        "energization_risk":    "energization readiness risk",
+        "queue_state_dependent": "queue-state dependency",
     }
     s = tag.strip().lower()
     return _map.get(s, tag.replace("_", " "))
 
 
+def _tag_to_sentence(tag: str) -> str:
+    """Return a full plain-English sentence explaining the risk tag impact."""
+    _sentences = {
+        "upgrade_risk_high":    "A transmission upgrade is very likely required, which typically adds cost and schedule risk.",
+        "upgrade_risk_medium":  "A transmission upgrade may be required; this depends on study outcomes.",
+        "upgrade_risk_low":     "Upgrade risk appears low based on current inputs.",
+        "wait_risk_high":       "The project faces significant queue-wait exposure — timeline to energization may extend well beyond 24 months.",
+        "wait_risk_medium":     "There is moderate queue-wait exposure that could push the timeline past the target window.",
+        "wait_risk_low":        "Queue-wait exposure appears manageable under current conditions.",
+        "ops_risk_high":        "The configuration introduces high operational complexity, which may require additional coordination.",
+        "ops_risk_medium":      "Moderate operational complexity is present — confirm readiness with the operator.",
+        "ops_risk_low":         "Operational complexity is low.",
+        "geo_risk_far_west":    "The project is located in Far West Texas, a constrained transmission area with known upgrade pressure.",
+        "phased_load":          "The phased load plan adds commissioning coordination steps that must be tracked carefully.",
+        "batch_study":          "This project is subject to a batch-study cycle — the next study window and its timeline need to be confirmed.",
+        "restudy_risk":         "A POI change or restudy is indicated, which can reset timeline and cost obligations.",
+        "energization_risk":    "One or more energization readiness gates are not yet satisfied.",
+        "queue_state_dependent": "The outcome is sensitive to current queue and system state, which is not fully known.",
+    }
+    s = tag.strip().lower()
+    return _sentences.get(s, f"Risk factor flagged: {tag.replace('_', ' ')}.")
+
+
+def _cap(s: str) -> str:
+    """Capitalise only the first character, preserving the rest (e.g. 'Far West Texas…')."""
+    return s[:1].upper() + s[1:] if s else s
+
+
 def render_executive_brief_html(ev: Dict[str, Any]) -> str:
     """
-    Decision Card: forwardable first-screen brief.
-    6 blocks: status, recommended move, top-3 actions, top-3 risk drivers,
-    what-could-change-this, confidence note.  No rule_id / doc_id on first screen.
+    Decision Card — forwardable, plain-English first screen.
+    Written for a PM / legal / procurement reader who has never seen this system.
+    No internal IDs, no code tokens, no jargon on the visible surface.
     """
-    req = ev.get("request") or {}
-    dec_s = ev.get("decision_screening") or {}
-    dec_e = ev.get("decision_energization") or {}
+    req        = ev.get("request") or {}
+    dec_s      = ev.get("decision_screening") or {}
+    dec_e      = ev.get("decision_energization") or {}
 
-    # ── Block 1: status ──────────────────────────────────────────────────────
-    screening_status = str(dec_s.get("status") or "unknown")
+    # ── Resolve human-readable status labels ─────────────────────────────────
+    _status_label = {
+        "go":           "Ready to proceed",
+        "conditional":  "Conditional — action required",
+        "no_go":        "Not ready",
+        "ready":        "Ready",
+        "not_ready":    "Not ready",
+        "unknown":      "Status not determined",
+        "not requested":"Not applicable",
+    }
+    _status_cls = {
+        "go": "good", "ready": "good",
+        "conditional": "warn",
+        "no_go": "bad", "not_ready": "bad",
+    }
+
+    scr_raw  = str(dec_s.get("status") or "unknown").lower()
     e_reasons = " ".join(str(x) for x in (dec_e.get("reasons") or []) if str(x).strip()).lower()
-    energ_note = "not requested" if ("energization_not_requested" in e_reasons or "not_requested" in e_reasons) else str(dec_e.get("status") or "unknown")
+    enr_raw  = "not requested" if ("energization_not_requested" in e_reasons or "not_requested" in e_reasons) \
+               else str(dec_e.get("status") or "unknown").lower()
 
-    # Status chip CSS classes
-    def _status_cls(s: str) -> str:
-        s = s.lower()
-        if s in {"go", "ready", "satisfied"}: return "good"
-        if s in {"conditional", "missing"}: return "warn"
-        if s in {"no_go", "not_ready", "not_satisfied"}: return "bad"
-        return ""
+    scr_label = _status_label.get(scr_raw, scr_raw.replace("_", " ").title())
+    enr_label = _status_label.get(enr_raw, enr_raw.replace("_", " ").title())
+    scr_cls   = _status_cls.get(scr_raw, "")
+    enr_cls   = _status_cls.get(enr_raw, "")
 
-    scr_cls = _status_cls(screening_status)
-    enr_cls = _status_cls(energ_note)
+    # ── Resolve risk buckets in plain English ─────────────────────────────────
+    risk = ev.get("risk") or {}
+    tb   = risk.get("timeline_buckets") or {}
+    _bucket_label = {"high": "High", "medium": "Medium", "low": "Low", "unknown": "Not assessed"}
+    upgrade_raw  = str(risk.get("upgrade_exposure_bucket") or "unknown").lower()
+    upgrade_label = _bucket_label.get(upgrade_raw, upgrade_raw.title())
 
-    status_row = (
-        "<div class=\"chips\" style=\"margin-bottom:6px\">"
-        f"<span class=\"chip {scr_cls}\"><span class=\"small\">Screening</span> <code>{esc(screening_status)}</code></span>"
-        f"<span class=\"chip {enr_cls}\"><span class=\"small\">Energization</span> <code>{esc(energ_note)}</code></span>"
-        "</div>"
-    )
-
-    # ── collect missing inputs for blocks 2 & 3 ─────────────────────────────
-    miss = [str(x) for x in (ev.get("missing_inputs") or []) if str(x).strip()]
+    # ── Collect missing fields ────────────────────────────────────────────────
+    miss     = [str(x) for x in (ev.get("missing_inputs") or []) if str(x).strip()]
     miss_set = set(miss)
 
     missing_reqs: List[Dict[str, Any]] = []
     for rc in (ev.get("rule_checks") or []):
         if not isinstance(rc, dict): continue
         if str(rc.get("status") or "") != "missing": continue
-        mf = [str(x) for x in (rc.get("missing_fields") or []) if str(x).strip()]
-        for f in (f for f in mf if f in miss_set):
+        for f in (str(x) for x in (rc.get("missing_fields") or []) if str(x).strip() and str(x) in miss_set):
             missing_reqs.append({"field": f, "requirement": str(rc.get("criteria_text") or "").strip()})
         if len(missing_reqs) >= 12: break
 
     seen: set = set()
-    missing_reqs2: List[Dict[str, Any]] = []
+    missing_deduped: List[Dict[str, Any]] = []
     for it in missing_reqs:
         f = str(it.get("field") or "")
         if not f or f in seen: continue
-        seen.add(f); missing_reqs2.append(it)
-    if not missing_reqs2:
-        missing_reqs2 = [{"field": f, "requirement": ""} for f in miss[:8]]
+        seen.add(f); missing_deduped.append(it)
+    if not missing_deduped:
+        missing_deduped = [{"field": f, "requirement": ""} for f in miss[:8]]
 
-    # ── Block 2: recommended move ─────────────────────────────────────────────
-    rec = ev.get("recommendation") or {}
-    rid = str(rec.get("recommended_option_id") or "baseline")
-    is_base = bool(rec.get("recommended_is_baseline"))
+    # ── Recommendation in plain English ──────────────────────────────────────
+    rec      = ev.get("recommendation") or {}
+    rid      = str(rec.get("recommended_option_id") or "baseline")
+    is_base  = bool(rec.get("recommended_is_baseline"))
     rationale = rec.get("rationale") or []
-    r1 = str(rationale[0]) if isinstance(rationale, list) and rationale else ""
-    reco_line = f"Keep baseline ({rid})" if is_base else f"Prefer option {rid}"
+    r1        = str(rationale[0]) if isinstance(rationale, list) and rationale else ""
 
-    # Build natural-language "because" clause from rationale + top driver
-    because_parts = []
-    if r1:
-        because_parts.append(r1)
+    # Map option ids to readable labels where possible
+    _option_label = {
+        "baseline":            "the current baseline configuration",
+        "voltage_138":         "the 138 kV connection option",
+        "voltage_345":         "the 345 kV connection option",
+        "phased":              "a phased load approach",
+        "single":              "a single-phase approach",
+        "energization_plan_single": "proceeding with a single energization plan",
+        "energization_plan_phased": "a phased energization plan",
+    }
+    reco_label = _option_label.get(rid, f'option "{rid}"')
+    if is_base:
+        reco_sentence = f"We recommend staying with {reco_label}."
+    else:
+        reco_sentence = f"We recommend {reco_label}."
+
+    # Build a plain-English "because" clause — logic differs for baseline vs. alternative
     top_driver_plain = ""
+    top_driver_tag   = ""
     for d in (ev.get("top_drivers") or []):
         if not isinstance(d, dict): continue
         tags = [str(t) for t in (d.get("trigger_tags") or []) if str(t).strip()]
         if tags:
-            top_driver_plain = _tag_to_plain(tags[0])
+            top_driver_tag   = tags[0]
+            top_driver_plain = _tag_to_plain(top_driver_tag)
             break
-    if top_driver_plain and not because_parts:
-        because_parts.append(f"driven by {top_driver_plain}")
-    because_clause = (" — " + because_parts[0]) if because_parts else ""
 
-    reco_block = (
-        "<div class=\"decision-card-reco\" style=\"margin:10px 0 4px\">"
-        f"<strong>We recommend: {esc(reco_line)}</strong>{esc(because_clause)}"
+    # Engine rationale strings are typically machine-formatted ("option_x_wins_on_missing:3 → 3").
+    _looks_machine = lambda s: ("_" in s and ":" in s) or s.count("_") >= 2 or "→" in s
+
+    if is_base:
+        # Baseline recommendation: the "because" should explain why we aren't switching,
+        # not imply that staying on baseline "addresses" the top risk (it doesn't).
+        n_miss = len(missing_deduped)
+        if n_miss >= 3:
+            because_clause = f" There is not yet enough information to recommend a specific alternative — {n_miss} required inputs are outstanding."
+        elif n_miss > 0:
+            because_clause = " There is not yet enough information to recommend a specific alternative."
+        elif top_driver_plain:
+            because_clause = f" The project carries {top_driver_plain} risk; no configuration change is recommended at this stage."
+        else:
+            because_clause = ""
+    else:
+        # Non-baseline: explain what this option addresses
+        if r1 and not _looks_machine(r1):
+            because_clause = f" This option scores best on {r1.lower().rstrip('.')}."
+        elif top_driver_plain:
+            because_clause = f" This option best addresses the project's primary concern: {top_driver_plain}."
+        else:
+            because_clause = ""
+
+    # ── BLOCK 1: status header ────────────────────────────────────────────────
+    header = (
+        "<div style=\"display:flex;flex-wrap:wrap;gap:10px;align-items:center;"
+        "border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:14px\">"
+        f"<span class=\"chip {scr_cls}\" style=\"font-size:13px;padding:5px 12px\">"
+        f"Screening: <strong>{esc(scr_label)}</strong></span>"
+        f"<span class=\"chip {enr_cls}\" style=\"font-size:13px;padding:5px 12px\">"
+        f"Energization: <strong>{esc(enr_label)}</strong></span>"
+        f"<span class=\"chip\" style=\"font-size:13px;padding:5px 12px\">"
+        f"Upgrade exposure: <strong>{esc(upgrade_label)}</strong></span>"
         "</div>"
     )
 
-    # ── Block 3: top 3 minimum-deliverable actions ────────────────────────────
+    # ── BLOCK 2: recommendation sentence ─────────────────────────────────────
+    reco_block = (
+        "<div style=\"margin-bottom:14px\">"
+        f"<div style=\"font-size:15px;font-weight:700;margin-bottom:4px\">Recommendation</div>"
+        f"<div style=\"font-size:14px\">{esc(reco_sentence)}{esc(because_clause)}</div>"
+        "</div>"
+    )
+
+    # ── BLOCK 3: next 3 actions (plain English, with deliverable) ────────────
     action_items: List[str] = []
-    for it in missing_reqs2[:3]:
-        f = str(it.get("field") or "").strip()
-        lbl = _humanize_field_id(f) or f
+    for it in missing_deduped[:3]:
+        f    = str(it.get("field") or "").strip()
+        lbl  = _humanize_field_id(f) or f.replace("_", " ").title()
         hint = _deliverable_hint(f)
         action_items.append(
-            f"<li style=\"margin-bottom:6px\">"
-            f"<strong>{esc(lbl)}</strong>"
-            f"<span class=\"muted small\" style=\"margin-left:6px\">→ deliver: {esc(hint)}</span>"
+            f"<li style=\"margin-bottom:8px\">"
+            f"<div style=\"font-weight:600\">{esc(lbl)}</div>"
+            f"<div style=\"color:var(--muted);font-size:13px;margin-top:2px\">Produce: {esc(hint)}</div>"
             f"</li>"
         )
-    if missing_reqs2:
-        remaining = len(missing_reqs2) - min(3, len(missing_reqs2))
-        more_note = (f"<li class=\"muted small\">…and {remaining} more — see Missing Inputs below</li>" if remaining > 0 else "")
+    remaining = max(0, len(missing_deduped) - 3)
+    more_note = (
+        f"<li style=\"margin-top:4px;color:var(--muted);font-size:13px\">"
+        f"…plus {remaining} more item{'s' if remaining != 1 else ''} — see the detailed checklist below."
+        f"</li>"
+    ) if remaining > 0 else ""
+
+    if action_items:
         actions_block = (
-            "<div style=\"margin:10px 0 4px\"><strong>Minimum deliverables (48 h)</strong></div>"
-            "<ul style=\"margin:4px 0 0 18px\">"
+            "<div style=\"margin-bottom:14px\">"
+            "<div style=\"font-size:15px;font-weight:700;margin-bottom:6px\">What to do next</div>"
+            "<ol style=\"margin:0;padding-left:20px\">"
             + "".join(action_items) + more_note +
-            "</ul>"
+            "</ol></div>"
         )
     else:
-        actions_block = "<div class=\"muted small\" style=\"margin:10px 0\">No blocking inputs — all required fields satisfied.</div>"
+        actions_block = (
+            "<div style=\"margin-bottom:14px;color:var(--muted);font-size:14px\">"
+            "✓ All required information has been provided — no blocking items."
+            "</div>"
+        )
 
-    # ── Block 4: top 3 risk drivers (plain-language bullets, no IDs) ──────────
-    driver_bullets: List[str] = []
-    driver_rows_for_table: List[Dict[str, Any]] = []
+    # ── BLOCK 4: top 3 risk factors (plain-English, inline — not collapsed) ───
+    driver_items: List[str] = []
+    seen_driver_tags: set = set()
     for d in (ev.get("top_drivers") or []):
         if not isinstance(d, dict): continue
-        driver_rows_for_table.append(d)
-        if len(driver_bullets) < 3:
-            tags = [str(t) for t in (d.get("trigger_tags") or []) if str(t).strip()]
-            summary = str(d.get("summary") or "").strip()
-            tag_plain = _tag_to_plain(tags[0]) if tags else ""
-            c = d.get("contributions") or {}
-            up = int(c.get("upgrade", 0) or 0)
-            wait = int(c.get("wait", 0) or 0)
-            ops = int(c.get("ops", 0) or 0)
-            # impact phrase: dominant contributor
-            dominant = max([("upgrade exposure", up), ("queue wait", wait), ("ops complexity", ops)], key=lambda x: x[1])
-            impact_label = dominant[0] if dominant[1] > 0 else "risk pressure"
-            desc = summary if summary else (f"Increases {impact_label}" if tag_plain else "Flagged risk driver")
-            bullet_text = f"<strong>{esc(tag_plain.capitalize() or 'Risk driver')}</strong>: {esc(desc)}"
-            driver_bullets.append(f"<li style=\"margin-bottom:4px\">{bullet_text}</li>")
-
-    if driver_bullets:
-        # Evidence detail table (collapsed)
-        ev_rows = []
-        for d in driver_rows_for_table[:8]:
-            c2 = d.get("contributions") or {}
-            ev_rows.append(
-                "<tr>"
-                f"<td class=\"wrap\"><span class=\"muted small\">{esc(d.get('summary') or d.get('rule_id'))}</span></td>"
-                f"<td class=\"wrap\">{code_list(d.get('trigger_tags') or [])}</td>"
-                f"<td class=\"nowrap\"><span class=\"small\"><code>up:{esc(c2.get('upgrade',0))}</code> "
-                f"<code>wait:{esc(c2.get('wait',0))}</code> <code>ops:{esc(c2.get('ops',0))}</code></span></td>"
-                "</tr>"
-            )
-        evidence_detail = (
-            "<details style=\"margin-top:8px\" class=\"analyst-only\">"
-            "<summary class=\"muted small\">Show evidence table (rule-level)</summary>"
-            "<div style=\"overflow-x:auto;margin-top:6px\"><table>"
-            "<thead><tr><th>driver</th><th>tags</th><th class=\"nowrap\">contrib</th></tr></thead>"
-            "<tbody>" + "\n".join(ev_rows) + "</tbody>"
-            "</table></div></details>"
+        if len(driver_items) >= 3: break
+        tags    = [str(t) for t in (d.get("trigger_tags") or []) if str(t).strip()]
+        summary = str(d.get("summary") or "").strip()
+        # Deduplicate by primary tag — skip if we've already shown this risk label
+        primary_tag = tags[0] if tags else "other"
+        if primary_tag in seen_driver_tags:
+            continue
+        seen_driver_tags.add(primary_tag)
+        if tags:
+            label    = _cap(_tag_to_plain(tags[0]))
+            sentence = _tag_to_sentence(tags[0])
+        else:
+            label    = "Risk factor"
+            sentence = summary or "A risk factor has been flagged."
+        display_text = summary if (summary and len(summary) > 20) else sentence
+        driver_items.append(
+            f"<li style=\"margin-bottom:8px\">"
+            f"<div style=\"font-weight:600\">{esc(label)}</div>"
+            f"<div style=\"color:#374151;font-size:13px;margin-top:2px\">{esc(display_text)}</div>"
+            f"</li>"
         )
-        drivers_block = (
-            "<div style=\"margin:10px 0 4px\"><strong>Top risk drivers</strong></div>"
-            "<ul style=\"margin:4px 0 0 18px\">"
-            + "".join(driver_bullets) +
-            "</ul>"
-            + evidence_detail
-        )
-    else:
-        drivers_block = "<div class=\"muted small\" style=\"margin:10px 0\">No top drivers flagged.</div>"
 
-    # ── Block 5: what could change this decision ──────────────────────────────
-    unc = ev.get("uncertainties") or {}
-    unknowns = [str(x.get("field") or x) for x in (unc.get("unknown") or []) if x][:4]
-    queue_deps = [str(x) for x in (unc.get("queue_state_dependent") or []) if str(x).strip()][:3]
+    drivers_block = (
+        "<div style=\"margin-bottom:14px\">"
+        "<div style=\"font-size:15px;font-weight:700;margin-bottom:6px\">Key risk factors</div>"
+        "<ul style=\"margin:0;padding-left:20px\">"
+        + "".join(driver_items) +
+        "</ul></div>"
+    ) if driver_items else ""
+
+    # ── BLOCK 5: what could change this assessment ────────────────────────────
+    unc        = ev.get("uncertainties") or {}
+    unknowns   = [str(x.get("field") or x) for x in (unc.get("unknown") or []) if x][:4]
+    raw_queue_deps = (unc.get("queue_state_dependent") or [])[:3]
+
+    # Extract a readable label from each queue-dependency item (may be dict or string)
+    def _queue_dep_label(x) -> str:
+        if isinstance(x, dict):
+            tags = [str(t) for t in (x.get("trigger_tags") or []) if str(t).strip()]
+            if tags:
+                # Use the most descriptive tag as label
+                for t in tags:
+                    plain = _tag_to_plain(t)
+                    if plain and plain != t:
+                        return _cap(plain)
+                return _cap(tags[0].replace("_", " "))
+            summary = str(x.get("summary") or x.get("rule_id") or "").strip()
+            return summary[:80] if summary else "Queue or study status"
+        return str(x).replace("_", " ").strip()[:80]
+
     change_items: List[str] = []
     for f in unknowns:
-        change_items.append(f"<li class=\"small\">Confirm value of <strong>{esc(_humanize_field_id(f) or f)}</strong></li>")
-    for dep in queue_deps:
-        change_items.append(f"<li class=\"small\">Queue/system state: <span class=\"muted\">{esc(dep)}</span></li>")
-    if change_items:
-        change_block = (
-            "<div style=\"margin:10px 0 4px\"><strong>What could change this</strong></div>"
-            "<ul style=\"margin:4px 0 0 18px\">"
-            + "".join(change_items) +
-            "</ul>"
+        lbl = _humanize_field_id(f) or f.replace("_", " ").title()
+        change_items.append(f"<li style=\"font-size:13px;margin-bottom:4px\">Clarify: <strong>{esc(lbl)}</strong></li>")
+    seen_queue: set = set()
+    for dep in raw_queue_deps:
+        lbl = _queue_dep_label(dep)
+        if lbl in seen_queue:
+            continue
+        seen_queue.add(lbl)
+        change_items.append(
+            f"<li style=\"font-size:13px;margin-bottom:4px\">"
+            f"Queue or study status: <strong>{esc(lbl)}</strong>"
+            f"</li>"
         )
-    else:
-        change_block = ""
 
-    # ── Block 6: confidence / scope note ─────────────────────────────────────
-    rule_checks = ev.get("rule_checks") or []
-    n_rules = len(rule_checks)
-    evidence = ev.get("evidence") or []
-    n_docs = len({str(e.get("doc_id") or "") for e in evidence if str(e.get("doc_id") or "") and str(e.get("doc_id") or "") != "NON_CITED_HEURISTIC"})
-    confidence_block = (
-        "<div class=\"muted small\" style=\"margin:12px 0 0;border-top:1px solid var(--border);padding-top:8px\">"
-        f"v0 screening · {n_rules} rules matched · {n_docs} docs cited · "
-        "not a study substitute · evidence details in sections below"
+    change_block = (
+        "<div style=\"margin-bottom:14px\">"
+        "<div style=\"font-size:15px;font-weight:700;margin-bottom:6px\">What could change this</div>"
+        "<ul style=\"margin:0;padding-left:20px\">" + "".join(change_items) + "</ul>"
+        "</div>"
+    ) if change_items else ""
+
+    # ── BLOCK 6: footer scope note (plain English, no technical counts) ───────
+    n_satisfied = sum(1 for rc in (ev.get("rule_checks") or []) if isinstance(rc, dict) and rc.get("status") == "satisfied")
+    n_missing   = len(miss)
+    has_energization = bool(req.get("is_requesting_energization"))
+
+    scope_parts = ["This is a preliminary screening assessment, not a final engineering determination."]
+    if n_missing > 0:
+        scope_parts.append(f"There {'is' if n_missing == 1 else 'are'} {n_missing} information item{'s' if n_missing != 1 else ''} still needed.")
+    if has_energization:
+        scope_parts.append("Energization readiness gates are tracked in the checklist below.")
+    scope_parts.append("Final requirements will be confirmed by ERCOT, your transmission service provider, and your TDSP.")
+
+    footer = (
+        "<div style=\"border-top:1px solid var(--border);padding-top:10px;margin-top:4px;"
+        "color:var(--muted);font-size:12px;line-height:1.6\">"
+        + " ".join(scope_parts) +
         "</div>"
     )
 
-    # ── 3-line status grammar at very top ────────────────────────────────────
-    risk = ev.get("risk") or {}
-    tb = risk.get("timeline_buckets") or {}
-    upgrade_bucket = str(risk.get("upgrade_exposure_bucket") or "unknown")
-    why_one = ""
-    if top_driver_plain:
-        why_one = f"Primary pressure: {top_driver_plain}."
-    elif miss:
-        why_one = f"Missing inputs blocking progress: {_humanize_field_id(miss[0])}."
-    three_line = (
-        "<div class=\"decision-card-header\" style=\"border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px\">"
-        f"<div><span class=\"muted small\">Status</span>&ensp;"
-        f"<span class=\"chip {scr_cls} small\">Screening: {esc(screening_status)}</span>"
-        f"&ensp;<span class=\"chip {enr_cls} small\">Energization: {esc(energ_note)}</span>"
-        f"&ensp;<span class=\"chip small\">Upgrade exposure: {esc(upgrade_bucket)}</span>"
-        "</div>"
-        f"<div style=\"margin-top:4px\"><span class=\"muted small\">Primary recommendation</span>&ensp;"
-        f"<strong>{esc(reco_line)}</strong></div>"
-        + (f"<div style=\"margin-top:4px\" class=\"muted small\">Why: {esc(why_one)}</div>" if why_one else "")
-        + "</div>"
-    )
-
-    parts = []
-    parts.append(three_line)
-    parts.append(reco_block)
-    parts.append(actions_block)
-    parts.append(drivers_block)
-    if change_block:
-        parts.append(change_block)
-    parts.append(confidence_block)
+    parts = [header, reco_block, actions_block]
+    if drivers_block:   parts.append(drivers_block)
+    if change_block:    parts.append(change_block)
+    parts.append(footer)
     return "\n".join(parts)
 
 
@@ -1461,28 +1546,34 @@ def render_top_drivers_html(ev: Dict[str, Any]) -> str:
     if not isinstance(items, list) or not items:
         return "<div class=\"muted small\">None</div>"
 
-    # ── First screen: plain-language bullets (no rule_id / doc_id) ──────────
+    # ── First screen: plain-English bullets (no rule_id / doc_id) ───────────
     bullets: List[str] = []
-    for it in items[:3]:
+    seen_bullet_tags: set = set()
+    for it in items:
         if not isinstance(it, dict):
             continue
-        tags = [str(t) for t in (it.get("trigger_tags") or []) if str(t).strip()]
+        if len(bullets) >= 3:
+            break
+        tags    = [str(t) for t in (it.get("trigger_tags") or []) if str(t).strip()]
         summary = str(it.get("summary") or "").strip()
-        tag_plain = _tag_to_plain(tags[0]) if tags else "risk driver"
-        c = it.get("contributions") or {}
-        up = int(c.get("upgrade", 0) or 0)
-        wait = int(c.get("wait", 0) or 0)
-        ops = int(c.get("ops", 0) or 0)
-        dominant = max([("upgrade exposure", up), ("queue wait", wait), ("ops complexity", ops)], key=lambda x: x[1])
-        impact_label = dominant[0] if dominant[1] > 0 else "risk pressure"
-        desc = summary if summary else f"Increases {impact_label}"
+        primary_tag = tags[0] if tags else "other"
+        if primary_tag in seen_bullet_tags:
+            continue
+        seen_bullet_tags.add(primary_tag)
+        if tags:
+            label    = _cap(_tag_to_plain(tags[0]))
+            sentence = _tag_to_sentence(tags[0])
+        else:
+            label    = "Risk factor"
+            sentence = summary or "A risk factor has been flagged."
+        display_text = summary if (summary and len(summary) > 20) else sentence
         bullets.append(
-            f"<li style=\"margin-bottom:4px\">"
-            f"<strong>{esc(tag_plain.capitalize())}</strong>: {esc(desc)}"
+            f"<li style=\"margin-bottom:6px\">"
+            f"<strong>{esc(label)}</strong>: {esc(display_text)}"
             "</li>"
         )
 
-    # ── Evidence detail table (collapsed, analyst-only) ──────────────────────
+    # ── Analyst evidence table (collapsed) ───────────────────────────────────
     rows: List[str] = []
     for it in items[:8]:
         if not isinstance(it, dict):
@@ -1494,24 +1585,27 @@ def render_top_drivers_html(ev: Dict[str, Any]) -> str:
             f"<td class=\"nowrap\"><code>{esc(it.get('doc_id'))}</code></td>"
             f"<td class=\"wrap\"><span class=\"muted\">{esc(it.get('loc'))}</span></td>"
             f"<td class=\"wrap\">{code_list(it.get('trigger_tags') or [])}</td>"
-            f"<td class=\"nowrap\"><span class=\"small\"><code>up:{esc(c.get('upgrade',0))}</code> "
-            f"<code>wait:{esc(c.get('wait',0))}</code> <code>ops:{esc(c.get('ops',0))}</code></span></td>"
+            f"<td class=\"nowrap\"><span class=\"small\">"
+            f"upgrade: {esc(c.get('upgrade',0))}, "
+            f"wait: {esc(c.get('wait',0))}, "
+            f"ops: {esc(c.get('ops',0))}"
+            f"</span></td>"
             "</tr>"
         )
 
     evidence_table = (
         "<details style=\"margin-top:8px\" class=\"analyst-only\">"
-        "<summary class=\"muted small\">Show evidence table (rule_id / doc_id / loc)</summary>"
+        "<summary style=\"font-size:12px;color:var(--accent)\">Show source evidence (analyst)</summary>"
         "<div style=\"overflow-x:auto;margin-top:8px\"><table>"
         "<thead><tr><th class=\"nowrap\">rule_id</th><th class=\"nowrap\">doc_id</th>"
-        "<th>loc</th><th>tags</th><th class=\"nowrap\">contrib</th></tr></thead>"
+        "<th>loc</th><th>tags</th><th class=\"nowrap\">score contribution</th></tr></thead>"
         "<tbody>"
         + ("\n".join(rows) or "<tr><td colspan=\"5\" class=\"muted\">None</td></tr>")
         + "</tbody></table></div></details>"
     )
 
     return (
-        "<ul style=\"margin:4px 0 0 18px\">"
+        "<ul style=\"margin:4px 0 0 20px;padding:0\">"
         + ("\n".join(bullets) or "<li class=\"muted small\">None</li>")
         + "</ul>"
         + evidence_table
