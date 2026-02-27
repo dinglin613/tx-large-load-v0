@@ -332,5 +332,38 @@
         "retrieved_date": "2026-02-26"
       }
     ]
+  },
+  {
+    "doc_id": "ERCOT_LLI_BATCH_STUDY_WORKSHOP_20260203",
+    "title": "ERCOT Large Load Interconnection Batch Study Workshop – Draft Framework (2026-02-03)",
+    "source_url": "https://www.ercot.com/calendar/02032026-Batch-Study-Process-for",
+    "retrieved_date": "2026-02-26",
+    "effective_date": "2026-02-03",
+    "hash": "230d73038e200dbdb10c8736062eef879851df867c187f0656275a4e77bca2a1",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "batch_study",
+      "workshop",
+      "batch_zero",
+      "llwg"
+    ],
+    "notes": "Feb 3 2026 workshop presenting the Draft Framework for Batch Study Process to be presented at PUCT Feb 20 Open Meeting. Covers Batch Zero A/B qualification criteria, timelines, 6-month cadence design, load allocation methodology (SCOPF), CLR/co-location rules, and RPG/RTP alignment. Still preliminary and subject to change per slide 2 disclaimer.",
+    "artifacts": [
+      {
+        "kind": "pptx",
+        "path": "docs/raw/ERCOT_Batch_Study_Workshop_20260203.pptx",
+        "sha256": "230d73038e200dbdb10c8736062eef879851df867c187f0656275a4e77bca2a1",
+        "size_bytes": 2260729,
+        "retrieved_date": "2026-02-26"
+      },
+      {
+        "kind": "pptx",
+        "path": "docs/raw/ERCOT_Batch_Stakeholder_Feedback_20260203.pptx",
+        "sha256": "7a1f206bab029a4abbe0a679fefdbeb94fc940450601479146ceb804fc0642ab",
+        "size_bytes": 2079082,
+        "retrieved_date": "2026-02-26"
+      }
+    ]
   }
 ]
