@@ -10,7 +10,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 import yaml
 from jsonschema import Draft202012Validator
 
-from tag_taxonomy import ALL_KNOWN_TAGS, TAG_RISK_CONTRIB
+from tag_taxonomy import ALL_KNOWN_TAGS, TAG_RISK_CONTRIB, BASELINE_TAGS
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = REPO_ROOT / "schema"
@@ -424,8 +424,8 @@ def main() -> int:
                     )
                 )
 
-            # Tags not in risk mapping do not contribute to v0 bucket scoring (they may still be useful for evidence).
-            non_contrib = sorted(published_tags_used - set(TAG_RISK_CONTRIB.keys()))
+            # Tags not in risk mapping (incremental or baseline) do not contribute to v0 bucket scoring (they may still be useful for evidence).
+            non_contrib = sorted(published_tags_used - set(TAG_RISK_CONTRIB.keys()) - set(BASELINE_TAGS.keys()))
             if non_contrib:
                 preview2 = non_contrib[:30]
                 more2 = f" (+{len(non_contrib) - len(preview2)} more)" if len(non_contrib) > len(preview2) else ""

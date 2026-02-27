@@ -207,33 +207,87 @@ def render_timeline_model_html(ev: Dict[str, Any]) -> str:
             upgrade_score = wait_score = ops_score = 0.0
         break
 
-    tb = risk.get("timeline_buckets") or {}
-    le_12 = str(tb.get("le_12_months", "unknown"))
-    m12_24 = str(tb.get("m12_24_months", "unknown"))
-    gt_24 = str(tb.get("gt_24_months", "unknown"))
+    te = risk.get("timeline_estimate") or {}
 
-    parts = [
-        "<div class=\"muted small\">Deterministic mapping (v0; not probabilities)</div>",
-        "<ul class=\"small\" style=\"margin:6px 0 0 18px\">"
-        "<li><code>upgrade_score ≥ 3</code> ⇒ <code>upgrade_exposure_bucket=high</code>, set <code>&gt;24=up</code>, <code>12–24=up</code>, <code>≤12=down</code></li>"
-        "<li><code>0.75 ≤ upgrade_score &lt; 3</code> ⇒ <code>upgrade_exposure_bucket=medium</code>, set <code>12–24=up</code>, <code>≤12=down</code></li>"
-        "<li><code>upgrade_score &lt; 0.75</code> ⇒ <code>upgrade_exposure_bucket=low</code> (timeline may remain <code>unknown</code> unless shifted by wait pressure)</li>"
-        "<li><code>wait_score ≥ 2</code> ⇒ additional shift away from <code>≤12</code> into <code>12–24</code> (set <code>≤12=down</code>, <code>12–24=up</code>)</li>"
-        "</ul>",
-        "<div class=\"muted small\" style=\"margin-top:10px\">Observed totals (from triggered rules/tags)</div>",
-        "<div class=\"chips\">"
-        f"<span class=\"chip\"><span class=\"small\">upgrade_score</span> <code>{esc(upgrade_score)}</code></span>"
-        f"<span class=\"chip\"><span class=\"small\">wait_score</span> <code>{esc(wait_score)}</code></span>"
-        f"<span class=\"chip\"><span class=\"small\">ops_score</span> <code>{esc(ops_score)}</code></span>"
-        "</div>",
-        "<div class=\"muted small\" style=\"margin-top:10px\">Resulting timeline signals</div>",
-        "<div class=\"chips\">"
-        f"<span class=\"chip\"><span class=\"small\">≤12</span> <code>{esc(le_12)}</code></span>"
-        f"<span class=\"chip\"><span class=\"small\">12–24</span> <code>{esc(m12_24)}</code></span>"
-        f"<span class=\"chip\"><span class=\"small\">&gt;24</span> <code>{esc(gt_24)}</code></span>"
-        "</div>",
+    # Prefer timeline_estimate fields when available
+    te_status = str(te.get("status") or "unanchored")
+    te_floor_date = te.get("study_results_floor_date")
+    te_floor_scenario = str(te.get("study_results_floor_scenario") or "")
+    te_months = te.get("months_to_study_floor")
+    te_cod_q = te.get("earliest_cod_quarter")
+    te_confidence = str(te.get("confidence") or "low")
+    te_caveats = te.get("caveats") or []
+    te_floor_source = str(te.get("study_results_floor_source") or "")
+    te_post_source = str(te.get("post_study_source") or "")
+    te_post_min = te.get("post_study_min_months", 6)
+    te_post_max = te.get("post_study_max_months", 12)
+
+    if te_status == "anchored" and te_floor_date:
+        # Source-anchored timeline block
+        caveat_lis = "".join(
+            f"<li class=\"small muted\">{esc(c)}</li>" for c in te_caveats[:4]
+        )
+        months_str = f"{te_months}" if te_months is not None else "\u2014"
+        cod_str = te_cod_q or "\u2014"
+        parts = [
+            "<div class=\"muted small\">Timeline estimate (source-anchored)</div>",
+            "<table class=\"small\" style=\"border-collapse:collapse;width:100%;margin:6px 0\">",
+            "<thead><tr style=\"border-bottom:1px solid var(--border)\">",
+            "<th style=\"text-align:left;padding:4px 8px 4px 0\">field</th>",
+            "<th style=\"text-align:left;padding:4px 8px\">value</th>",
+            "<th style=\"text-align:left;padding:4px 0\">source</th>",
+            "</tr></thead><tbody>",
+            f"<tr><td style=\"padding:3px 8px 3px 0\"><code>study_results_floor</code></td>"
+            f"<td style=\"padding:3px 8px\"><code>{esc(te_floor_date)}</code></td>"
+            f"<td class=\"muted\" style=\"padding:3px 0;font-size:11px\">{esc(te_floor_source[:80])}</td></tr>",
+            f"<tr><td style=\"padding:3px 8px 3px 0\"><code>scenario</code></td>"
+            f"<td style=\"padding:3px 8px\" colspan=\"2\" class=\"muted\">{esc(te_floor_scenario)}</td></tr>",
+            f"<tr><td style=\"padding:3px 8px 3px 0\"><code>months_to_study_floor</code></td>"
+            f"<td style=\"padding:3px 8px\"><code>{esc(months_str)}</code></td>"
+            f"<td class=\"muted\" style=\"padding:3px 0;font-size:11px\">from 2026-02-27</td></tr>",
+            f"<tr><td style=\"padding:3px 8px 3px 0\"><code>post_study_window</code></td>"
+            f"<td style=\"padding:3px 8px\"><code>{esc(str(te_post_min))}\u2013{esc(str(te_post_max))} months</code></td>"
+            f"<td class=\"muted\" style=\"padding:3px 0;font-size:11px\">{esc(te_post_source[:80])}</td></tr>",
+            f"<tr><td style=\"padding:3px 8px 3px 0\"><code>earliest_cod_quarter</code></td>"
+            f"<td style=\"padding:3px 8px\"><code>{esc(cod_str)}</code></td>"
+            f"<td class=\"muted\" style=\"padding:3px 0;font-size:11px\">study floor + {te_post_min} months (conservative)</td></tr>",
+            f"<tr><td style=\"padding:3px 8px 3px 0\"><code>confidence</code></td>"
+            f"<td style=\"padding:3px 8px\" colspan=\"2\"><code>{esc(te_confidence)}</code></td></tr>",
+            "</tbody></table>",
+        ]
+        if caveat_lis:
+            parts += [
+                "<div class=\"muted small\" style=\"margin-top:6px\">Caveats</div>",
+                f"<ul style=\"margin:4px 0 0 16px\">{caveat_lis}</ul>",
+            ]
+    else:
+        # Unanchored: show warning + score-derived direction
+        caveat_lis = "".join(
+            f"<li class=\"small muted\">{esc(c)}</li>" for c in te_caveats[:4]
+        )
+        parts = [
+            "<div style=\"background:#fef3c7;border:1px solid #fbbf24;border-radius:4px;"
+            "padding:8px 12px;margin:4px 0 6px 0\">"
+            "<span style=\"font-weight:700;font-size:12px\">\u26a0 Timeline floor unanchored</span>"
+            "<div class=\"small muted\" style=\"margin-top:4px\">"
+            "Provide <code>batch_zero_eligible</code> to anchor the study results floor date to a specific ERCOT batch calendar."
+            "</div></div>",
+            "<div class=\"muted small\">Score-derived directional signals (not calendar-anchored)</div>",
+            "<div class=\"chips\">"
+            f"<span class=\"chip\"><span class=\"small\">upgrade_score</span> <code>{esc(upgrade_score)}</code></span>"
+            f"<span class=\"chip\"><span class=\"small\">wait_score</span> <code>{esc(wait_score)}</code></span>"
+            f"<span class=\"chip\"><span class=\"small\">ops_score</span> <code>{esc(ops_score)}</code></span>"
+            "</div>",
+        ]
+        if caveat_lis:
+            parts += [
+                "<div class=\"muted small\" style=\"margin-top:6px\">Caveats</div>",
+                f"<ul style=\"margin:4px 0 0 16px\">{caveat_lis}</ul>",
+            ]
+
+    parts += [
         "<div class=\"muted small\" style=\"margin-top:10px\">Audit trail</div>",
-        "<div class=\"muted small\">See “Risk trace (raw JSON)” for per-rule tag contributions, and “Evidence” for <code>rule_id → doc_id/loc</code>.</div>",
+        "<div class=\"muted small\">See \u201cRisk trace (raw JSON)\u201d for per-rule tag contributions, and \u201cEvidence\u201d for <code>rule_id \u2192 doc_id/loc</code>.</div>",
     ]
     return "\n".join(parts)
 
@@ -1154,10 +1208,13 @@ def render_recommendation_html(ev: Dict[str, Any]) -> str:
             if not isinstance(c, dict):
                 continue
             s = c.get("summary") or {}
-            tb = s.get("timeline_buckets") or {}
+            te_s = s.get("timeline_estimate") or {}
             rs = s.get("risk_scores") or {}
             en = s.get("energization") or {}
             cc = (en.get("checklist_counts") or {}) if isinstance(en, dict) else {}
+            te_floor = te_s.get("study_results_floor_date") or "—"
+            te_cod   = te_s.get("earliest_cod_quarter") or "—"
+            te_stat  = te_s.get("status") or "unanchored"
             rows.append(
                 "<tr>"
                 f"<td class=\"nowrap\"><code>{esc(c.get('option_id'))}</code></td>"
@@ -1167,7 +1224,7 @@ def render_recommendation_html(ev: Dict[str, Any]) -> str:
                 f"<td class=\"nowrap\"><code>{esc(s.get('upgrade_exposure_bucket'))}</code></td>"
                 f"<td class=\"nowrap\"><code>{esc(s.get('operational_exposure_bucket'))}</code></td>"
                 f"<td class=\"nowrap\"><span class=\"small\"><code>risk:{esc((rs.get('upgrade_score',0) or 0) + (rs.get('wait_score',0) or 0) + (rs.get('ops_score',0) or 0))}</code></span></td>"
-                f"<td class=\"nowrap\"><span class=\"small\">≤12:{esc(tb.get('le_12_months','?'))} 12–24:{esc(tb.get('m12_24_months','?'))} >24:{esc(tb.get('gt_24_months','?'))}</span></td>"
+                f"<td class=\"nowrap\"><span class=\"small\">floor:{esc(te_floor)} cod:{esc(te_cod)} [{esc(te_stat)}]</span></td>"
                 f"<td class=\"nowrap\"><span class=\"small\">gate not_sat:{esc(cc.get('not_satisfied',0))} missing:{esc(cc.get('missing',0))}</span></td>"
                 "</tr>"
             )
@@ -1298,7 +1355,7 @@ def render_executive_brief_html(ev: Dict[str, Any]) -> str:
 
     # ── Resolve risk buckets in plain English ─────────────────────────────────
     risk = ev.get("risk") or {}
-    tb   = risk.get("timeline_buckets") or {}
+    te_exec = risk.get("timeline_estimate") or {}
     _bucket_label = {"high": "High", "medium": "Medium", "low": "Low", "unknown": "Not assessed"}
     upgrade_raw  = str(risk.get("upgrade_exposure_bucket") or "unknown").lower()
     upgrade_label = _bucket_label.get(upgrade_raw, upgrade_raw.title())
@@ -1660,14 +1717,25 @@ def render_options_compact_html(ev: Dict[str, Any]) -> str:
     }
 
     def _timeline_summary(summary: Dict) -> str:
-        tb = summary.get("timeline_buckets") or {}
-        gt = tb.get("gt_24_months", "")
-        m12 = tb.get("m12_24_months", "")
-        le = tb.get("le_12_months", "")
-        if gt == "up":    return "> 24 months likely"
-        if m12 == "up":   return "12–24 months likely"
-        if le == "up":    return "≤ 12 months possible"
-        return "Timeline unclear"
+        te_s = summary.get("timeline_estimate") or {}
+        te_status = str(te_s.get("status") or "unanchored")
+        te_floor = te_s.get("study_results_floor_date")
+        te_cod = te_s.get("earliest_cod_quarter")
+        te_months = te_s.get("months_to_study_floor")
+        if te_status == "anchored" and te_floor:
+            cod_str = f", COD ≥ {te_cod}" if te_cod else ""
+            months_str = f" ({te_months} mo to study)" if te_months is not None else ""
+            return f"Study floor {te_floor}{months_str}{cod_str}"
+        # Fallback: score-derived pressure signal only — NOT a calendar estimate
+        # "unanchored" means batch_zero_eligible was not provided; no date floor available.
+        upgrade = str(summary.get("upgrade_exposure_bucket") or "unknown")
+        rs = summary.get("risk_scores") or {}
+        wait = float(rs.get("wait_score") or 0)
+        if upgrade == "high" or wait >= 2:
+            return "⚠ No date floor (upgrade=high; provide batch_zero_eligible)"
+        if upgrade == "medium":
+            return "⚠ No date floor (upgrade=medium; provide batch_zero_eligible)"
+        return "⚠ No date floor — provide batch_zero_eligible"
 
     def _tradeoff(opt: Dict, is_recommended: bool) -> str:
         s = opt.get("summary") or {}
@@ -2486,7 +2554,7 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optiona
     flags = ev.get("flags") or []
 
     risk_status = risk.get("status", "unknown")
-    tb = (risk.get("timeline_buckets") or {})
+    te_detail = risk.get("timeline_estimate") or {}
 
     evidence = risk.get("evidence") or []
 
@@ -2613,9 +2681,9 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optiona
         .replace("{{checklist_rows}}", checklist_rows)
         .replace("{{checklist_stats_chips}}", checklist_stats_chips)
         .replace("{{risk_status}}", esc(risk_status))
-        .replace("{{bucket_le_12}}", esc(tb.get("le_12_months", "unknown")))
-        .replace("{{bucket_12_24}}", esc(tb.get("m12_24_months", "unknown")))
-        .replace("{{bucket_gt_24}}", esc(tb.get("gt_24_months", "unknown")))
+        .replace("{{bucket_le_12}}", esc(te_detail.get("study_results_floor_date") or "n/a (unanchored)"))
+        .replace("{{bucket_12_24}}", esc(te_detail.get("earliest_cod_quarter") or "n/a"))
+        .replace("{{bucket_gt_24}}", esc(te_detail.get("status") or "unanchored"))
         .replace("{{upgrade_exposure}}", esc(risk.get("upgrade_exposure_bucket", "unknown")))
         .replace("{{operational_exposure}}", esc(risk.get("operational_exposure_bucket", "unknown")))
         .replace("{{timeline_model_html}}", render_timeline_model_html(ev))
@@ -2847,11 +2915,11 @@ def render_options_rows(items: List[Dict[str, Any]], *, lever_class_by_id: Optio
         path = summ.get("path") or ""
         miss = summ.get("missing_inputs") or []
         miss_count = summ.get("missing_inputs_count", len(miss))
-        tb = summ.get("timeline_buckets") or {}
+        te_summ = summ.get("timeline_estimate") or {}
         risk_text = (
-            f"≤12:{tb.get('le_12_months','unknown')} | "
-            f"12–24:{tb.get('m12_24_months','unknown')} | "
-            f">24:{tb.get('gt_24_months','unknown')} | "
+            f"floor:{te_summ.get('study_results_floor_date','—')} | "
+            f"cod_q:{te_summ.get('earliest_cod_quarter','—')} | "
+            f"status:{te_summ.get('status','unanchored')} | "
             f"upgrade:{summ.get('upgrade_exposure_bucket','unknown')} | "
             f"ops:{summ.get('operational_exposure_bucket','unknown')}"
         )
@@ -2885,16 +2953,16 @@ def render_options_rows(items: List[Dict[str, Any]], *, lever_class_by_id: Optio
             delta_parts.append(ops_s)
         delta_text = " · ".join(delta_parts)
 
-        # Human-readable risk / timeline text
-        tb_le   = str(tb.get("le_12_months",  "unknown")).title()
-        tb_1224 = str(tb.get("m12_24_months", "unknown")).title()
-        tb_gt   = str(tb.get("gt_24_months",  "unknown")).title()
+        # Human-readable risk / timeline text (source-anchored when available)
+        te_floor_d  = str(te_summ.get("study_results_floor_date") or "—")
+        te_cod_q    = str(te_summ.get("earliest_cod_quarter") or "—")
+        te_stat_s   = str(te_summ.get("status") or "unanchored").title()
         upg_b   = str(summ.get("upgrade_exposure_bucket",    "unknown")).title()
         ops_b   = str(summ.get("operational_exposure_bucket","unknown")).title()
         risk_text = (
-            f"≤12 mo: {tb_le} · "
-            f"12–24 mo: {tb_1224} · "
-            f">24 mo: {tb_gt} · "
+            f"Study floor: {te_floor_d} · "
+            f"Earliest COD: {te_cod_q} · "
+            f"Status: {te_stat_s} · "
             f"Upgrade: {upg_b} · "
             f"Ops: {ops_b}"
         )

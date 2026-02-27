@@ -1,5 +1,42 @@
 # Rules Changelog
 
+## 2026-02-27 — Scoring recalibration + pipeline hardening (10 fixes)
+
+**Root cause**: Comprehensive pipeline audit revealed ALL projects scored "high" for both upgrade and operational exposure — zero discriminating power. Root cause: 16 tags representing standard LLIS process requirements (`steady_state`, `batch_study`, `governance_dependency`, `process_latency`, etc.) were counted as incremental risk alongside project-specific signals.
+
+**Changes**:
+
+1. **Scoring recalibration** (`tag_taxonomy.py`, `evaluate.py`):
+   - Split tags into `BASELINE_TAGS` (16 universal process tags) and `TAG_RISK_CONTRIB` (25 incremental risk tags)
+   - Baseline tags tracked separately for auditability but excluded from bucket thresholds
+   - Thresholds recalibrated: upgrade high≥5 (was ≥3), ops high≥4 (was ≥2)
+
+2. **Hardcoded date fix**: `_today = _date.today()` replaces `_date(2026, 2, 27)`
+
+3. **Confidence calculation**: Anchored timeline confidence now varies: "medium-high" (no missing inputs, no material changes), "medium" (≤2 missing), "low" (>2 missing or unanchored)
+
+4. **Deep copy fix**: Option generation now uses `copy.deepcopy(req)` instead of `dict(req)` — prevents nested object mutation across option evaluations
+
+5. **Legacy dead code**: Removed `timeline_buckets` variables from `render_memo.py`
+
+6. **New test cases** (4 added to `test_requests.jsonl`):
+   - `Meta_WestTexas_300MW_BatchOne_2028Q1` — `batch_zero_eligible=false` path coverage
+   - `EdgeCase_Incomplete_Intake_NoMW` — triggers E2X (intake incomplete) edge
+   - `EdgeCase_Single_MaterialChange_Restudy` — single plan + material_change_flags → E3S_RESTUDY
+   - `EdgeCase_MultiPOI_CoLocated_Export` — `multiple_poi=true`, `is_co_located=true`, `export_capability=planned` → E3S_CFG_MULTI_POI/CO_LOCATED/EXPORT
+
+**Orphan DWG rules (by design, documented for v1)**:
+5 DWG rules exist in `published.jsonl` but are not referenced by any `process_graph.yaml` edge:
+- `DWG_IBR_PSCAD_REQUIRED` — Dynamic Modeling stage
+- `DWG_MODEL_QUALITY_TEST_REQUIRED` — Dynamic Modeling stage
+- `DWG_IBR_SCR_TEST` — Dynamic Study stage
+- `DWG_FLAT_START_CRITERIA` — Dynamic Study stage
+- `DWG_MODEL_UPDATE_30_DAY` — Operations stage
+
+These rules fire exclusively through tag matching (not graph traversal). They contribute risk signals via `trigger_tags` when their tags appear in the fired-rule set. In v1, consider adding a "Dynamic Modeling" graph node with dedicated edges to route DWG-specific requirements.
+
+---
+
 ## 2026-02-26 — Batch study / Far West / PUCT / New Q&A (20 new rules)
 
 **Motivation**: Gap-fill identified by demo readiness review:

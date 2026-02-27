@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -10,7 +11,7 @@ from typing import Any, Dict, List, Tuple, Optional
 import yaml
 
 from io_jsonl import iter_jsonl, read_jsonl, write_jsonl
-from tag_taxonomy import TAG_RISK_CONTRIB
+from tag_taxonomy import TAG_RISK_CONTRIB, BASELINE_TAGS
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -236,9 +237,14 @@ def risk_from_signals(
       (risk_dict, risk_trace_list)
     """
     # v0: qualitative, explainable scores (no numeric "probabilities")
+    # INCREMENTAL scores — only project-specific risk signals count toward exposure buckets
     upgrade_score = 0.0
     wait_score = 0.0
     ops_score = 0.0
+    # BASELINE scores — inherent to every large-load process; tracked for transparency
+    baseline_upgrade = 0.0
+    baseline_wait = 0.0
+    baseline_ops = 0.0
 
     evidence: List[Dict[str, Any]] = []
     risk_trace: List[Dict[str, Any]] = []
@@ -298,9 +304,17 @@ def risk_from_signals(
         )
 
         contrib = {"upgrade": 0.0, "wait": 0.0, "ops": 0.0}
+        baseline_contrib = {"upgrade": 0.0, "wait": 0.0, "ops": 0.0}
         notes: List[str] = []
 
         for t in tags:
+            # Check BASELINE first; if a tag is in both, baseline wins (prevents double-count)
+            bm = BASELINE_TAGS.get(t)
+            if bm:
+                for k, dv in bm.items():
+                    baseline_contrib[k] = float(baseline_contrib.get(k, 0.0)) + float(dv)
+                notes.append(f"tag:{t} => baseline (not counted toward exposure buckets)")
+                continue
             m = TAG_RISK_CONTRIB.get(t)
             if not m:
                 continue
@@ -311,12 +325,16 @@ def risk_from_signals(
         if "data_completeness" in set(tags):
             missing_for_rule = _missing_required_fields_for_rule(r, req)
             if missing_for_rule:
-                contrib["wait"] += 2.0
-                notes.append(f"data_completeness missing={missing_for_rule} => wait +2.0")
+                # Data completeness penalty stays in baseline (process-inherent)
+                baseline_contrib["wait"] += 2.0
+                notes.append(f"data_completeness missing={missing_for_rule} => baseline wait +2.0")
 
         upgrade_score += contrib["upgrade"]
         wait_score += contrib["wait"]
         ops_score += contrib["ops"]
+        baseline_upgrade += baseline_contrib["upgrade"]
+        baseline_wait += baseline_contrib["wait"]
+        baseline_ops += baseline_contrib["ops"]
 
         _add_trace(
             kind="rule",
@@ -400,6 +418,49 @@ def risk_from_signals(
             tags=["phased_plan", "upgrade_exposure"],
             contrib={"upgrade": -0.5},
             notes=["energization_plan=phased => upgrade -0.5"],
+        )
+
+    # ── Batch timeline floor heuristic ──────────────────────────────────────────
+    # Source: BATCH_007 criteria.text TIME ANCHORS block (Workshop Slides 22, 24).
+    # This heuristic fires when batch_zero_eligible is explicitly provided, translating
+    # the batch calendar dates into a study_results_floor_date that appears in risk_trace.
+    # It does NOT add to wait_score (the published BATCH_001/007 rules already do that);
+    # its sole purpose is to put a calendar anchor in the trace so memo outputs are not
+    # just directional labels.  All dates are preliminary per Workshop Slide 2 disclaimer.
+    _batch_eligible = req.get("batch_zero_eligible")
+    if _batch_eligible is not None:
+        from datetime import date as _date
+        _today = _date.today()
+        if _batch_eligible is True:
+            # Batch Zero A: results by Jun 15 2026 (Workshop Slide 22)
+            _study_floor = _date(2026, 6, 15)
+            _study_floor_label = "Jun 15 2026 (Batch Zero A results; Workshop Slide 22)"
+            _enrg_floor_label = "late 2026–early 2027 (study floor + 6–12 months for agreements/NTP/NOM per PG9_029/PG9_034/LLI_EN_011)"
+            _scenario = "batch_zero_eligible=true → Batch Zero A"
+        else:
+            # batch_zero_eligible=False: earliest is Batch Zero B, results Jan 15 2027 (Workshop Slide 24)
+            _study_floor = _date(2027, 1, 15)
+            _study_floor_label = "Jan 15 2027 (Batch Zero B results; Workshop Slide 24)"
+            _enrg_floor_label = "mid–late 2027 (study floor + 6–12 months for agreements/NTP/NOM per PG9_029/PG9_034/LLI_EN_011); later if IA not submitted before Aug 1 2026 deadline → Batch 1 (results Jul 31 2027 or Jan 31 2028)"
+            _scenario = "batch_zero_eligible=false → Batch Zero B (earliest)"
+        _months_to_floor = max(0, (_study_floor.year - _today.year) * 12 + (_study_floor.month - _today.month))
+        _add_heuristic(
+            rule_id="HEUR_BATCH_TIMELINE_FLOOR",
+            loc=(
+                "BATCH_007_BATCH_ZERO_B_COMMITMENT_DEADLINE criteria.text TIME ANCHORS block; "
+                "source: ERCOT-Large-Load-Batch-Study-Workshop-02032026.pptx Slides 22, 24 (preliminary per Slide 2 disclaimer)"
+            ),
+            tags=["batch_study", "timeline_risk"],
+            contrib={"wait": 0.0},  # no additional score; BATCH_001/007 already contribute wait; this is trace-only
+            notes=[
+                f"scenario={_scenario}",
+                f"study_results_floor_date={_study_floor.isoformat()}",
+                f"study_results_floor_label={_study_floor_label}",
+                f"months_to_study_floor_from_{_today.isoformat()}={_months_to_floor}",
+                f"energization_floor_estimate={_enrg_floor_label}",
+                "NOTE: floor is study-process only; transmission upgrade construction (if triggered) extends COD further",
+                "NOTE: all dates preliminary — Workshop Slide 2 disclaimer; update when ERCOT publishes final batch rules",
+            ],
         )
 
     if missing_inputs:
@@ -545,49 +606,169 @@ def risk_from_signals(
                 source="context_snapshot",
             )
 
-    # 3) Bucket assignment (deterministic, based on totals)
-    le_12 = "unknown"
-    m12_24 = "unknown"
-    gt_24 = "unknown"
+    # 3) Upgrade/ops exposure bucket (deterministic, based on INCREMENTAL score totals only)
+    #
+    # Thresholds are calibrated against incremental-only scores (baseline tags excluded).
+    # With baseline tags removed, typical incremental ranges are:
+    #   - upgrade: 0–8  (simple project ~1; complex/Far West ~6+)
+    #   - ops: 0–5      (no curtailment risk ~0; export+energization ~4+)
+    #   - wait: 0–15    (simple ~2; restudy+queue ~10+)
     exposure = "unknown"
     operational_exposure = "unknown"
 
     reasoning: List[str] = []
+    reasoning.append(f"baseline_scores: upgrade={baseline_upgrade:g}, wait={baseline_wait:g}, ops={baseline_ops:g} (tracked but excluded from bucket thresholds)")
     if signal_rules:
-        if upgrade_score >= 3:
-            gt_24 = "up"
-            m12_24 = "up"
-            le_12 = "down"
+        if upgrade_score >= 5:
             exposure = "high"
-            reasoning.append(f"upgrade_score={upgrade_score:g} >= 3 => upgrade_exposure_bucket=high, shift to >24 and 12–24")
-        elif upgrade_score >= 0.75:
-            m12_24 = "up"
-            le_12 = "down"
+            reasoning.append(f"upgrade_score={upgrade_score:g} >= 5 => upgrade_exposure_bucket=high")
+        elif upgrade_score >= 2:
             exposure = "medium"
-            reasoning.append(f"upgrade_score={upgrade_score:g} >= 0.75 => upgrade_exposure_bucket=medium, shift away from ≤12")
+            reasoning.append(f"upgrade_score={upgrade_score:g} >= 2 => upgrade_exposure_bucket=medium")
         else:
-            le_12 = "up"
             exposure = "low"
-            reasoning.append(f"upgrade_score={upgrade_score:g} < 0.75 => upgrade_exposure_bucket=low")
+            reasoning.append(f"upgrade_score={upgrade_score:g} < 2 => upgrade_exposure_bucket=low")
 
         status = "rule_driven_v0"
-        if wait_score >= 2:
-            # waiting pressure shifts mass away from <=12
-            le_12 = "down"
-            m12_24 = "up" if m12_24 != "unknown" else "up"
-            reasoning.append(f"wait_score={wait_score:g} >= 2 => additional shift away from ≤12 into 12–24")
     else:
         status = "insufficient_rule_coverage"
         reasoning.append("no published rules matched/flagged => insufficient_rule_coverage (heuristics may still apply)")
 
     if signal_rules:
-        if ops_score >= 2:
+        if ops_score >= 4:
             operational_exposure = "high"
-        elif ops_score >= 1:
+        elif ops_score >= 2:
             operational_exposure = "medium"
         else:
             operational_exposure = "low"
         reasoning.append(f"ops_score={ops_score:g} => operational_exposure_bucket={operational_exposure}")
+
+    # 4) timeline_estimate — source-anchored calendar estimate replacing the
+    #    old directional timeline_buckets (le_12/m12_24/gt_24 up/down/unknown).
+    #
+    #    Structure: every field carries a `source` string citing a rule_id or doc+loc.
+    #    Reads HEUR_BATCH_TIMELINE_FLOOR notes that were injected above (when
+    #    batch_zero_eligible is present in the request).  When batch_zero_eligible
+    #    is absent the estimate is marked "unanchored" — the old directional labels
+    #    become caveats so nothing is silently dropped.
+    #
+    #    Post-study delay sources:
+    #      • PG9_029  — 180-day agreements window after LLIS (Planning Guide §9.4(9))
+    #      • PG9_034  — Notice to Proceed (NTP) required before construction (§9.5.1(iii))
+    #      • LLI_EN_011_NETWORK_MODEL — NOM inclusion required before energization
+    #
+    _te_study_floor_date: Optional[str] = None
+    _te_study_floor_source: str = ""
+    _te_study_floor_scenario: str = ""
+    _te_months_to_floor: Optional[int] = None
+    _te_earliest_cod_quarter: Optional[str] = None
+    _te_caveats: List[str] = []
+
+    # Pull calendar anchor from HEUR_BATCH_TIMELINE_FLOOR notes (if it fired)
+    for _rt in risk_trace:
+        if not isinstance(_rt, dict):
+            continue
+        if _rt.get("rule_id") != "HEUR_BATCH_TIMELINE_FLOOR":
+            continue
+        for _note in (_rt.get("notes") or []):
+            _n = str(_note)
+            if _n.startswith("study_results_floor_date="):
+                _te_study_floor_date = _n.split("=", 1)[1].strip()
+            elif _n.startswith("scenario="):
+                _te_study_floor_scenario = _n.split("=", 1)[1].strip()
+            elif _n.startswith("months_to_study_floor_from_"):
+                try:
+                    _te_months_to_floor = int(_n.split("=", 1)[1].strip())
+                except Exception:
+                    pass
+        break
+
+    # Derive earliest_cod_quarter from floor date + post-study window (6–12 months)
+    # post-study floor sources: PG9_029 (180-day agreements), PG9_034 (NTP), LLI_EN_011 (NOM)
+    _POST_STUDY_MIN_MONTHS = 6    # 180 days per PG9_029/PG9_034/LLI_EN_011
+    _POST_STUDY_MAX_MONTHS = 12   # upper-end heuristic (construction + NOM review time)
+    _POST_STUDY_SOURCE = (
+        "PG9_029_CANCELLATION_RISK_IF_SECTION_9_5_NOT_SATISFIED_180_DAYS_AGREEMENTS "
+        "(PG §9.4(9), 180-day window) + "
+        "PG9_034_NOTICE_TO_PROCEED_INTERCONNECTION_FACILITIES_REQUIRED "
+        "(PG §9.5.1(iii)) + "
+        "LLI_EN_011_NETWORK_MODEL (NOM inclusion)"
+    )
+
+    if _te_study_floor_date and _te_months_to_floor is not None:
+        _te_status = "anchored"
+        _te_study_floor_source = (
+            "HEUR_BATCH_TIMELINE_FLOOR → BATCH_007_BATCH_ZERO_B_COMMITMENT_DEADLINE "
+            "TIME ANCHORS; source: ERCOT-Large-Load-Batch-Study-Workshop-02032026.pptx "
+            "Slides 22, 24 (preliminary per Slide 2 disclaimer)"
+        )
+        # Confidence is "medium" when batch-anchored (dates are published but preliminary);
+        # upgrades to "medium-high" when missing inputs are zero and no material-change
+        # restudy risk; stays at "low" if critical inputs are missing.
+        _missing_count = len(missing_inputs) if isinstance(missing_inputs, list) else 0
+        _has_material_change = bool(req.get("material_change_flags"))
+        if _missing_count == 0 and not _has_material_change:
+            _te_confidence = "medium-high"
+        elif _missing_count <= 2:
+            _te_confidence = "medium"
+        else:
+            _te_confidence = "low"
+        _te_caveats = [
+            "All batch dates are preliminary (Workshop Slide 2 disclaimer); update when ERCOT publishes final batch rules",
+            "Post-study estimate (+6–12 months) excludes transmission upgrade construction time if upgrades are triggered",
+            "PUCT 58481 IA deadline (Aug 1 2026) still in draft — Batch Zero B inclusion may shift",
+        ]
+        if _has_material_change:
+            _te_caveats.append("material_change_flags present — restudy may delay timeline beyond floor estimate")
+        if _missing_count > 0:
+            _te_caveats.append(f"missing_inputs_count={_missing_count} — incomplete data reduces confidence")
+        # Compute earliest_cod_quarter from study floor + min post-study delay
+        try:
+            from datetime import date as _d
+            _sf = _d.fromisoformat(_te_study_floor_date)
+            _cod_month_earliest = _sf.month + _POST_STUDY_MIN_MONTHS
+            _cod_year = _sf.year + (_cod_month_earliest - 1) // 12
+            _cod_month = ((_cod_month_earliest - 1) % 12) + 1
+            _cod_q = (_cod_month - 1) // 3 + 1
+            _te_earliest_cod_quarter = f"{_cod_year}Q{_cod_q}"
+        except Exception:
+            _te_earliest_cod_quarter = None
+    else:
+        _te_status = "unanchored"
+        _te_study_floor_source = ""
+        _te_study_floor_scenario = "batch_zero_eligible not provided — batch track unknown"
+        _te_confidence = "low"
+        _te_caveats = [
+            "batch_zero_eligible not provided; study floor not calculable — provide batch qualification status to anchor timeline",
+            "Without batch anchor, upgrade_score and wait_score directional signals are the only available indicators",
+            f"upgrade_score={upgrade_score:g} ({exposure} upgrade exposure); wait_score={wait_score:g}",
+        ]
+        # Derive a loose narrative from scores so the unanchored case is not empty
+        if upgrade_score >= 5:
+            _te_earliest_cod_quarter = None  # can't estimate without batch date
+            _te_caveats.insert(0, "High upgrade exposure detected (upgrade_score >= 5); expect >24 months if batch placement is Batch 1 or later")
+        elif upgrade_score >= 2 or wait_score >= 2:
+            _te_caveats.insert(0, "Medium upgrade or elevated wait pressure; timeline likely 12–24 months minimum once batch placement is known")
+
+    timeline_estimate: Dict[str, Any] = {
+        "study_results_floor_date": _te_study_floor_date,
+        "study_results_floor_source": _te_study_floor_source,
+        "study_results_floor_scenario": _te_study_floor_scenario,
+        "months_to_study_floor": _te_months_to_floor,
+        "post_study_min_months": _POST_STUDY_MIN_MONTHS,
+        "post_study_max_months": _POST_STUDY_MAX_MONTHS,
+        "post_study_source": _POST_STUDY_SOURCE,
+        "earliest_cod_quarter": _te_earliest_cod_quarter,
+        "confidence": _te_confidence,
+        "status": _te_status,
+        "caveats": _te_caveats,
+    }
+    reasoning.append(
+        f"timeline_estimate.status={_te_status}; "
+        f"study_floor={_te_study_floor_date or 'n/a'}; "
+        f"earliest_cod_quarter={_te_earliest_cod_quarter or 'n/a'}; "
+        f"confidence={_te_confidence}"
+    )
 
     risk_trace.append(
         {
@@ -595,12 +776,11 @@ def risk_from_signals(
             "upgrade_score": upgrade_score,
             "wait_score": wait_score,
             "ops_score": ops_score,
+            "baseline_upgrade": baseline_upgrade,
+            "baseline_wait": baseline_wait,
+            "baseline_ops": baseline_ops,
             "status": status,
-            "timeline_buckets": {
-                "le_12_months": le_12,
-                "m12_24_months": m12_24,
-                "gt_24_months": gt_24,
-            },
+            "timeline_estimate": timeline_estimate,
             "upgrade_exposure_bucket": exposure,
             "operational_exposure_bucket": operational_exposure,
             "reasoning": reasoning,
@@ -609,15 +789,17 @@ def risk_from_signals(
 
     return (
         {
-            "timeline_buckets": {
-                "le_12_months": le_12,
-                "m12_24_months": m12_24,
-                "gt_24_months": gt_24,
-            },
+            "timeline_estimate": timeline_estimate,
             "upgrade_exposure_bucket": exposure,
             "operational_exposure_bucket": operational_exposure,
             "status": status,
             "evidence": evidence,
+            "baseline_upgrade": baseline_upgrade,
+            "baseline_wait": baseline_wait,
+            "baseline_ops": baseline_ops,
+            "upgrade_score": upgrade_score,
+            "wait_score": wait_score,
+            "ops_score": ops_score,
         },
         risk_trace,
     )
@@ -1101,7 +1283,7 @@ def dedupe_checklist(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def _summarize_option_eval(ev: Dict[str, Any]) -> Dict[str, Any]:
     graph = ev.get("graph") or {}
     risk = ev.get("risk") or {}
-    tb = risk.get("timeline_buckets") or {}
+    te = risk.get("timeline_estimate") or {}
     path = " → ".join(graph.get("path_node_labels") or [])
 
     # Energization readiness summary (when requested)
@@ -1121,6 +1303,9 @@ def _summarize_option_eval(ev: Dict[str, Any]) -> Dict[str, Any]:
     upgrade_score = 0.0
     wait_score = 0.0
     ops_score = 0.0
+    baseline_upgrade = 0.0
+    baseline_wait = 0.0
+    baseline_ops = 0.0
     for rt in (ev.get("risk_trace") or []):
         if not isinstance(rt, dict):
             continue
@@ -1130,8 +1315,12 @@ def _summarize_option_eval(ev: Dict[str, Any]) -> Dict[str, Any]:
             upgrade_score = float(rt.get("upgrade_score") or 0.0)
             wait_score = float(rt.get("wait_score") or 0.0)
             ops_score = float(rt.get("ops_score") or 0.0)
+            baseline_upgrade = float(rt.get("baseline_upgrade") or 0.0)
+            baseline_wait = float(rt.get("baseline_wait") or 0.0)
+            baseline_ops = float(rt.get("baseline_ops") or 0.0)
         except Exception:
             upgrade_score = wait_score = ops_score = 0.0
+            baseline_upgrade = baseline_wait = baseline_ops = 0.0
         break
 
     def _round3(x: float) -> float:
@@ -1153,11 +1342,17 @@ def _summarize_option_eval(ev: Dict[str, Any]) -> Dict[str, Any]:
             "upgrade_score": _round3(upgrade_score),
             "wait_score": _round3(wait_score),
             "ops_score": _round3(ops_score),
+            "baseline_upgrade": _round3(baseline_upgrade),
+            "baseline_wait": _round3(baseline_wait),
+            "baseline_ops": _round3(baseline_ops),
         },
-        "timeline_buckets": {
-            "le_12_months": tb.get("le_12_months", "unknown"),
-            "m12_24_months": tb.get("m12_24_months", "unknown"),
-            "gt_24_months": tb.get("gt_24_months", "unknown"),
+        "timeline_estimate": {
+            "study_results_floor_date": te.get("study_results_floor_date"),
+            "study_results_floor_scenario": te.get("study_results_floor_scenario"),
+            "months_to_study_floor": te.get("months_to_study_floor"),
+            "earliest_cod_quarter": te.get("earliest_cod_quarter"),
+            "status": te.get("status", "unanchored"),
+            "confidence": te.get("confidence", "low"),
         },
         "upgrade_exposure_bucket": risk.get("upgrade_exposure_bucket", "unknown"),
         "operational_exposure_bucket": risk.get("operational_exposure_bucket", "unknown"),
@@ -1172,20 +1367,21 @@ def _diff_option_summaries(base: Dict[str, Any], other: Dict[str, Any]) -> Dict[
     b_flags = int(base.get("flags_count") or 0)
     o_flags = int(other.get("flags_count") or 0)
 
-    b_tb = base.get("timeline_buckets") or {}
-    o_tb = other.get("timeline_buckets") or {}
+    b_te = base.get("timeline_estimate") or {}
+    o_te = other.get("timeline_estimate") or {}
 
-    def _chg(k: str) -> Dict[str, str]:
-        return {"from": str(b_tb.get(k, "unknown")), "to": str(o_tb.get(k, "unknown"))}
+    def _te_chg(k: str) -> Dict[str, Any]:
+        return {"from": b_te.get(k), "to": o_te.get(k)}
 
     return {
         "path_changed": (b_path != o_path),
         "missing_inputs_count_delta": o_miss - b_miss,
         "flags_count_delta": o_flags - b_flags,
-        "timeline_buckets_changed": {
-            "le_12_months": _chg("le_12_months"),
-            "m12_24_months": _chg("m12_24_months"),
-            "gt_24_months": _chg("gt_24_months"),
+        "timeline_estimate_changed": {
+            "status": _te_chg("status"),
+            "study_results_floor_date": _te_chg("study_results_floor_date"),
+            "months_to_study_floor": _te_chg("months_to_study_floor"),
+            "earliest_cod_quarter": _te_chg("earliest_cod_quarter"),
         },
         "upgrade_exposure_bucket_changed": {
             "from": str(base.get("upgrade_exposure_bucket", "unknown")),
@@ -1410,22 +1606,32 @@ def _bucket_rank(v: str) -> int:
     return 3  # unknown/other
 
 
-def _timeline_score(tb: Dict[str, Any]) -> int:
+def _timeline_score(te: Dict[str, Any]) -> int:
     """
-    Lower is better. This is intentionally simple and explainable.
+    Lower is better. Converts timeline_estimate into a ranking integer.
+    Anchored estimates with longer study floors score higher (worse rank).
+    Unanchored high-upgrade-exposure estimates also score higher.
+    Intentionally simple and explainable.
     """
-    le12 = str(tb.get("le_12_months", "unknown")).lower()
-    m12_24 = str(tb.get("m12_24_months", "unknown")).lower()
-    gt24 = str(tb.get("gt_24_months", "unknown")).lower()
+    status = str(te.get("status") or "unanchored").lower()
+    months = te.get("months_to_study_floor")
     score = 0
-    if gt24 == "up":
-        score += 2
-    if m12_24 == "up":
-        score += 1
-    if le12 == "down":
-        score += 1
-    if le12 == "up":
-        score -= 1
+    if status == "anchored" and months is not None:
+        try:
+            m = int(months)
+        except Exception:
+            m = 0
+        if m > 24:
+            score += 3
+        elif m > 12:
+            score += 2
+        elif m > 6:
+            score += 1
+    else:
+        # Unanchored: use confidence as a mild tiebreaker — low confidence = slight penalty
+        confidence = str(te.get("confidence") or "low").lower()
+        if confidence == "low":
+            score += 1
     return score
 
 
@@ -1487,7 +1693,7 @@ def _recommendation_from_candidates(
         except Exception:
             up_sc = wt_sc = op_sc = 0.0
 
-        tb = s.get("timeline_buckets") or {}
+        tb = s.get("timeline_estimate") or {}
         timeline = _timeline_score(tb)
         up = _bucket_rank(str(s.get("upgrade_exposure_bucket") or "unknown"))
         ops = _bucket_rank(str(s.get("operational_exposure_bucket") or "unknown"))
@@ -2110,7 +2316,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                     v_num = float(v)
                 except Exception:
                     continue
-                req2 = dict(req)
+                req2 = copy.deepcopy(req)
                 req2["voltage_options_kv"] = [v_num]
                 # Keep alias in sync for readability in raw request JSON.
                 req2["voltage_options"] = [v_num]
@@ -2136,7 +2342,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
         plan = req.get("energization_plan")
         if plan in ("single", "phased"):
             other = "phased" if plan == "single" else "single"
-            req2 = dict(req)
+            req2 = copy.deepcopy(req)
             req2["energization_plan"] = other
             if other == "single":
                 req2.pop("phases", None)
@@ -2162,7 +2368,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
         mp = req.get("multiple_poi")
         if mp in (True, False):
             other_mp = not bool(mp)
-            req2 = dict(req)
+            req2 = copy.deepcopy(req)
             req2["multiple_poi"] = other_mp
             # Keep poi_count aligned for readability (heuristic; does not claim correctness).
             if other_mp is True:
@@ -2194,7 +2400,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
         # Lever 4: co-location signal.
         if req.get("is_co_located") in (True, False):
             other_col = not bool(req.get("is_co_located"))
-            req2 = dict(req)
+            req2 = copy.deepcopy(req)
             req2["is_co_located"] = other_col
             ev2 = evaluate_graph(req2, graph, include_options=False)
             opt_summary = _summarize_option_eval(ev2)
@@ -2218,7 +2424,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
         exp = str(req.get("export_capability") or "").strip().lower()
         if exp in {"none", "possible", "planned", "unknown", ""}:
             other_exp = "planned" if exp in {"none", "unknown", ""} else "none"
-            req2 = dict(req)
+            req2 = copy.deepcopy(req)
             req2["export_capability"] = other_exp
             ev2 = evaluate_graph(req2, graph, include_options=False)
             opt_summary = _summarize_option_eval(ev2)
@@ -2252,7 +2458,7 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
             cls = str(req.get("poi_voltage_class") or "").strip().lower()
             if cls in {"distribution", "transmission"}:
                 other_cls = "transmission" if cls == "distribution" else "distribution"
-                req2 = dict(req)
+                req2 = copy.deepcopy(req)
                 req2["poi_voltage_class"] = other_cls
                 ev2 = evaluate_graph(req2, graph, include_options=False)
                 opt_summary = _summarize_option_eval(ev2)

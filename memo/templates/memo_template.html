@@ -551,17 +551,17 @@
             <div class="id">rule-driven v0</div>
           </div>
           <div class="muted small" style="margin-bottom:10px">
-            <strong>Important</strong>: timeline signals are <strong>directional, qualitative shifts</strong> derived from deterministic rule/tag scoring (v0). They are <strong>not probabilities</strong>.
-            Legend: <code>up</code> = pressure toward that window; <code>down</code> = pressure away; <code>unknown</code> = insufficient rule coverage.
+            <strong>Important</strong>: timeline estimate is calendar-anchored when <code>batch_zero_eligible</code> is provided (status = <code>anchored</code>); otherwise it is <code>unanchored</code> and only directional score pressure is available.
+            All dates are preliminary per ERCOT Workshop Slide 2 disclaimer.
           </div>
           <div class="kv">
             <div class="k">Status</div>
             <div class="v"><code>{{risk_status}}</code></div>
-            <div class="k">Timeline signal (≤12 months)</div>
+            <div class="k">Study results floor date</div>
             <div class="v"><code>{{bucket_le_12}}</code></div>
-            <div class="k">Timeline signal (12–24 months)</div>
+            <div class="k">Earliest COD quarter</div>
             <div class="v"><code>{{bucket_12_24}}</code></div>
-            <div class="k">Timeline signal (&gt;24 months)</div>
+            <div class="k">Timeline estimate status</div>
             <div class="v"><code>{{bucket_gt_24}}</code></div>
             <div class="k">Upgrade exposure bucket</div>
             <div class="v"><code>{{upgrade_exposure}}</code></div>
