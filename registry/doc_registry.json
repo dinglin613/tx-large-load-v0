@@ -365,5 +365,94 @@
         "retrieved_date": "2026-02-26"
       }
     ]
+  },
+  {
+    "doc_id": "ERCOT_LLWG_FAQ_STAKEHOLDER_QUESTIONS",
+    "title": "FAQ – Stakeholder Questions on Large Loads (LLWG)",
+    "source_url": "https://www.ercot.com/files/docs/2025/07/30/FAQ-Stakeholder-Questions-on-Large-Loads_LLWG_14Aug2025.docx",
+    "retrieved_date": "2026-02-28",
+    "effective_date": "2025-08-14",
+    "hash": "b1188b953eb6928b3301d212cfabdcd0b686ebf0c23adef0bccb966ea17c2bf7",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "llwg",
+      "faq"
+    ],
+    "notes": "FAQ document produced by the Large Load Working Group (LLWG) addressing stakeholder questions on the large load interconnection process. Published on the LLWG committee page. May contain clarifications not present in the formal Q&A PDF.",
+    "artifacts": [
+      {
+        "kind": "other",
+        "path": "docs/raw/ERCOT_LLWG_FAQ_STAKEHOLDER_QUESTIONS__2025-08-14.docx",
+        "sha256": "b1188b953eb6928b3301d212cfabdcd0b686ebf0c23adef0bccb966ea17c2bf7",
+        "size_bytes": 50181,
+        "retrieved_date": "2026-02-28"
+      }
+    ]
+  },
+  {
+    "doc_id": "ERCOT_LLI_INSTRUCTIONS_COMMUNICATION",
+    "title": "Instructions for Communication of Large Load Information",
+    "source_url": "https://www.ercot.com/files/docs/2025/12/15/Instructions-for-Communication-of-Large-Load-Information.docx",
+    "retrieved_date": "2026-02-28",
+    "effective_date": "2025-12-15",
+    "hash": "fe31682bb5d7470f2cf77684555d50836b12ec5b381bb1dbe00c289f7d908ea5",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "communication",
+      "submission"
+    ],
+    "notes": "Official ERCOT instructions for TSPs and ILLEs on how to submit documents and other communications related to the Large Load Interconnection process. Published Dec 15, 2025 alongside the Load Information Form V1. Defines submission channels, required document formats, and communication protocols.",
+    "artifacts": [
+      {
+        "kind": "other",
+        "path": "docs/raw/ERCOT_LLI_INSTRUCTIONS_COMMUNICATION__2025-12-15.docx",
+        "sha256": "fe31682bb5d7470f2cf77684555d50836b12ec5b381bb1dbe00c289f7d908ea5",
+        "size_bytes": 86268,
+        "retrieved_date": "2026-02-28"
+      }
+    ]
+  },
+  {
+    "doc_id": "ERCOT_LLI_LOAD_INFORMATION_FORM_V1",
+    "title": "Load Information Form V1",
+    "source_url": "https://www.ercot.com/files/docs/2025/12/15/Load-Information-Form_v1.xlsx",
+    "retrieved_date": "2026-02-28",
+    "effective_date": "2025-12-15",
+    "hash": "ef603b2f78078e84ec5d471160873c0282f9094afad712db872d6dd574feadab",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "intake_form",
+      "load_commissioning_plan"
+    ],
+    "notes": "Official ERCOT Load Information Form (V1), effective Dec 15, 2025. Contains all Large Load project information fields and the Load Commissioning Plan required to request a new LLIS. Must be submitted and maintained by the interconnecting TSP. Supersedes any prior informal intake processes. This form defines the canonical set of intake fields that our request.schema.json should align with.",
+    "artifacts": [
+      {
+        "kind": "other",
+        "path": "docs/raw/ERCOT_LLI_LOAD_INFORMATION_FORM_V1__2025-12-15.xlsx",
+        "sha256": "ef603b2f78078e84ec5d471160873c0282f9094afad712db872d6dd574feadab",
+        "size_bytes": 284789,
+        "retrieved_date": "2026-02-28"
+      }
+    ]
+  },
+  {
+    "doc_id": "ERCOT_PGRR_PENDING_LARGE_LOAD_TRACKER",
+    "title": "ERCOT Pending PGRRs – Large Load Relevant (as of 2026-02-28)",
+    "source_url": "https://www.ercot.com/mktrules/issues/pgrr",
+    "retrieved_date": "2026-02-28",
+    "effective_date": "",
+    "hash": "",
+    "scope_tags": [
+      "ERCOT",
+      "large_load",
+      "pgrr",
+      "governance_dependency",
+      "regulatory_change"
+    ],
+    "notes": "Tracking entry for 6 pending PGRRs directly relevant to the Large Load interconnection framework: PGRR133 (Clarifying Legacy Generation Breaker Control for PGRR115 Implementation), PGRR134 (Interconnection Studies Reform for Dispatchable Loads), PGRR136 (Large Load Interconnection Study Scope Documentation), PGRR138 (Large Load Interconnection Study Review and Approval Process), PGRR141 (Large Load Interconnection Study Reform for Substantiated Load), PGRR144 (Dynamic Model Submission and Review Requirements for Large Loads including Large Electronic Loads). These are all pending at ROS as of 2026-02-28. Their adoption could materially change study scope, intake requirements, and timeline expectations. No downloadable artifacts yet — track via source_url.",
+    "artifacts": []
   }
 ]

@@ -48,5 +48,35 @@
     "notes": "News reporting on ERCOT's new framework for data center/large load demand. Useful as background context for memo narrative. Higher confidence than pure commercial sites because Texas Tribune is a credible news outlet, but still non-authoritative for regulatory facts.",
     "extracted_fields_hint": ["headline", "key_claims", "publication_date"],
     "enabled": true
+  },
+  {
+    "source_id": "ercot_pgrr_large_load_tracker",
+    "label": "ERCOT Pending PGRRs – Large Load Relevant",
+    "url": "https://www.ercot.com/mktrules/issues/pgrr",
+    "category": "authoritative",
+    "default_confidence": 0.85,
+    "notes": "ERCOT's official PGRR tracker page. As of 2026-02-28, 6 pending PGRRs directly affect the Large Load interconnection framework: PGRR133 (legacy breaker PGRR115 clarification), PGRR134 (dispatchable load reform), PGRR136 (LLIS scope documentation), PGRR138 (LLIS review/approval process), PGRR141 (substantiated load reform), PGRR144 (dynamic model for large electronic loads). Check monthly for status changes. Any adoption could change study scope, timeline, or intake requirements.",
+    "extracted_fields_hint": ["pgrr_number", "pgrr_title", "pgrr_status", "assigned_group"],
+    "enabled": true
+  },
+  {
+    "source_id": "ercot_llwg_committee_page",
+    "label": "ERCOT LLWG – Large Load Working Group",
+    "url": "https://www.ercot.com/committees/tac/llwg",
+    "category": "authoritative",
+    "default_confidence": 0.85,
+    "notes": "LLWG committee page with meeting schedule, charter, and key documents including the FAQ-Stakeholder-Questions-on-Large-Loads document. Check before each LLWG meeting (monthly, 3rd Thursday) for new materials. Next meeting: Mar 13, 2026 (rescheduled from Mar 19).",
+    "extracted_fields_hint": ["meeting_date", "materials_url", "key_documents"],
+    "enabled": true
+  },
+  {
+    "source_id": "ercot_planning_guide_current",
+    "label": "ERCOT Planning Guide – Current Version",
+    "url": "https://www.ercot.com/mktrules/guides/planning/current",
+    "category": "authoritative",
+    "default_confidence": 0.95,
+    "notes": "Official current version of the ERCOT Planning Guide. Section 9 defines LLI requirements and processes. Check periodically for new versions (PGRRs are incorporated monthly). Our local copy is effective 2025-12-15. If a new version is published, download and update doc_registry + re-verify all PG9_xxx rules.",
+    "extracted_fields_hint": ["version_date", "section_9_content"],
+    "enabled": true
   }
 ]

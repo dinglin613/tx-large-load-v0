@@ -107,6 +107,16 @@ KNOWN_NON_RISK_TAGS = {
     # New non-risk labels added 2026-02-26
     "policy_update",        # marks rules that describe a policy/market process change (informational)
     "market_notice",        # marks rules sourced from ERCOT market notices (informational)
+    # New non-risk labels added 2026-02-28 (pending PGRR & intake document tags)
+    "regulatory_change",    # marks rules about pending regulatory changes (PGRRs, PUCT directives)
+    "study_scope",          # marks rules about LLIS study scope definition/documentation
+    "intake_requirement",   # marks rules about intake form/submission requirements
+    "breaker_configuration", # marks rules about breaker equipment requirements
+    "co_location",          # marks rules about co-located load + generation arrangements
+    "curtailment",          # marks rules about load curtailment / dispatchability
+    "dwg_survey",           # marks rules about DWG survey requirements
+    "dynamic_model",        # marks rules about dynamic model submission requirements
+    "queue_position",       # marks rules about queue position / ordering
 }
 
 ALL_KNOWN_TAGS = set(TAG_RISK_CONTRIB.keys()) | set(KNOWN_NON_RISK_TAGS) | set(BASELINE_TAGS.keys())
