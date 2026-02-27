@@ -240,18 +240,17 @@
       <aside class="sidebar">
         <div class="toc">
           <h3>Decision Memo (v0)</h3>
-          <a href="#sec-brief">Decision brief</a>
-          <a href="#sec-summary">Summary &amp; next actions</a>
-          <a href="#sec-scope">Scope &amp; disclaimers</a>
+          <a href="#sec-decision">Decision memo</a>
           <a href="#sec-input">Project details</a>
-          <a href="#sec-path">Process path</a>
-          <a href="#sec-missing">Missing information</a>
-          <a href="#sec-uncertainty">Open questions</a>
-          <a href="#sec-levers">Decision levers</a>
-          <a href="#sec-options">Options comparison</a>
-          <a href="#sec-flags" class="analyst-only">Parallel flags</a>
           <a href="#sec-checklist">Energization checklist</a>
-          <a href="#sec-risk">Risk assessment</a>
+          <a href="#sec-options">Options comparison (full)</a>
+          <a href="#sec-context" class="analyst-only">Context snapshot</a>
+          <a href="#sec-path" class="analyst-only">Process path</a>
+          <a href="#sec-missing" class="analyst-only">Missing inputs</a>
+          <a href="#sec-uncertainty" class="analyst-only">Uncertainty &amp; deps</a>
+          <a href="#sec-levers" class="analyst-only">Levers detected</a>
+          <a href="#sec-flags" class="analyst-only">Parallel flags</a>
+          <a href="#sec-risk" class="analyst-only">Risk detail</a>
           <a href="#sec-provenance" class="analyst-only">Provenance</a>
           <div class="meta">
             <div><span class="row-muted">Project</span>: <code>{{project_name}}</code></div>
@@ -270,72 +269,52 @@
 
       <main class="main">
         <h1>{{project_name}}</h1>
-        <div class="muted small">This memo is rule-driven and audit-friendly (doc_id + loc + artifact sha256).</div>
+        <div class="muted small">Large Load Screening — Decision Brief &nbsp;·&nbsp; <em>Forwardable to PM / legal / procurement / leadership</em></div>
 
-        <div class="card" id="sec-brief">
+        <!-- ══ DECISION MEMO (exec view) ══════════════════════════════════════ -->
+        <div class="card" id="sec-decision">
           <div class="section-title">
-            <h2>Executive decision brief</h2>
-            <div class="id">non-technical</div>
-          </div>
-          <div class="muted small">
-            This section is designed to be forwarded internally (PM / legal / procurement / leadership). It avoids internal IDs and focuses on decisions + actions.
-          </div>
-          <div style="margin-top:10px">
-            {{executive_brief_html}}
-          </div>
-          <details style="margin-top:10px">
-            <summary>Show / download 1-click PDF version</summary>
-            <div class="hint muted small">If the PDF exists in <code>memo/outputs/pdfs/</code>, it can be previewed below and downloaded.</div>
-            <div style="margin-top:10px">
-              <a class="btn" href="pdfs/{{pdf_filename}}" target="_blank" rel="noopener">Open PDF</a>
-              <a class="btn" href="pdfs/{{pdf_filename}}" download>Download PDF</a>
-            </div>
-            <div style="margin-top:10px; border:1px solid var(--border); border-radius:12px; overflow:hidden">
-              <iframe src="pdfs/{{pdf_filename}}" style="width:100%; height:720px; border:0"></iframe>
-            </div>
-          </details>
-        </div>
-
-        <div class="card" id="sec-summary">
-          <div class="section-title">
-            <h2>Summary</h2>
-            <div class="id">screening</div>
+            <h2>Decision Memo</h2>
+            <div class="id">non-technical · forwardable</div>
           </div>
 
+          <!-- A) Status chips -->
           <div class="chips" style="margin-top:6px">
             {{decision_status_badge}}
             {{decision_reason_chips}}
           </div>
 
-          <div style="margin-top:12px">
-            {{next_actions_html}}
+          <!-- B–F) Exec brief content: recommendation, drivers, actions, options, what-could-change -->
+          <div style="margin-top:14px">
+            {{executive_brief_html}}
           </div>
 
-          <details style="margin-top:10px">
-            <summary>Show recommendation details (options compared)</summary>
-            {{recommendation_html}}
+          <!-- E) Options comparison (compact) -->
+          <div style="margin-top:14px">
+            <div style="font-size:15px;font-weight:700;margin-bottom:8px">Options at a glance</div>
+            {{options_compact_html}}
+          </div>
+
+          <!-- PDF download (collapsed) -->
+          <details style="margin-top:14px">
+            <summary class="muted small">Show / download PDF version</summary>
+            <div style="margin-top:8px">
+              <a class="btn" href="pdfs/{{pdf_filename}}" target="_blank" rel="noopener">Open PDF</a>
+              <a class="btn" href="pdfs/{{pdf_filename}}" download>Download PDF</a>
+            </div>
           </details>
+
+          <!-- Disclaimer (one line) -->
+          <div style="border-top:1px solid var(--border);margin-top:14px;padding-top:8px;font-size:11px;color:var(--muted)">
+            Screening brief only — not legal advice. Final outcomes depend on ERCOT / TSP / TDSP studies and approvals.
+            <span class="analyst-only">Full evidence + audit log in sections below.</span>
+          </div>
         </div>
 
-        <div class="card" id="sec-scope">
-          <div class="section-title">
-            <h2>Scope &amp; disclaimers</h2>
-            <div class="id">screening only</div>
-          </div>
-          <div class="muted small">
-            This memo is an <strong>audit-friendly screening artifact</strong>. It is not legal advice, and it does not replace ERCOT/TSP/TDSP engineering studies.
-          </div>
-          <ul class="small" style="margin:10px 0 0 18px">
-            <li><strong>Not a schedule commitment</strong>: risk buckets are qualitative and rule-driven; they do not guarantee COD or energization timelines.</li>
-            <li><strong>Not an interconnection determination</strong>: final requirements depend on studies, agreements, and stakeholder approvals (ERCOT / TSP / TDSP).</li>
-            <li><strong>Inputs matter</strong>: missing or incorrect request inputs can materially change the evaluated path and checklist outcomes.</li>
-            <li><strong>Evidence scope</strong>: citations reference public artifacts captured in the registry (doc_id + loc + sha256); interpretations may evolve as rules are updated.</li>
-          </ul>
-        </div>
-
+        <!-- ══ PROJECT DETAILS ════════════════════════════════════════════════ -->
         <div class="card" id="sec-input">
           <div class="section-title">
-            <h2>1) Project details</h2>
+            <h2>Project details</h2>
             <div class="id">input snapshot</div>
           </div>
           <div class="kv" style="margin-top:8px">
@@ -354,14 +333,13 @@
           </div>
           <details style="margin-top:10px" class="analyst-only">
             <summary>Show raw request JSON</summary>
-            <div class="hint muted small">Full request object as submitted to the evaluator.</div>
             <pre>{{request_json}}</pre>
           </details>
         </div>
 
-        <div class="card" id="sec-context">
+        <div class="card analyst-only" id="sec-context">
           <div class="section-title">
-            <h2>1b) Context snapshot (optional)</h2>
+            <h2>Context snapshot</h2>
             <div class="id">audit-friendly</div>
           </div>
           <div class="muted small">Optional system-state / discretion inputs provided by the user. These are recorded with source + confidence and can influence v0 risk/recommendation deterministically. They are not citation-audited like published rules.</div>
@@ -370,9 +348,9 @@
           </div>
         </div>
 
-        <div class="card" id="sec-path">
+        <div class="card analyst-only" id="sec-path">
           <div class="section-title">
-            <h2>2) Process path (deterministic)</h2>
+            <h2>Process path (deterministic)</h2>
             <div class="id">first satisfied edge wins</div>
           </div>
           <div class="muted small">Full process graph (from <code>graph/process_graph.yaml</code>) with the selected path highlighted.</div>
@@ -419,24 +397,23 @@
           </details>
         </div>
 
-        <div class="card" id="sec-missing">
+        <div class="card analyst-only" id="sec-missing">
           <div class="section-title">
-            <h2>3) Missing inputs</h2>
+            <h2>Missing inputs (detail)</h2>
             <div class="id">from graph + rules required_fields</div>
           </div>
           <div class="toolbar">
             <button class="btn" data-copy-target="missingChips">Copy missing fields</button>
-            <span class="muted small">These are the fastest “next actions” to reduce uncertainty.</span>
           </div>
           <div class="chips" id="missingChips">
             {{missing_chips}}
           </div>
         </div>
 
-        <div class="card" id="sec-uncertainty">
+        <div class="card analyst-only" id="sec-uncertainty">
           <div class="section-title">
-            <h2>3a) Uncertainty & dependencies</h2>
-            <div class="id">v0: compact</div>
+            <h2>Uncertainty &amp; dependencies</h2>
+            <div class="id">analyst</div>
           </div>
           <div class="muted small">
             This section separates <code>missing</code> vs explicit <code>unknown</code> inputs, and highlights non-cited assumptions and external dependencies.
@@ -446,9 +423,9 @@
           </div>
         </div>
 
-        <div class="card" id="sec-levers">
+        <div class="card analyst-only" id="sec-levers">
           <div class="section-title">
-            <h2>4) Levers detected</h2>
+            <h2>Levers detected</h2>
             <div class="id">structural hints</div>
           </div>
           <div class="muted small">
@@ -580,9 +557,9 @@
           </div>
         </div>
 
-        <div class="card" id="sec-risk">
+        <div class="card analyst-only" id="sec-risk">
           <div class="section-title">
-            <h2>5) Risk buckets</h2>
+            <h2>Risk buckets (detail)</h2>
             <div class="id">rule-driven v0</div>
           </div>
           <div class="muted small" style="margin-bottom:10px">

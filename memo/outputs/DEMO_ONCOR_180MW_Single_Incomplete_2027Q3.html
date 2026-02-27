@@ -240,23 +240,22 @@
       <aside class="sidebar">
         <div class="toc">
           <h3>Decision Memo (v0)</h3>
-          <a href="#sec-brief">Decision brief</a>
-          <a href="#sec-summary">Summary &amp; next actions</a>
-          <a href="#sec-scope">Scope &amp; disclaimers</a>
+          <a href="#sec-decision">Decision memo</a>
           <a href="#sec-input">Project details</a>
-          <a href="#sec-path">Process path</a>
-          <a href="#sec-missing">Missing information</a>
-          <a href="#sec-uncertainty">Open questions</a>
-          <a href="#sec-levers">Decision levers</a>
-          <a href="#sec-options">Options comparison</a>
-          <a href="#sec-flags" class="analyst-only">Parallel flags</a>
           <a href="#sec-checklist">Energization checklist</a>
-          <a href="#sec-risk">Risk assessment</a>
+          <a href="#sec-options">Options comparison (full)</a>
+          <a href="#sec-context" class="analyst-only">Context snapshot</a>
+          <a href="#sec-path" class="analyst-only">Process path</a>
+          <a href="#sec-missing" class="analyst-only">Missing inputs</a>
+          <a href="#sec-uncertainty" class="analyst-only">Uncertainty &amp; deps</a>
+          <a href="#sec-levers" class="analyst-only">Levers detected</a>
+          <a href="#sec-flags" class="analyst-only">Parallel flags</a>
+          <a href="#sec-risk" class="analyst-only">Risk detail</a>
           <a href="#sec-provenance" class="analyst-only">Provenance</a>
           <div class="meta">
             <div><span class="row-muted">Project</span>: <code>DEMO_ONCOR_180MW_Single_Incomplete_2027Q3</code></div>
-            <div><span class="row-muted">Rendered</span>: <code>2026-02-26T23:46:03.885667+00:00</code></div>
-            <div style="margin-top:8px"><span class="row-muted">Evaluated</span>: <code>2026-02-26T23:46:03+00:00</code></div>
+            <div><span class="row-muted">Rendered</span>: <code>2026-02-26T23:57:36.108657+00:00</code></div>
+            <div style="margin-top:8px"><span class="row-muted">Evaluated</span>: <code>2026-02-26T23:56:37+00:00</code></div>
           </div>
           <div class="mode-toggle-bar">
             <button class="mode-btn" id="modeBtnExec" onclick="setMode('exec')" title="Executive view: hides raw evidence, IDs, and audit tables">Exec view</button>
@@ -270,43 +269,16 @@
 
       <main class="main">
         <h1>DEMO_ONCOR_180MW_Single_Incomplete_2027Q3</h1>
-        <div class="muted small">This memo is rule-driven and audit-friendly (doc_id + loc + artifact sha256).</div>
+        <div class="muted small">Large Load Screening — Decision Brief &nbsp;·&nbsp; <em>Forwardable to PM / legal / procurement / leadership</em></div>
 
-        <div class="card" id="sec-brief">
+        <!-- ══ DECISION MEMO (exec view) ══════════════════════════════════════ -->
+        <div class="card" id="sec-decision">
           <div class="section-title">
-            <h2>Executive decision brief</h2>
-            <div class="id">non-technical</div>
-          </div>
-          <div class="muted small">
-            This section is designed to be forwarded internally (PM / legal / procurement / leadership). It avoids internal IDs and focuses on decisions + actions.
-          </div>
-          <div style="margin-top:10px">
-            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:14px"><span class="chip warn" style="font-size:13px;padding:5px 12px">Screening: <strong>Conditional — action required</strong></span><span class="chip " style="font-size:13px;padding:5px 12px">Energization: <strong>Not applicable</strong></span><span class="chip" style="font-size:13px;padding:5px 12px">Upgrade exposure: <strong>High</strong></span></div>
-<div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:4px">Recommendation</div><div style="font-size:14px">We recommend staying with the current baseline configuration. There is not yet enough information to recommend a specific alternative — 8 required inputs are outstanding.</div></div>
-<div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:6px">What to do next</div><ol style="margin:0;padding-left:20px"><li style="margin-bottom:8px"><div style="font-weight:600">Load Commissioning Plan Provided</div><div style="color:var(--muted);font-size:13px;margin-top:2px">Produce: Supporting evidence artifact (as applicable)</div></li><li style="margin-bottom:8px"><div style="font-weight:600">Application Fee Paid</div><div style="color:var(--muted);font-size:13px;margin-top:2px">Produce: Supporting evidence artifact (as applicable)</div></li><li style="margin-bottom:8px"><div style="font-weight:600">Load Projection 5y</div><div style="color:var(--muted);font-size:13px;margin-top:2px">Produce: 5-year load projection (spreadsheet/PDF)</div></li><li style="margin-top:4px;color:var(--muted);font-size:13px">…plus 5 more items — see the detailed checklist below.</li></ol></div>
-<div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:6px">Key risk factors</div><ul style="margin:0;padding-left:20px"><li style="margin-bottom:8px"><div style="font-weight:600">Far West Texas geographic constraint</div><div style="color:#374151;font-size:13px;margin-top:2px">The project is located in Far West Texas, a constrained transmission area with known upgrade pressure.</div></li><li style="margin-bottom:8px"><div style="font-weight:600">Batch-study cycle dependency</div><div style="color:#374151;font-size:13px;margin-top:2px">This project is subject to a batch-study cycle — the next study window and its timeline need to be confirmed.</div></li></ul></div>
-<div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:6px">What could change this</div><ul style="margin:0;padding-left:20px"><li style="font-size:13px;margin-bottom:4px">Clarify: <strong>Peak Power Factor</strong></li><li style="font-size:13px;margin-bottom:4px">Queue or study status: <strong>Batch-study cycle dependency</strong></li></ul></div>
-<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;color:var(--muted);font-size:12px;line-height:1.6">This is a preliminary screening assessment, not a final engineering determination. There are 8 information items still needed. Final requirements will be confirmed by ERCOT, your transmission service provider, and your TDSP.</div>
-          </div>
-          <details style="margin-top:10px">
-            <summary>Show / download 1-click PDF version</summary>
-            <div class="hint muted small">If the PDF exists in <code>memo/outputs/pdfs/</code>, it can be previewed below and downloaded.</div>
-            <div style="margin-top:10px">
-              <a class="btn" href="pdfs/DEMO_ONCOR_180MW_Single_Incomplete_2027Q3.pdf" target="_blank" rel="noopener">Open PDF</a>
-              <a class="btn" href="pdfs/DEMO_ONCOR_180MW_Single_Incomplete_2027Q3.pdf" download>Download PDF</a>
-            </div>
-            <div style="margin-top:10px; border:1px solid var(--border); border-radius:12px; overflow:hidden">
-              <iframe src="pdfs/DEMO_ONCOR_180MW_Single_Incomplete_2027Q3.pdf" style="width:100%; height:720px; border:0"></iframe>
-            </div>
-          </details>
-        </div>
-
-        <div class="card" id="sec-summary">
-          <div class="section-title">
-            <h2>Summary</h2>
-            <div class="id">screening</div>
+            <h2>Decision Memo</h2>
+            <div class="id">non-technical · forwardable</div>
           </div>
 
+          <!-- A) Status chips -->
           <div class="chips" style="margin-top:6px">
             <span class="chip warn"><span class="small">screening</span> <code>conditional</code></span>
 <span class="chip"><span class="small">energization</span> <code>unknown</code></span>
@@ -314,167 +286,44 @@
 <span class="chip"><span class="small">energization</span> <code>energization_not_requested</code></span>
           </div>
 
-          <div style="margin-top:12px">
-            <div class="muted small">Top next actions</div>
-<div class="action-cards" style="margin-top:8px">
-<div class="action-card">
-<div class="action-head">
-<div class="action-title">Provide: v0 input representing written acknowledgement of change-notification obligation (Planning Gu… <code>ack_change_notification_obligation</code></div>
-<div class="chips"><span class="chip"><span class="small">rank</span> <code>1</code></span>
-<span class="chip"><span class="small">type</span> <code>provide_field</code></span></div>
-</div>
-<div class="action-grid">
-<div class="action-k">Done = evidence</div>
-<div class="action-v"><span class="muted small">Field is provided (non-empty / non-null) in the request snapshot.</span></div>
-</div>
-<details class="action-details"><summary>Evidence & audit details</summary><div class="flip-box"><div class="muted small" style="margin-top:8px">From rule required_fields</div>
-<div class="chips"><span class="chip"><code>PG9_006_LLIS_PREINIT_WRITTEN_ACK_REQUIRED</code></span></div></div></details>
-</div>
-<div class="action-card">
-<div class="action-head">
-<div class="action-title">Provide: Whether the ERCOT LLIS application fee is paid (intake prerequisite in Planning Guide Sectio… <code>application_fee_paid</code></div>
-<div class="chips"><span class="chip"><span class="small">rank</span> <code>2</code></span>
-<span class="chip"><span class="small">type</span> <code>provide_field</code></span></div>
-</div>
-<div class="action-grid">
-<div class="action-k">Done = evidence</div>
-<div class="action-v"><span class="muted small">Field is provided (non-empty / non-null) in the request snapshot.</span></div>
-</div>
-<details class="action-details"><summary>Evidence & audit details</summary><div class="flip-box"><div class="muted small" style="margin-top:8px">From rule required_fields</div>
-<div class="chips"><span class="chip"><code>LL_QA_005_APPLICATION_FEE</code></span>
-<span class="chip"><code>PG9_008_LLIS_PREINIT_APPLICATION_FEE_REQUIRED</code></span></div></div></details>
-</div>
-<div class="action-card">
-<div class="action-head">
-<div class="action-title">Provide: v0 intake input representing submission of the LLIS study data package (steady state, short-… <code>llis_data_package_submitted</code></div>
-<div class="chips"><span class="chip"><span class="small">rank</span> <code>3</code></span>
-<span class="chip"><span class="small">type</span> <code>provide_field</code></span></div>
-</div>
-<div class="action-grid">
-<div class="action-k">Done = evidence</div>
-<div class="action-v"><span class="muted small">Field is provided (non-empty / non-null) in the request snapshot.</span></div>
-</div>
-<details class="action-details"><summary>Evidence & audit details</summary><div class="flip-box"><div class="muted small" style="margin-top:8px">From rule required_fields</div>
-<div class="chips"><span class="chip"><code>PG9_025_LLIS_PREINIT_STUDY_DATA_PACKAGE_REQUIRED</code></span></div></div></details>
-</div>
-<div class="action-card">
-<div class="action-head">
-<div class="action-title">Provide: v0 input representing that a formal request to initiate LLIS has been submitted (Planning Gu… <code>llis_formal_request_submitted</code></div>
-<div class="chips"><span class="chip"><span class="small">rank</span> <code>4</code></span>
-<span class="chip"><span class="small">type</span> <code>provide_field</code></span></div>
-</div>
-<div class="action-grid">
-<div class="action-k">Done = evidence</div>
-<div class="action-v"><span class="muted small">Field is provided (non-empty / non-null) in the request snapshot.</span></div>
-</div>
-<details class="action-details"><summary>Evidence & audit details</summary><div class="flip-box"><div class="muted small" style="margin-top:8px">From rule required_fields</div>
-<div class="chips"><span class="chip"><code>PG9_007_LLIS_PREINIT_FORMAL_REQUEST_REQUIRED</code></span></div></div></details>
-</div>
-<div class="action-card">
-<div class="action-head">
-<div class="action-title">Provide: Whether a (preliminary/current) Load Commissioning Plan is provided (key ERCOT large-load in… <code>load_commissioning_plan_provided</code></div>
-<div class="chips"><span class="chip"><span class="small">rank</span> <code>5</code></span>
-<span class="chip"><span class="small">type</span> <code>provide_field</code></span></div>
-</div>
-<div class="action-grid">
-<div class="action-k">Done = evidence</div>
-<div class="action-v"><span class="muted small">Field is provided (non-empty / non-null) in the request snapshot.</span></div>
-</div>
-<details class="action-details"><summary>Evidence & audit details</summary><div class="flip-box"><div class="muted small" style="margin-top:8px">From rule required_fields</div>
-<div class="chips"><span class="chip"><code>LL_QA_004_LOAD_COMMISSIONING_PLAN</code></span>
-<span class="chip"><code>PG9_005_LLIS_PREINIT_PRELIM_LCP_REQUIRED</code></span></div></div></details>
-</div>
-<div class="action-card">
-<div class="action-head">
-<div class="action-title">Provide: Intake/completeness input (often required by TDSP) <code>load_projection_5y</code></div>
-<div class="chips"><span class="chip"><span class="small">rank</span> <code>6</code></span>
-<span class="chip"><span class="small">type</span> <code>provide_field</code></span></div>
-</div>
-<div class="action-grid">
-<div class="action-k">Done = evidence</div>
-<div class="action-v"><span class="muted small">Field is provided (non-empty / non-null) in the request snapshot.</span></div>
-</div>
-<details class="action-details"><summary>Evidence & audit details</summary><div class="flip-box"><div class="muted small" style="margin-top:8px">From rule required_fields</div>
-<div class="chips"><span class="chip"><code>ONC_003_LOAD_PROJECTION</code></span></div></div></details>
-</div>
-<div class="action-card">
-<div class="action-head">
-<div class="action-title">Provide: Intake/completeness input (often required by TDSP) <code>one_line_diagram</code></div>
-<div class="chips"><span class="chip"><span class="small">rank</span> <code>7</code></span>
-<span class="chip"><span class="small">type</span> <code>provide_field</code></span></div>
-</div>
-<div class="action-grid">
-<div class="action-k">Done = evidence</div>
-<div class="action-v"><span class="muted small">Field is provided (non-empty / non-null) in the request snapshot.</span></div>
-</div>
-<details class="action-details"><summary>Evidence & audit details</summary><div class="flip-box"><div class="muted small" style="margin-top:8px">From rule required_fields</div>
-<div class="chips"><span class="chip"><code>ONC_004_ONE_LINE_DIAGRAM</code></span></div></div></details>
-</div>
-<div class="action-card">
-<div class="action-head">
-<div class="action-title">Provide: Peak load power factor (may be required by TDSP) <code>peak_power_factor</code></div>
-<div class="chips"><span class="chip"><span class="small">rank</span> <code>8</code></span>
-<span class="chip"><span class="small">type</span> <code>provide_field</code></span></div>
-</div>
-<div class="action-grid">
-<div class="action-k">Done = evidence</div>
-<div class="action-v"><span class="muted small">Field is provided (non-empty / non-null) in the request snapshot.</span></div>
-</div>
-<details class="action-details"><summary>Evidence & audit details</summary><div class="flip-box"><div class="muted small" style="margin-top:8px">From rule required_fields</div>
-<div class="chips"><span class="chip"><code>ONC_003_LOAD_PROJECTION</code></span></div></div></details>
-</div>
-</div>
+          <!-- B–F) Exec brief content: recommendation, drivers, actions, options, what-could-change -->
+          <div style="margin-top:14px">
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:14px"><span class="chip warn" style="font-size:13px;padding:5px 12px">Screening: <strong>Conditional — action required</strong></span><span class="chip " style="font-size:13px;padding:5px 12px">Energization: <strong>Not applicable</strong></span><span class="chip" style="font-size:13px;padding:5px 12px">Upgrade exposure: <strong>High</strong></span></div>
+<div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:4px">Recommendation</div><div style="font-size:14px">We recommend staying with the current baseline configuration. There is not yet enough information to recommend a specific alternative — 8 required inputs are outstanding.</div></div>
+<div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:6px">What to do next</div><ol style="margin:0;padding-left:20px"><li style="margin-bottom:8px"><div style="font-weight:600">Load Commissioning Plan Provided</div><div style="color:var(--muted);font-size:13px;margin-top:2px">Produce: Supporting evidence artifact (as applicable)</div></li><li style="margin-bottom:8px"><div style="font-weight:600">Application Fee Paid</div><div style="color:var(--muted);font-size:13px;margin-top:2px">Produce: Supporting evidence artifact (as applicable)</div></li><li style="margin-bottom:8px"><div style="font-weight:600">Load Projection 5y</div><div style="color:var(--muted);font-size:13px;margin-top:2px">Produce: 5-year load projection (spreadsheet/PDF)</div></li><li style="margin-top:4px;color:var(--muted);font-size:13px">…plus 5 more items — see the detailed checklist below.</li></ol></div>
+<div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:6px">Key risk factors</div><ul style="margin:0;padding-left:20px"><li style="margin-bottom:8px"><div style="font-weight:600">Far West Texas geographic constraint</div><div style="color:#374151;font-size:13px;margin-top:2px">The project is located in Far West Texas, a constrained transmission area with known upgrade pressure.</div></li><li style="margin-bottom:8px"><div style="font-weight:600">Batch-study cycle dependency</div><div style="color:#374151;font-size:13px;margin-top:2px">This project is subject to a batch-study cycle — the next study window and its timeline need to be confirmed.</div></li></ul></div>
+<div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:6px">What could change this</div><ul style="margin:0;padding-left:20px"><li style="font-size:13px;margin-bottom:4px">Clarify: <strong>Peak Power Factor</strong></li><li style="font-size:13px;margin-bottom:4px">Queue or study status: <strong>Batch-study cycle dependency</strong></li></ul></div>
+<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;color:var(--muted);font-size:12px;line-height:1.6">This is a preliminary screening assessment, not a final engineering determination. There are 8 information items still needed. Final requirements will be confirmed by ERCOT, your transmission service provider, and your TDSP.</div>
           </div>
 
-          <details style="margin-top:10px">
-            <summary>Show recommendation details (options compared)</summary>
-            <div class="chips">
-<span class="chip good"><span class="small">recommended</span> <code>baseline</code></span>
-<span class="chip"><span class="small">baseline?</span> <code>True</code></span>
-</div>
-<div class="muted small" style="margin-top:10px">Scoring rule (v0, explainable)</div>
-<div class="small"><code>score = (missing_inputs_count, energization_penalty, upgrade_bucket_rank, ops_bucket_rank, risk_pressure, timeline_score)</code></div>
-<div class="muted small" style="margin-top:6px">Where <code>energization_penalty = 2*not_satisfied + missing</code> (only when energization is requested), bucket ranks are <code>low&lt;medium&lt;high&lt;unknown</code>, <code>risk_pressure = upgrade_score + wait_score + ops_score</code> (tie-breaker from v0 tag scoring), and <code>timeline_score</code> is derived from the qualitative timeline buckets.</div>
-<div class="muted small" style="margin-top:6px">Context: risk buckets include context snapshot adjustments when request.context is provided</div>
-<div class="muted small" style="margin-top:10px">Rationale</div>
-<ul style="margin:6px 0 0 18px">
-<li class="small"><code>missing_inputs_count: 8 → 8</code></li>
-<li class="small"><code>upgrade_bucket: high → high</code></li>
-<li class="small"><code>ops_bucket: medium → medium</code></li>
-<li class="small"><code>path: same</code></li>
-</ul>
-<div class="muted small" style="margin-top:10px">Top ranked candidates (v0)</div>
-<div style="overflow-x:auto;margin-top:8px"><table>
-<thead><tr><th class="nowrap">option</th><th class="nowrap">lever</th><th class="nowrap">source</th><th class="nowrap">missing</th><th class="nowrap">upgrade</th><th class="nowrap">ops</th><th class="nowrap">risk</th><th class="nowrap">timeline</th><th class="nowrap">gates</th></tr></thead>
-<tbody><tr><td class="nowrap"><code>baseline</code></td><td class="nowrap"><code>baseline</code></td><td class="nowrap"><code>baseline</code></td><td class="nowrap"><code>8</code></td><td class="nowrap"><code>high</code></td><td class="nowrap"><code>medium</code></td><td class="nowrap"><span class="small"><code>risk:124.0</code></span></td><td class="nowrap"><span class="small">≤12:down 12–24:up >24:up</span></td><td class="nowrap"><span class="small">gate not_sat:0 missing:0</span></td></tr>
-<tr><td class="nowrap"><code>poi_topology_multi</code></td><td class="nowrap"><code>poi_topology_choice</code></td><td class="nowrap"><code>system_generated_toggle</code></td><td class="nowrap"><code>8</code></td><td class="nowrap"><code>high</code></td><td class="nowrap"><code>medium</code></td><td class="nowrap"><span class="small"><code>risk:126.5</code></span></td><td class="nowrap"><span class="small">≤12:down 12–24:up >24:up</span></td><td class="nowrap"><span class="small">gate not_sat:0 missing:0</span></td></tr>
-<tr><td class="nowrap"><code>co_located_true</code></td><td class="nowrap"><code>co_location_signal</code></td><td class="nowrap"><code>system_generated_toggle</code></td><td class="nowrap"><code>8</code></td><td class="nowrap"><code>high</code></td><td class="nowrap"><code>high</code></td><td class="nowrap"><span class="small"><code>risk:128.0</code></span></td><td class="nowrap"><span class="small">≤12:down 12–24:up >24:up</span></td><td class="nowrap"><span class="small">gate not_sat:0 missing:0</span></td></tr>
-<tr><td class="nowrap"><code>export_planned</code></td><td class="nowrap"><code>export_capability_choice</code></td><td class="nowrap"><code>system_generated_toggle</code></td><td class="nowrap"><code>8</code></td><td class="nowrap"><code>high</code></td><td class="nowrap"><code>high</code></td><td class="nowrap"><span class="small"><code>risk:130.0</code></span></td><td class="nowrap"><span class="small">≤12:down 12–24:up >24:up</span></td><td class="nowrap"><span class="small">gate not_sat:0 missing:0</span></td></tr>
-<tr><td class="nowrap"><code>energization_plan_phased</code></td><td class="nowrap"><code>phased_energization</code></td><td class="nowrap"><code>system_generated_toggle</code></td><td class="nowrap"><code>9</code></td><td class="nowrap"><code>high</code></td><td class="nowrap"><code>medium</code></td><td class="nowrap"><span class="small"><code>risk:127.5</code></span></td><td class="nowrap"><span class="small">≤12:down 12–24:up >24:up</span></td><td class="nowrap"><span class="small">gate not_sat:0 missing:0</span></td></tr></tbody>
-</table></div>
-<div class="muted small" style="margin-top:10px">Note: v0 recommendation is bounded to baseline + generated options; it is not a global optimizer.</div>
+          <!-- E) Options comparison (compact) -->
+          <div style="margin-top:14px">
+            <div style="font-size:15px;font-weight:700;margin-bottom:8px">Options at a glance</div>
+            <div style="overflow-x:auto"><table><thead><tr><th>Option</th><th class="nowrap">Timeline signal</th><th class="nowrap">Inputs needed</th><th>Key tradeoff</th></tr></thead><tbody><tr style="background:transparent"><td>Multi-POI topology<span style="color:var(--accent)"></span></td><td class="nowrap">&gt; 24 months likely</td><td class="nowrap">8 items needed</td><td>Upgrade exposure: high; 3 more risk flags vs baseline; 8 items still needed</td></tr>
+<tr style="background:transparent"><td>Co-located generation<span style="color:var(--accent)"></span></td><td class="nowrap">&gt; 24 months likely</td><td class="nowrap">8 items needed</td><td>Upgrade exposure: high; 4 more risk flags vs baseline; 8 items still needed</td></tr>
+<tr style="background:transparent"><td>Export Planned<span style="color:var(--accent)"></span></td><td class="nowrap">&gt; 24 months likely</td><td class="nowrap">8 items needed</td><td>Upgrade exposure: high; 4 more risk flags vs baseline; 8 items still needed</td></tr></tbody></table></div><div style="font-size:11px;color:var(--muted);margin-top:4px">★ = recommended option</div>
+          </div>
+
+          <!-- PDF download (collapsed) -->
+          <details style="margin-top:14px">
+            <summary class="muted small">Show / download PDF version</summary>
+            <div style="margin-top:8px">
+              <a class="btn" href="pdfs/DEMO_ONCOR_180MW_Single_Incomplete_2027Q3.pdf" target="_blank" rel="noopener">Open PDF</a>
+              <a class="btn" href="pdfs/DEMO_ONCOR_180MW_Single_Incomplete_2027Q3.pdf" download>Download PDF</a>
+            </div>
           </details>
+
+          <!-- Disclaimer (one line) -->
+          <div style="border-top:1px solid var(--border);margin-top:14px;padding-top:8px;font-size:11px;color:var(--muted)">
+            Screening brief only — not legal advice. Final outcomes depend on ERCOT / TSP / TDSP studies and approvals.
+            <span class="analyst-only">Full evidence + audit log in sections below.</span>
+          </div>
         </div>
 
-        <div class="card" id="sec-scope">
-          <div class="section-title">
-            <h2>Scope &amp; disclaimers</h2>
-            <div class="id">screening only</div>
-          </div>
-          <div class="muted small">
-            This memo is an <strong>audit-friendly screening artifact</strong>. It is not legal advice, and it does not replace ERCOT/TSP/TDSP engineering studies.
-          </div>
-          <ul class="small" style="margin:10px 0 0 18px">
-            <li><strong>Not a schedule commitment</strong>: risk buckets are qualitative and rule-driven; they do not guarantee COD or energization timelines.</li>
-            <li><strong>Not an interconnection determination</strong>: final requirements depend on studies, agreements, and stakeholder approvals (ERCOT / TSP / TDSP).</li>
-            <li><strong>Inputs matter</strong>: missing or incorrect request inputs can materially change the evaluated path and checklist outcomes.</li>
-            <li><strong>Evidence scope</strong>: citations reference public artifacts captured in the registry (doc_id + loc + sha256); interpretations may evolve as rules are updated.</li>
-          </ul>
-        </div>
-
+        <!-- ══ PROJECT DETAILS ════════════════════════════════════════════════ -->
         <div class="card" id="sec-input">
           <div class="section-title">
-            <h2>1) Project details</h2>
+            <h2>Project details</h2>
             <div class="id">input snapshot</div>
           </div>
           <div class="kv" style="margin-top:8px">
@@ -493,7 +342,6 @@
           </div>
           <details style="margin-top:10px" class="analyst-only">
             <summary>Show raw request JSON</summary>
-            <div class="hint muted small">Full request object as submitted to the evaluator.</div>
             <pre>{
   &quot;project_name&quot;: &quot;DEMO_ONCOR_180MW_Single_Incomplete_2027Q3&quot;,
   &quot;project_type&quot;: &quot;large_load&quot;,
@@ -527,9 +375,9 @@
           </details>
         </div>
 
-        <div class="card" id="sec-context">
+        <div class="card analyst-only" id="sec-context">
           <div class="section-title">
-            <h2>1b) Context snapshot (optional)</h2>
+            <h2>Context snapshot</h2>
             <div class="id">audit-friendly</div>
           </div>
           <div class="muted small">Optional system-state / discretion inputs provided by the user. These are recorded with source + confidence and can influence v0 risk/recommendation deterministically. They are not citation-audited like published rules.</div>
@@ -538,9 +386,9 @@
           </div>
         </div>
 
-        <div class="card" id="sec-path">
+        <div class="card analyst-only" id="sec-path">
           <div class="section-title">
-            <h2>2) Process path (deterministic)</h2>
+            <h2>Process path (deterministic)</h2>
             <div class="id">first satisfied edge wins</div>
           </div>
           <div class="muted small">Full process graph (from <code>graph/process_graph.yaml</code>) with the selected path highlighted.</div>
@@ -737,14 +585,13 @@
           </details>
         </div>
 
-        <div class="card" id="sec-missing">
+        <div class="card analyst-only" id="sec-missing">
           <div class="section-title">
-            <h2>3) Missing inputs</h2>
+            <h2>Missing inputs (detail)</h2>
             <div class="id">from graph + rules required_fields</div>
           </div>
           <div class="toolbar">
             <button class="btn" data-copy-target="missingChips">Copy missing fields</button>
-            <span class="muted small">These are the fastest “next actions” to reduce uncertainty.</span>
           </div>
           <div class="chips" id="missingChips">
             <span class="chip"><code>ack_change_notification_obligation</code></span>
@@ -758,10 +605,10 @@
           </div>
         </div>
 
-        <div class="card" id="sec-uncertainty">
+        <div class="card analyst-only" id="sec-uncertainty">
           <div class="section-title">
-            <h2>3a) Uncertainty & dependencies</h2>
-            <div class="id">v0: compact</div>
+            <h2>Uncertainty &amp; dependencies</h2>
+            <div class="id">analyst</div>
           </div>
           <div class="muted small">
             This section separates <code>missing</code> vs explicit <code>unknown</code> inputs, and highlights non-cited assumptions and external dependencies.
@@ -804,9 +651,9 @@
           </div>
         </div>
 
-        <div class="card" id="sec-levers">
+        <div class="card analyst-only" id="sec-levers">
           <div class="section-title">
-            <h2>4) Levers detected</h2>
+            <h2>Levers detected</h2>
             <div class="id">structural hints</div>
           </div>
           <div class="muted small">
@@ -975,9 +822,9 @@
           </div>
         </div>
 
-        <div class="card" id="sec-risk">
+        <div class="card analyst-only" id="sec-risk">
           <div class="section-title">
-            <h2>5) Risk buckets</h2>
+            <h2>Risk buckets (detail)</h2>
             <div class="id">rule-driven v0</div>
           </div>
           <div class="muted small" style="margin-bottom:10px">

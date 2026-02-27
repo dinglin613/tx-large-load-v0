@@ -1611,6 +1611,119 @@ def render_top_drivers_html(ev: Dict[str, Any]) -> str:
         + evidence_table
     )
 
+
+def render_options_compact_html(ev: Dict[str, Any]) -> str:
+    """Compact 3-option comparison table for exec view.
+    Columns: option label | timeline signal | items still needed | key tradeoff
+    Recommended option is starred.
+    """
+    opts = ev.get("options") or []
+    rec  = ev.get("recommendation") or {}
+    rec_id = str(rec.get("recommended_option_id") or "baseline")
+
+    _opt_label = {
+        "baseline":                   "Current approach (baseline)",
+        "voltage_138":                "138 kV connection",
+        "voltage_345":                "345 kV connection",
+        "phased":                     "Phased load approach",
+        "single":                     "Single-phase approach",
+        "energization_plan_single":   "Single energization plan",
+        "energization_plan_phased":   "Phased energization plan",
+        "poi_topology_multi":         "Multi-POI topology",
+        "co_located_true":            "Co-located generation",
+        "llis_true":                  "LLIS requested",
+    }
+    _bucket_label = {
+        "up":      "↑ elevated",
+        "down":    "↓ lower",
+        "unknown": "unclear",
+        "neutral": "neutral",
+    }
+
+    def _timeline_summary(summary: Dict) -> str:
+        tb = summary.get("timeline_buckets") or {}
+        gt = tb.get("gt_24_months", "")
+        m12 = tb.get("m12_24_months", "")
+        le = tb.get("le_12_months", "")
+        if gt == "up":    return "> 24 months likely"
+        if m12 == "up":   return "12–24 months likely"
+        if le == "up":    return "≤ 12 months possible"
+        return "Timeline unclear"
+
+    def _tradeoff(opt: Dict, is_recommended: bool) -> str:
+        s = opt.get("summary") or {}
+        delta = opt.get("delta") or {}
+        upgrade = s.get("upgrade_exposure_bucket") or "unknown"
+        missing = s.get("missing_inputs_count") or 0
+        flag_delta = delta.get("flags_count_delta") or 0
+        parts = []
+        if upgrade in ("high", "medium"):
+            parts.append(f"Upgrade exposure: {upgrade}")
+        if flag_delta < 0:
+            parts.append(f"{abs(flag_delta)} fewer risk flags vs baseline")
+        elif flag_delta > 0:
+            parts.append(f"{flag_delta} more risk flags vs baseline")
+        if missing == 0:
+            parts.append("No missing inputs")
+        elif missing <= 3:
+            parts.append(f"{missing} items still needed")
+        else:
+            parts.append(f"{missing} items still needed")
+        return "; ".join(parts) if parts else "—"
+
+    # Pick: always include baseline + recommended + up to 1 more distinct alternative
+    baseline_opt = next((o for o in opts if o.get("option_id") == "baseline"), None)
+    rec_opt      = next((o for o in opts if o.get("option_id") == rec_id), None)
+    others       = [o for o in opts if o.get("option_id") not in ("baseline", rec_id)]
+    # Pick the other with the lowest missing count as the comparison alternative
+    others_sorted = sorted(others, key=lambda o: (o.get("summary") or {}).get("missing_inputs_count") or 99)
+
+    rows_to_show: List[Dict] = []
+    for o in [baseline_opt, rec_opt] + others_sorted:
+        if o is None: continue
+        if any(x.get("option_id") == o.get("option_id") for x in rows_to_show): continue
+        rows_to_show.append(o)
+        if len(rows_to_show) >= 3: break
+
+    if not rows_to_show:
+        return "<div class=\"muted small\">No options available.</div>"
+
+    rows_html = []
+    for o in rows_to_show:
+        oid    = str(o.get("option_id") or "")
+        label  = _opt_label.get(oid, oid.replace("_", " ").title())
+        s      = o.get("summary") or {}
+        tl     = _timeline_summary(s)
+        miss   = s.get("missing_inputs_count") or 0
+        trade  = _tradeoff(o, oid == rec_id)
+        is_rec = (oid == rec_id)
+        star   = " ★" if is_rec else ""
+        bold_s = "font-weight:700;" if is_rec else ""
+        miss_s = f"{miss} item{'s' if miss != 1 else ''} needed" if miss > 0 else "✓ complete"
+        rows_html.append(
+            f"<tr style=\"{bold_s}background:{'var(--bg-offset,#f9fafb)' if is_rec else 'transparent'}\">"
+            f"<td>{esc(label)}<span style=\"color:var(--accent)\">{star}</span></td>"
+            f"<td class=\"nowrap\">{esc(tl)}</td>"
+            f"<td class=\"nowrap\">{esc(miss_s)}</td>"
+            f"<td>{esc(trade)}</td>"
+            f"</tr>"
+        )
+
+    return (
+        "<div style=\"overflow-x:auto\">"
+        "<table>"
+        "<thead><tr>"
+        "<th>Option</th>"
+        "<th class=\"nowrap\">Timeline signal</th>"
+        "<th class=\"nowrap\">Inputs needed</th>"
+        "<th>Key tradeoff</th>"
+        "</tr></thead>"
+        "<tbody>" + "\n".join(rows_html) + "</tbody>"
+        "</table></div>"
+        "<div style=\"font-size:11px;color:var(--muted);margin-top:4px\">★ = recommended option</div>"
+    )
+
+
 def _count_status(items: List[Dict[str, Any]]) -> Dict[str, int]:
     out = {"satisfied": 0, "missing": 0, "not_satisfied": 0, "unknown": 0, "not_applicable": 0}
     for it in items or []:
@@ -2460,6 +2573,7 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optiona
         .replace("{{is_requesting_energization}}", esc(req.get("is_requesting_energization")))
         .replace("{{request_json}}", esc(json.dumps(req, ensure_ascii=False, indent=2)))
         .replace("{{executive_brief_html}}", render_executive_brief_html(ev))
+        .replace("{{options_compact_html}}", render_options_compact_html(ev))
         .replace("{{pdf_filename}}", esc(pdf_filename))
         .replace("{{context_snapshot_html}}", render_context_snapshot_html(ev))
         .replace("{{path}}", esc(" → ".join(path_labels)))
