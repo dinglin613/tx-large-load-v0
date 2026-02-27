@@ -254,7 +254,7 @@
           <a href="#sec-provenance" class="analyst-only">Provenance</a>
           <div class="meta">
             <div><span class="row-muted">Project</span>: <code>DC_ONCOR_300MW_Energization_Breaker_Config_False_2026Q3</code></div>
-            <div><span class="row-muted">Rendered</span>: <code>2026-02-26T23:57:36.082501+00:00</code></div>
+            <div><span class="row-muted">Rendered</span>: <code>2026-02-27T02:11:24.100114+00:00</code></div>
             <div style="margin-top:8px"><span class="row-muted">Evaluated</span>: <code>2026-02-26T23:56:37+00:00</code></div>
           </div>
           <div class="mode-toggle-bar">
@@ -278,31 +278,17 @@
             <div class="id">non-technical · forwardable</div>
           </div>
 
-          <!-- A) Status chips -->
-          <div class="chips" style="margin-top:6px">
-            <span class="chip good"><span class="small">screening</span> <code>go</code></span>
-<span class="chip bad"><span class="small">energization</span> <code>not_ready</code></span>
-            <span class="chip"><span class="small">screening</span> <code>no missing inputs detected</code></span>
-<span class="chip"><span class="small">energization</span> <code>target_window=2026Q3</code></span>
-<span class="chip"><span class="small">energization</span> <code>checklist_not_satisfied=1</code></span>
-          </div>
-
-          <!-- B–F) Exec brief content: recommendation, drivers, actions, options, what-could-change -->
-          <div style="margin-top:14px">
+          <!-- Status + recommendation + actions + drivers + options-compact all come from executive_brief_html -->
+          <div style="margin-top:10px">
             <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:14px"><span class="chip good" style="font-size:13px;padding:5px 12px">Screening: <strong>Ready to proceed</strong></span><span class="chip bad" style="font-size:13px;padding:5px 12px">Energization: <strong>Not ready</strong></span><span class="chip" style="font-size:13px;padding:5px 12px">Upgrade exposure: <strong>High</strong></span></div>
 <div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:4px">Recommendation</div><div style="font-size:14px">We recommend staying with the current baseline configuration. The project carries Far West Texas geographic constraint risk; no configuration change is recommended at this stage.</div></div>
 <div style="margin-bottom:14px;color:var(--muted);font-size:14px">✓ All required information has been provided — no blocking items.</div>
 <div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:6px">Key risk factors</div><ul style="margin:0;padding-left:20px"><li style="margin-bottom:8px"><div style="font-weight:600">Far West Texas geographic constraint</div><div style="color:#374151;font-size:13px;margin-top:2px">The project is located in Far West Texas, a constrained transmission area with known upgrade pressure.</div></li><li style="margin-bottom:8px"><div style="font-weight:600">Batch-study cycle dependency</div><div style="color:#374151;font-size:13px;margin-top:2px">This project is subject to a batch-study cycle — the next study window and its timeline need to be confirmed.</div></li></ul></div>
 <div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:6px">What could change this</div><ul style="margin:0;padding-left:20px"><li style="font-size:13px;margin-bottom:4px">Queue or study status: <strong>Financial security</strong></li><li style="font-size:13px;margin-bottom:4px">Queue or study status: <strong>Batch-study cycle dependency</strong></li></ul></div>
-<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;color:var(--muted);font-size:12px;line-height:1.6">This is a preliminary screening assessment, not a final engineering determination. Energization readiness gates are tracked in the checklist below. Final requirements will be confirmed by ERCOT, your transmission service provider, and your TDSP.</div>
-          </div>
-
-          <!-- E) Options comparison (compact) -->
-          <div style="margin-top:14px">
-            <div style="font-size:15px;font-weight:700;margin-bottom:8px">Options at a glance</div>
-            <div style="overflow-x:auto"><table><thead><tr><th>Option</th><th class="nowrap">Timeline signal</th><th class="nowrap">Inputs needed</th><th>Key tradeoff</th></tr></thead><tbody><tr style="background:transparent"><td>Phased energization plan<span style="color:var(--accent)"></span></td><td class="nowrap">&gt; 24 months likely</td><td class="nowrap">1 item needed</td><td>Upgrade exposure: high; 1 items still needed</td></tr>
+<div style="margin-bottom:14px"><div style="font-size:15px;font-weight:700;margin-bottom:4px">Options at a glance</div><div style="font-size:12px;color:var(--muted);margin-bottom:8px">Screening what-ifs — not final determinations. Use these to choose the next lever to confirm.</div><div style="overflow-x:auto"><table><thead><tr><th>Option</th><th class="nowrap">Timeline signal</th><th class="nowrap">Inputs needed</th><th>Key tradeoff</th></tr></thead><tbody><tr style="background:transparent"><td>Phased energization plan<span style="color:var(--accent)"></span></td><td class="nowrap">&gt; 24 months likely</td><td class="nowrap">1 item needed</td><td>Upgrade exposure: high; 1 items still needed</td></tr>
 <tr style="background:transparent"><td>Multi-POI topology<span style="color:var(--accent)"></span></td><td class="nowrap">&gt; 24 months likely</td><td class="nowrap">✓ complete</td><td>Upgrade exposure: high; 3 more risk flags vs baseline; No missing inputs</td></tr>
-<tr style="background:transparent"><td>Co-located generation<span style="color:var(--accent)"></span></td><td class="nowrap">&gt; 24 months likely</td><td class="nowrap">✓ complete</td><td>Upgrade exposure: high; 4 more risk flags vs baseline; No missing inputs</td></tr></tbody></table></div><div style="font-size:11px;color:var(--muted);margin-top:4px">★ = recommended option</div>
+<tr style="background:transparent"><td>Co-located generation<span style="color:var(--accent)"></span></td><td class="nowrap">&gt; 24 months likely</td><td class="nowrap">✓ complete</td><td>Upgrade exposure: high; 4 more risk flags vs baseline; No missing inputs</td></tr></tbody></table></div><div style="font-size:11px;color:var(--muted);margin-top:4px">★ = recommended option</div></div>
+<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;color:var(--muted);font-size:12px;line-height:1.6">This is a preliminary screening assessment, not a final engineering determination. Energization readiness gates are tracked in the checklist below. Final requirements will be confirmed by ERCOT, your transmission service provider, and your TDSP.</div>
           </div>
 
           <!-- PDF download (collapsed) -->

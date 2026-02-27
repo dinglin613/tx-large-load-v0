@@ -1534,9 +1534,21 @@ def render_executive_brief_html(ev: Dict[str, Any]) -> str:
         "</div>"
     )
 
+    # ── Options at a glance (compact, inline) ────────────────────────────────
+    options_block = (
+        "<div style=\"margin-bottom:14px\">"
+        "<div style=\"font-size:15px;font-weight:700;margin-bottom:4px\">Options at a glance</div>"
+        "<div style=\"font-size:12px;color:var(--muted);margin-bottom:8px\">"
+        "Screening what-ifs — not final determinations. Use these to choose the next lever to confirm."
+        "</div>"
+        + render_options_compact_html(ev) +
+        "</div>"
+    )
+
     parts = [header, reco_block, actions_block]
     if drivers_block:   parts.append(drivers_block)
     if change_block:    parts.append(change_block)
+    parts.append(options_block)
     parts.append(footer)
     return "\n".join(parts)
 
@@ -2573,7 +2585,6 @@ def render_eval_to_html(tpl: str, ev: Dict[str, Any], *, citation_audit: Optiona
         .replace("{{is_requesting_energization}}", esc(req.get("is_requesting_energization")))
         .replace("{{request_json}}", esc(json.dumps(req, ensure_ascii=False, indent=2)))
         .replace("{{executive_brief_html}}", render_executive_brief_html(ev))
-        .replace("{{options_compact_html}}", render_options_compact_html(ev))
         .replace("{{pdf_filename}}", esc(pdf_filename))
         .replace("{{context_snapshot_html}}", render_context_snapshot_html(ev))
         .replace("{{path}}", esc(" → ".join(path_labels)))

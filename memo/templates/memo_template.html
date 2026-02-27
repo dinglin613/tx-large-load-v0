@@ -278,21 +278,9 @@
             <div class="id">non-technical · forwardable</div>
           </div>
 
-          <!-- A) Status chips -->
-          <div class="chips" style="margin-top:6px">
-            {{decision_status_badge}}
-            {{decision_reason_chips}}
-          </div>
-
-          <!-- B–F) Exec brief content: recommendation, drivers, actions, options, what-could-change -->
-          <div style="margin-top:14px">
+          <!-- Status + recommendation + actions + drivers + options-compact all come from executive_brief_html -->
+          <div style="margin-top:10px">
             {{executive_brief_html}}
-          </div>
-
-          <!-- E) Options comparison (compact) -->
-          <div style="margin-top:14px">
-            <div style="font-size:15px;font-weight:700;margin-bottom:8px">Options at a glance</div>
-            {{options_compact_html}}
           </div>
 
           <!-- PDF download (collapsed) -->
