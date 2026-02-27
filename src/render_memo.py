@@ -1726,15 +1726,13 @@ def render_options_compact_html(ev: Dict[str, Any]) -> str:
             cod_str = f", COD ≥ {te_cod}" if te_cod else ""
             months_str = f" ({te_months} mo to study)" if te_months is not None else ""
             return f"Study floor {te_floor}{months_str}{cod_str}"
-        # Fallback: score-derived pressure signal only — NOT a calendar estimate
-        # "unanchored" means batch_zero_eligible was not provided; no date floor available.
+        # Fallback: unanchored — batch_zero_eligible was not provided; no date floor available.
         upgrade = str(summary.get("upgrade_exposure_bucket") or "unknown")
-        rs = summary.get("risk_scores") or {}
-        wait = float(rs.get("wait_score") or 0)
-        if upgrade == "high" or wait >= 2:
-            return "⚠ No date floor (upgrade=high; provide batch_zero_eligible)"
+        confidence = str(te_s.get("confidence") or "low")
+        if upgrade == "high":
+            return f"⚠ No date floor (upgrade={upgrade}; provide batch_zero_eligible)"
         if upgrade == "medium":
-            return "⚠ No date floor (upgrade=medium; provide batch_zero_eligible)"
+            return f"⚠ No date floor (upgrade={upgrade}; provide batch_zero_eligible)"
         return "⚠ No date floor — provide batch_zero_eligible"
 
     def _tradeoff(opt: Dict, is_recommended: bool) -> str:
