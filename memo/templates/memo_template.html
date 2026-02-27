@@ -242,8 +242,8 @@
           <h3>Decision Memo (v0)</h3>
           <a href="#sec-decision">Decision memo</a>
           <a href="#sec-input">Project details</a>
-          <a href="#sec-checklist">Energization checklist</a>
           <a href="#sec-options">Options comparison (full)</a>
+          <a href="#sec-checklist">Energization checklist</a>
           <a href="#sec-context" class="analyst-only">Context snapshot</a>
           <a href="#sec-path" class="analyst-only">Process path</a>
           <a href="#sec-missing" class="analyst-only">Missing inputs</a>
@@ -455,7 +455,7 @@
 
         <div class="card" id="sec-options">
           <div class="section-title">
-            <h2>4a) Options comparison</h2>
+            <h2>Options comparison</h2>
             <div class="id">lever variants</div>
           </div>
           <div class="muted small">
@@ -469,15 +469,15 @@
             <table id="optionsTable">
               <thead>
                 <tr>
-                  <th class="nowrap">option_id</th>
-                  <th class="nowrap">lever</th>
-                  <th class="nowrap">source</th>
-                  <th>patch</th>
-                  <th>path</th>
-                  <th class="nowrap">missing</th>
-                  <th class="nowrap">delta</th>
-                  <th class="nowrap">risk</th>
-                  <th>edge diff + why</th>
+                  <th class="nowrap">Option</th>
+                  <th class="nowrap">Lever / class</th>
+                  <th class="nowrap">Source</th>
+                  <th>Input changes</th>
+                  <th>Process path</th>
+                  <th class="nowrap">Missing</th>
+                  <th class="nowrap">Delta vs baseline</th>
+                  <th class="nowrap">Risk &amp; timeline</th>
+                  <th>Edge diff + why</th>
                 </tr>
               </thead>
               <tbody>
@@ -489,7 +489,7 @@
 
         <div class="card analyst-only" id="sec-flags">
           <div class="section-title">
-            <h2>4b) Parallel flags</h2>
+            <h2>Parallel flags</h2>
             <div class="id">rule predicate matches</div>
           </div>
           <div class="toolbar">
@@ -516,7 +516,7 @@
 
         <div class="card" id="sec-checklist">
           <div class="section-title">
-            <h2>4c) Energization readiness checklist</h2>
+            <h2>Energization readiness checklist</h2>
             <div class="id">tri-state gates</div>
           </div>
           <div class="muted small">Shown when <code>is_requesting_energization=true</code>. Status: <code>satisfied</code> / <code>missing</code> / <code>not_satisfied</code> / <code>unknown</code> (needs applicability confirmation).</div>

@@ -1384,23 +1384,25 @@ def render_executive_brief_html(ev: Dict[str, Any]) -> str:
 
     # ── BLOCK 1: status header ────────────────────────────────────────────────
     header = (
-        "<div style=\"display:flex;flex-wrap:wrap;gap:10px;align-items:center;"
-        "border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:14px\">"
-        f"<span class=\"chip {scr_cls}\" style=\"font-size:13px;padding:5px 12px\">"
-        f"Screening: <strong>{esc(scr_label)}</strong></span>"
-        f"<span class=\"chip {enr_cls}\" style=\"font-size:13px;padding:5px 12px\">"
-        f"Energization: <strong>{esc(enr_label)}</strong></span>"
-        f"<span class=\"chip\" style=\"font-size:13px;padding:5px 12px\">"
-        f"Upgrade exposure: <strong>{esc(upgrade_label)}</strong></span>"
+        "<div style=\"display:flex;flex-wrap:wrap;gap:8px;align-items:center;"
+        "border-bottom:2px solid var(--border);padding-bottom:14px;margin-bottom:18px\">"
+        f"<span class=\"chip {scr_cls}\" style=\"font-size:13px;padding:6px 14px;font-weight:600\">"
+        f"Screening: {esc(scr_label)}</span>"
+        f"<span class=\"chip {enr_cls}\" style=\"font-size:13px;padding:6px 14px;font-weight:600\">"
+        f"Energization: {esc(enr_label)}</span>"
+        f"<span class=\"chip\" style=\"font-size:13px;padding:6px 14px;font-weight:600\">"
+        f"Upgrade exposure: {esc(upgrade_label)}</span>"
         "</div>"
     )
 
     # ── BLOCK 2: recommendation sentence ─────────────────────────────────────
     reco_block = (
-        "<div style=\"margin-bottom:14px\">"
-        f"<div style=\"font-size:15px;font-weight:700;margin-bottom:4px\">Recommendation</div>"
-        f"<div style=\"font-size:14px\">{esc(reco_sentence)}{esc(because_clause)}</div>"
-        "</div>"
+        "<div style=\"margin-bottom:20px\">"
+        "<div style=\"font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;"
+        "color:var(--muted);margin-bottom:6px\">Recommendation</div>"
+        f"<div style=\"font-size:16px;font-weight:700;line-height:1.4;color:#111\">{esc(reco_sentence)}</div>"
+        + (f"<div style=\"font-size:14px;color:#374151;margin-top:6px;line-height:1.5\">{esc(because_clause.strip())}</div>" if because_clause.strip() else "")
+        + "</div>"
     )
 
     # ── BLOCK 3: next 3 actions (plain English, with deliverable) ────────────
@@ -1410,30 +1412,32 @@ def render_executive_brief_html(ev: Dict[str, Any]) -> str:
         lbl  = _humanize_field_id(f) or f.replace("_", " ").title()
         hint = _deliverable_hint(f)
         action_items.append(
-            f"<li style=\"margin-bottom:8px\">"
-            f"<div style=\"font-weight:600\">{esc(lbl)}</div>"
+            f"<li style=\"margin-bottom:10px\">"
+            f"<div style=\"font-size:14px;font-weight:600;color:#111\">{esc(lbl)}</div>"
             f"<div style=\"color:var(--muted);font-size:13px;margin-top:2px\">Produce: {esc(hint)}</div>"
             f"</li>"
         )
     remaining = max(0, len(missing_deduped) - 3)
     more_note = (
-        f"<li style=\"margin-top:4px;color:var(--muted);font-size:13px\">"
+        f"<li style=\"margin-top:6px;color:var(--muted);font-size:13px\">"
         f"…plus {remaining} more item{'s' if remaining != 1 else ''} — see the detailed checklist below."
         f"</li>"
     ) if remaining > 0 else ""
 
     if action_items:
         actions_block = (
-            "<div style=\"margin-bottom:14px\">"
-            "<div style=\"font-size:15px;font-weight:700;margin-bottom:6px\">What to do next</div>"
+            "<div style=\"margin-bottom:20px\">"
+            "<div style=\"font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;"
+            "color:var(--muted);margin-bottom:8px\">What to do next</div>"
             "<ol style=\"margin:0;padding-left:20px\">"
             + "".join(action_items) + more_note +
             "</ol></div>"
         )
     else:
         actions_block = (
-            "<div style=\"margin-bottom:14px;color:var(--muted);font-size:14px\">"
-            "✓ All required information has been provided — no blocking items."
+            "<div style=\"margin-bottom:20px;display:flex;align-items:center;gap:8px\">"
+            "<span style=\"color:#16a34a;font-size:18px\">✓</span>"
+            "<span style=\"font-size:14px;color:#374151\">All required information has been provided — no blocking items.</span>"
             "</div>"
         )
 
@@ -1458,15 +1462,16 @@ def render_executive_brief_html(ev: Dict[str, Any]) -> str:
             sentence = summary or "A risk factor has been flagged."
         display_text = summary if (summary and len(summary) > 20) else sentence
         driver_items.append(
-            f"<li style=\"margin-bottom:8px\">"
-            f"<div style=\"font-weight:600\">{esc(label)}</div>"
-            f"<div style=\"color:#374151;font-size:13px;margin-top:2px\">{esc(display_text)}</div>"
+            f"<li style=\"margin-bottom:10px\">"
+            f"<div style=\"font-size:14px;font-weight:600;color:#111\">{esc(label)}</div>"
+            f"<div style=\"color:#374151;font-size:13px;margin-top:2px;line-height:1.5\">{esc(display_text)}</div>"
             f"</li>"
         )
 
     drivers_block = (
-        "<div style=\"margin-bottom:14px\">"
-        "<div style=\"font-size:15px;font-weight:700;margin-bottom:6px\">Key risk factors</div>"
+        "<div style=\"margin-bottom:20px\">"
+        "<div style=\"font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;"
+        "color:var(--muted);margin-bottom:8px\">Key risk factors</div>"
         "<ul style=\"margin:0;padding-left:20px\">"
         + "".join(driver_items) +
         "</ul></div>"
@@ -1509,8 +1514,9 @@ def render_executive_brief_html(ev: Dict[str, Any]) -> str:
         )
 
     change_block = (
-        "<div style=\"margin-bottom:14px\">"
-        "<div style=\"font-size:15px;font-weight:700;margin-bottom:6px\">What could change this</div>"
+        "<div style=\"margin-bottom:20px\">"
+        "<div style=\"font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;"
+        "color:var(--muted);margin-bottom:8px\">What could change this</div>"
         "<ul style=\"margin:0;padding-left:20px\">" + "".join(change_items) + "</ul>"
         "</div>"
     ) if change_items else ""
@@ -1528,16 +1534,17 @@ def render_executive_brief_html(ev: Dict[str, Any]) -> str:
     scope_parts.append("Final requirements will be confirmed by ERCOT, your transmission service provider, and your TDSP.")
 
     footer = (
-        "<div style=\"border-top:1px solid var(--border);padding-top:10px;margin-top:4px;"
-        "color:var(--muted);font-size:12px;line-height:1.6\">"
+        "<div style=\"border-top:1px solid var(--border);padding-top:12px;margin-top:8px;"
+        "color:var(--muted);font-size:12px;line-height:1.7\">"
         + " ".join(scope_parts) +
         "</div>"
     )
 
     # ── Options at a glance (compact, inline) ────────────────────────────────
     options_block = (
-        "<div style=\"margin-bottom:14px\">"
-        "<div style=\"font-size:15px;font-weight:700;margin-bottom:4px\">Options at a glance</div>"
+        "<div style=\"margin-bottom:20px\">"
+        "<div style=\"font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;"
+        "color:var(--muted);margin-bottom:4px\">Options at a glance</div>"
         "<div style=\"font-size:12px;color:var(--muted);margin-bottom:8px\">"
         "Screening what-ifs — not final determinations. Use these to choose the next lever to confirm."
         "</div>"
@@ -2665,6 +2672,46 @@ def render_checklist_rows(items: List[Dict[str, Any]]) -> str:
 
 
 def render_options_rows(items: List[Dict[str, Any]], *, lever_class_by_id: Optional[Dict[str, str]] = None) -> str:
+    # Human-readable labels for known option_id and lever_id tokens
+    _OPT_LABEL: Dict[str, str] = {
+        "baseline":                   "Baseline (current)",
+        "voltage_138":                "138 kV connection",
+        "voltage_345":                "345 kV connection",
+        "phased":                     "Phased load approach",
+        "single":                     "Single-phase approach",
+        "energization_plan_single":   "Single energization plan",
+        "energization_plan_phased":   "Phased energization plan",
+        "dsp_present":                "DSP present",
+        "dsp_missing":                "DSP missing",
+    }
+    _LEVER_LABEL: Dict[str, str] = {
+        "voltage_selection":          "Voltage selection",
+        "energization_plan":          "Energization plan",
+        "phased_load":                "Phased load",
+        "dsp":                        "DSP",
+    }
+    _SOURCE_LABEL: Dict[str, str] = {
+        "system_generated":           "System (auto-generated)",
+        "user":                       "User-provided",
+        "user_provided":              "User-provided",
+    }
+
+    def _opt_label(raw: str) -> str:
+        if raw in _OPT_LABEL:
+            return _OPT_LABEL[raw]
+        return raw.replace("_", " ").title()
+
+    def _lever_label(raw: str) -> str:
+        if raw in _LEVER_LABEL:
+            return _LEVER_LABEL[raw]
+        return raw.replace("_", " ").title()
+
+    def _source_label(raw: str) -> str:
+        lc = raw.lower()
+        if lc in _SOURCE_LABEL:
+            return _SOURCE_LABEL[lc]
+        return raw.replace("_", " ").title()
+
     if not items:
         return (
             "<tr><td colspan=\"9\" class=\"muted\">"
@@ -2820,23 +2867,55 @@ def render_options_rows(items: List[Dict[str, Any]], *, lever_class_by_id: Optio
         miss_delta_s = f"{miss_delta_i:+d}" if miss_delta_i else "0"
 
         path_changed = bool(delta.get("path_changed"))
-        path_s = "path_changed" if path_changed else "path_same"
+        path_s = "Path changes" if path_changed else "Path unchanged"
 
         up = delta.get("upgrade_exposure_bucket_changed") or {}
         ops = delta.get("operational_exposure_bucket_changed") or {}
-        up_s = f"upgrade:{up.get('from','?')}→{up.get('to','?')}"
-        ops_s = f"ops:{ops.get('from','?')}→{ops.get('to','?')}"
-        delta_text = f"{path_s} | missing:{miss_delta_s} | {up_s} | {ops_s}"
+        up_from  = str(up.get("from",  "?")).title()
+        up_to    = str(up.get("to",    "?")).title()
+        ops_from = str(ops.get("from", "?")).title()
+        ops_to   = str(ops.get("to",   "?")).title()
+        up_s   = f"Upgrade: {up_from} → {up_to}"
+        ops_s  = f"Ops: {ops_from} → {ops_to}"
+        miss_s = f"Missing inputs: {miss_delta_s}"
+        delta_parts = [path_s, miss_s]
+        if up.get("from") != up.get("to"):
+            delta_parts.append(up_s)
+        if ops.get("from") != ops.get("to"):
+            delta_parts.append(ops_s)
+        delta_text = " · ".join(delta_parts)
+
+        # Human-readable risk / timeline text
+        tb_le   = str(tb.get("le_12_months",  "unknown")).title()
+        tb_1224 = str(tb.get("m12_24_months", "unknown")).title()
+        tb_gt   = str(tb.get("gt_24_months",  "unknown")).title()
+        upg_b   = str(summ.get("upgrade_exposure_bucket",    "unknown")).title()
+        ops_b   = str(summ.get("operational_exposure_bucket","unknown")).title()
+        risk_text = (
+            f"≤12 mo: {tb_le} · "
+            f"12–24 mo: {tb_1224} · "
+            f">24 mo: {tb_gt} · "
+            f"Upgrade: {upg_b} · "
+            f"Ops: {ops_b}"
+        )
+
+        # Human-readable patch (key=value pairs, no braces)
+        patch_display = "; ".join(
+            f"{k.replace('_',' ').title()} = {v}"
+            for k, v in patch.items()
+        ) if patch else "—"
 
         out.append(
             "<tr>"
-            f"<td class=\"nowrap\"><code>{esc(opt_id)}</code></td>"
-            f"<td class=\"wrap\"><div class=\"chips\" style=\"margin-top:0\"><span class=\"chip\"><span class=\"small\">lever</span> <code>{esc(lever)}</code></span>{cls_chip}</div></td>"
-            f"<td class=\"nowrap\"><code>{esc(source)}</code></td>"
-            f"<td class=\"wrap\"><span class=\"small\"><code title=\"{esc(patch_s)}\">{esc(patch_s)}</code></span></td>"
-            f"<td class=\"wrap\"><span class=\"small nowrap\" title=\"{esc(path)}\">{esc(path)}</span></td>"
-            f"<td class=\"wrap\"><code>{esc(miss_count)}</code> {code_list(miss[:8])}</td>"
-            f"<td class=\"wrap\"><span class=\"small\"><code>{esc(delta_text)}</code></span></td>"
+            f"<td class=\"nowrap\" style=\"font-weight:600\">{esc(_opt_label(str(opt_id or '')))}</td>"
+            f"<td class=\"wrap\"><div class=\"chips\" style=\"margin-top:0\">"
+            f"<span class=\"chip\"><span class=\"small\">{esc(_lever_label(lever_id_s))}</span></span>"
+            f"{cls_chip}</div></td>"
+            f"<td class=\"nowrap\"><span class=\"small\">{esc(_source_label(source))}</span></td>"
+            f"<td class=\"wrap\"><span class=\"small\" title=\"{esc(patch_s)}\">{esc(patch_display)}</span></td>"
+            f"<td class=\"wrap\"><span class=\"small\" title=\"{esc(path)}\">{esc(path)}</span></td>"
+            f"<td class=\"wrap\"><span style=\"font-weight:600\">{esc(miss_count)}</span> {code_list(miss[:8])}</td>"
+            f"<td class=\"wrap\"><span class=\"small\">{esc(delta_text)}</span></td>"
             f"<td class=\"wrap\"><span class=\"small\">{esc(risk_text)}</span></td>"
             f"<td class=\"wrap\">{_edge_diff_cell(delta)}</td>"
             "</tr>"
