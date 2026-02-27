@@ -90,9 +90,19 @@ PAGE_RE = re.compile(
     flags=re.IGNORECASE,
 )
 
+# Matches "Slide 5", "Slide 12-13", "Slide 12–13" (used in PPTX-backed rules)
+SLIDE_RE = re.compile(
+    r"\bslide\s+(?P<a>\d+)\s*(?:[\u2013\-]\s*(?P<b>\d+))?",
+    flags=re.IGNORECASE,
+)
+
 
 def parse_page_range(loc: str) -> Optional[Tuple[int, int]]:
+    # Try standard p./pp. first
     m = PAGE_RE.search(loc or "")
+    if not m:
+        # Fall back to Slide N / Slide N-M notation
+        m = SLIDE_RE.search(loc or "")
     if not m:
         return None
     a = int(m.group("a"))
@@ -263,25 +273,58 @@ def audit_citations(
         reader, pdf_path, expected_sha, actual_sha = _get_reader(doc_id)
 
         if reader is None or pdf_path is None:
-            msg = f"{where}: missing pdf artifact for doc_id={doc_id} (check registry + local docs/raw)"
-            findings.append(
-                Finding(
-                    rule_id=rid,
-                    doc_id=doc_id,
-                    loc=loc,
-                    status="error",
-                    page_start=page_start,
-                    page_end=page_end,
-                    pdf_path=str(pdf_path) if pdf_path else None,
-                    pdf_sha256_expected=expected_sha,
-                    pdf_sha256_actual=actual_sha,
-                    anchor_used=None,
-                    anchor_found=False,
-                    anchor_page=None,
-                    message=msg,
+            # Check whether the doc has a non-PDF artifact (pptx, html_snapshot).
+            # These sources are valid for provenance but cannot be anchor-checked
+            # via PdfReader.  Downgrade to warn instead of hard error.
+            doc_entry = registry.get(doc_id)
+            non_pdf_kinds = [
+                a.get("kind")
+                for a in (doc_entry.get("artifacts") or [] if doc_entry else [])
+                if isinstance(a, dict) and a.get("kind") not in ("pdf",)
+            ]
+            if doc_entry and non_pdf_kinds:
+                msg = (
+                    f"{where}: non-pdf artifact ({', '.join(non_pdf_kinds)}) — "
+                    f"slide/section citation accepted, anchor not machine-verifiable"
                 )
-            )
-            error_count += 1
+                findings.append(
+                    Finding(
+                        rule_id=rid,
+                        doc_id=doc_id,
+                        loc=loc,
+                        status="warn",
+                        page_start=page_start,
+                        page_end=page_end,
+                        pdf_path=None,
+                        pdf_sha256_expected=None,
+                        pdf_sha256_actual=None,
+                        anchor_used=None,
+                        anchor_found=False,
+                        anchor_page=None,
+                        message=msg,
+                    )
+                )
+                warn_count += 1
+            else:
+                msg = f"{where}: missing pdf artifact for doc_id={doc_id} (check registry + local docs/raw)"
+                findings.append(
+                    Finding(
+                        rule_id=rid,
+                        doc_id=doc_id,
+                        loc=loc,
+                        status="error",
+                        page_start=page_start,
+                        page_end=page_end,
+                        pdf_path=str(pdf_path) if pdf_path else None,
+                        pdf_sha256_expected=expected_sha,
+                        pdf_sha256_actual=actual_sha,
+                        anchor_used=None,
+                        anchor_found=False,
+                        anchor_page=None,
+                        message=msg,
+                    )
+                )
+                error_count += 1
             continue
 
         # sha256 mismatch => hard error (provenance broken)
