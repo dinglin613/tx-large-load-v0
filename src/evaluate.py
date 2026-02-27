@@ -1942,6 +1942,15 @@ def _next_actions(ev: Dict[str, Any], *, max_items: int = 10) -> List[Dict[str, 
         "source": "BATCH_004_WORKSHOP_PROCESS_ONGOING",
     })
 
+    # Suggest monitoring pending PGRRs that affect study scope and process
+    # (PGRR133/134/136/138/141/144 — all pending at ROS as of 2026-02-28)
+    _add({
+        "kind": "monitor",
+        "topic": "Pending PGRRs affecting LLI study scope and process (PGRR133/134/136/138/141/144)",
+        "rationale": "Six Planning Guide Revision Requests are pending at ROS that may change study scope documentation, approval process, dynamic model requirements, and dispatchable/substantiated load reform. Track ROS agendas for adoption timelines.",
+        "source": "PGRR_138_STUDY_REVIEW_APPROVAL_PROCESS_PENDING",
+    })
+
     return actions
 
 

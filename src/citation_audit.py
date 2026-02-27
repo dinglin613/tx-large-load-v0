@@ -248,6 +248,41 @@ def audit_citations(
         where = f"{rules_path.name}:L{line_no}:{rid}"
         page_range = parse_page_range(loc)
         if not page_range:
+            # Check whether the referenced doc is a non-paginated source (tracker,
+            # form, web resource) — these legitimately have no page ranges.
+            doc_entry = registry.get(doc_id)
+            art_kinds = [
+                a.get("kind")
+                for a in ((doc_entry or {}).get("artifacts") or [])
+                if isinstance(a, dict)
+            ]
+            has_pdf = any(k == "pdf" for k in art_kinds)
+            if doc_entry and not has_pdf:
+                # Non-paginated document — accept the citation as warn
+                msg = (
+                    f"{where}: non-paginated source ({', '.join(art_kinds) or 'no artifacts'}) — "
+                    f"loc accepted without page-range verification"
+                )
+                findings.append(
+                    Finding(
+                        rule_id=rid,
+                        doc_id=doc_id,
+                        loc=loc,
+                        status="warn",
+                        page_start=None,
+                        page_end=None,
+                        pdf_path=None,
+                        pdf_sha256_expected=None,
+                        pdf_sha256_actual=None,
+                        anchor_used=None,
+                        anchor_found=False,
+                        anchor_page=None,
+                        message=msg,
+                    )
+                )
+                warn_count += 1
+                continue
+
             msg = f"{where}: unable to parse page range from loc"
             findings.append(
                 Finding(
