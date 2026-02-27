@@ -31,6 +31,9 @@ BASELINE_TAGS: Dict[str, Dict[str, float]] = {
     "short_circuit": {"upgrade": 0.5, "wait": 0.5},    # standard LLIS study element; PG9_009/017
     "protection": {"upgrade": 0.5, "wait": 0.5},       # standard protection review; PG9_017
     "dynamic_stability": {"upgrade": 0.5, "wait": 0.5}, # standard dynamic study; PG9_018
+    "dynamic_study": {"upgrade": 0.5, "wait": 0.5},    # standard dynamic study determination; LL_QA_008
+    "sso": {"upgrade": 0.5, "wait": 0.5},              # SSO screening is standard; LL_QA_008, PG9_021
+    "upgrade_exposure": {"upgrade": 0.5},               # standard protection equipment; ONC_005–008, PG9_033/034
     # Standard intake/process gates (every project must satisfy these)
     "process_latency": {"wait": 0.5},
     "intake_gate": {"wait": 0.5},
@@ -49,6 +52,8 @@ BASELINE_TAGS: Dict[str, Dict[str, float]] = {
     "governance_dependency": {"wait": 1.5},
     # PUCT rulemaking (applies to all projects under current regime)
     "puct_rule_pending": {"wait": 1.0},
+    # Compliance dependency (PUCT rulemaking affects all projects system-wide)
+    "compliance_dependency": {"wait": 0.5, "ops": 0.5},
     # Timeline dependency (baseline; every project has schedule dependency)
     "timeline_dependency": {"wait": 0.5},
 }
@@ -68,13 +73,10 @@ TAG_RISK_CONTRIB: Dict[str, Dict[str, float]] = {
     "must_study": {"wait": 1.0},
 
     # ── upgrade exposure (incremental) ──
-    "upgrade_exposure": {"upgrade": 0.5},
     "voltage_selection_risk": {"upgrade": 0.5},
     "weak_grid_risk": {"upgrade": 1.0},
     "new_substation": {"upgrade": 3.0},
     "new_line": {"upgrade": 3.0},
-    "dynamic_study": {"upgrade": 1.0},
-    "sso": {"upgrade": 1.0},
 
     # ── operations exposure (incremental) ──
     "curtailment_risk": {"ops": 2.0},
@@ -89,9 +91,6 @@ TAG_RISK_CONTRIB: Dict[str, Dict[str, float]] = {
     "geo_risk_far_west": {"upgrade": 1.5, "wait": 1.0},
     "study_assumption_change": {"wait": 1.5, "upgrade": 0.5},
     "restudy_risk": {"wait": 1.5},
-
-    # ── regulatory / compliance (incremental on top of baseline puct_rule_pending) ──
-    "compliance_dependency": {"wait": 0.5, "ops": 0.5},
 }
 
 

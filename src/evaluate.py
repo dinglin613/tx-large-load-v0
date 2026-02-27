@@ -635,9 +635,9 @@ def risk_from_signals(
         reasoning.append("no published rules matched/flagged => insufficient_rule_coverage (heuristics may still apply)")
 
     if signal_rules:
-        if ops_score >= 4:
+        if ops_score >= 6:
             operational_exposure = "high"
-        elif ops_score >= 2:
+        elif ops_score >= 3:
             operational_exposure = "medium"
         else:
             operational_exposure = "low"
