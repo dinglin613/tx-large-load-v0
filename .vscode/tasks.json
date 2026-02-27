@@ -1,0 +1,10 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Audit template",
+			"type": "shell",
+			"command": "python3 scripts/_audit_template.py"
+		}
+	]
+}
