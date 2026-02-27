@@ -5,7 +5,13 @@ tpl = open("memo/templates/memo_template.html").read()
 
 # Also check a rendered memo for things injected via Python (not template literals)
 rendered_sample = ""
-sample_path = "memo/outputs/DEMO_FW_ONCOR_400MW_Batch_FarWest_2028Q2.html"
+sample_path = "memo/outputs/Google_NorthTexas_250MW_BatchZeroA_2026Q4.html"
+if not os.path.exists(sample_path):
+    # Fallback: pick the first available HTML memo
+    for fn in sorted(os.listdir("memo/outputs")):
+        if fn.endswith(".html"):
+            sample_path = f"memo/outputs/{fn}"
+            break
 if os.path.exists(sample_path):
     rendered_sample = open(sample_path).read()
 
