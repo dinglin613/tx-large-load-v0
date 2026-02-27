@@ -1155,6 +1155,44 @@ def render_next_actions_html(ev: Dict[str, Any]) -> str:
             out.append("</div>")
             continue
 
+        if kind == "confirm_field":
+            f = str(a.get("field") or "").strip()
+            rationale = str(a.get("rationale") or "").strip()
+            source = str(a.get("source") or "").strip()
+            title = f"Confirm: {field_label(f)}" if f else "Confirm a field"
+            out.append("<div class=\"action-card\">")
+            out.append("<div class=\"action-head\">")
+            out.append(f"<div class=\"action-title\">{esc(title)} <code>{esc(f)}</code></div>")
+            out.append("<div class=\"chips\">" + "\n".join([c for c in head_chips if c]) + "</div>")
+            out.append("</div>")
+            out.append("<div class=\"action-grid\">")
+            out.append("<div class=\"action-k\">Why</div>")
+            out.append(f"<div class=\"action-v\"><span class=\"small\">{esc(rationale)}</span></div>")
+            if source:
+                out.append("<div class=\"action-k\">Source rule</div>")
+                out.append(f"<div class=\"action-v\"><code class=\"small\">{esc(source)}</code></div>")
+            out.append("</div></div>")
+            continue
+
+        if kind == "monitor":
+            topic = str(a.get("topic") or "").strip()
+            rationale = str(a.get("rationale") or "").strip()
+            source = str(a.get("source") or "").strip()
+            title = f"Monitor: {topic}" if topic else "Monitor an external dependency"
+            out.append("<div class=\"action-card\">")
+            out.append("<div class=\"action-head\">")
+            out.append(f"<div class=\"action-title\">{esc(title)}</div>")
+            out.append("<div class=\"chips\">" + "\n".join([c for c in head_chips if c]) + "</div>")
+            out.append("</div>")
+            out.append("<div class=\"action-grid\">")
+            out.append("<div class=\"action-k\">Why</div>")
+            out.append(f"<div class=\"action-v\"><span class=\"small\">{esc(rationale)}</span></div>")
+            if source:
+                out.append("<div class=\"action-k\">Source rule</div>")
+                out.append(f"<div class=\"action-v\"><code class=\"small\">{esc(source)}</code></div>")
+            out.append("</div></div>")
+            continue
+
         # Fallback card
         out.append("<div class=\"action-card\">")
         out.append("<div class=\"action-head\">")
@@ -1739,19 +1777,22 @@ def render_options_compact_html(ev: Dict[str, Any]) -> str:
         s = opt.get("summary") or {}
         delta = opt.get("delta") or {}
         upgrade = s.get("upgrade_exposure_bucket") or "unknown"
+        ops = s.get("operational_exposure_bucket") or "unknown"
         missing = s.get("missing_inputs_count") or 0
-        flag_delta = delta.get("flags_count_delta") or 0
         parts = []
         if upgrade in ("high", "medium"):
             parts.append(f"Upgrade exposure: {upgrade}")
-        if flag_delta < 0:
-            parts.append(f"{abs(flag_delta)} fewer risk flags vs baseline")
-        elif flag_delta > 0:
-            parts.append(f"{flag_delta} more risk flags vs baseline")
+        if ops in ("high", "medium"):
+            parts.append(f"Ops exposure: {ops}")
+        # Show bucket changes vs baseline (more meaningful than raw flag count)
+        up_chg = delta.get("upgrade_exposure_bucket_changed") or {}
+        ops_chg = delta.get("operational_exposure_bucket_changed") or {}
+        if up_chg.get("from") and up_chg.get("to") and up_chg["from"] != up_chg["to"]:
+            parts.append(f"Upgrade: {up_chg['from']} → {up_chg['to']}")
+        if ops_chg.get("from") and ops_chg.get("to") and ops_chg["from"] != ops_chg["to"]:
+            parts.append(f"Ops: {ops_chg['from']} → {ops_chg['to']}")
         if missing == 0:
             parts.append("No missing inputs")
-        elif missing <= 3:
-            parts.append(f"{missing} items still needed")
         else:
             parts.append(f"{missing} items still needed")
         return "; ".join(parts) if parts else "—"
@@ -3055,6 +3096,7 @@ def main() -> int:
     tpl = load_template()
 
     citation_report: Optional[Dict[str, Any]] = None
+    citation_exit_code = 0
     if args.citation_audit != "off":
         strict = args.citation_audit == "strict"
         citation_report = audit_citations(strict=strict)
@@ -3062,7 +3104,8 @@ def main() -> int:
         citation_report["_strict"] = strict
         if not citation_report.get("ok"):
             print(json.dumps(citation_report, ensure_ascii=False, indent=2))
-            return 3
+            # Still render memos — report will be embedded; exit code reflects warnings
+            citation_exit_code = 3
 
     n = 0
     for ev in iter_jsonl(args.in_path):
@@ -3073,7 +3116,9 @@ def main() -> int:
         n += 1
 
     print(f"Wrote {n} memos to {out_dir}")
-    return 0
+    if citation_exit_code:
+        print("⚠  Citation audit reported warnings (see above). Exit code 3.")
+    return citation_exit_code
 
 
 if __name__ == "__main__":

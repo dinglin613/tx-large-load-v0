@@ -1911,6 +1911,37 @@ def _next_actions(ev: Dict[str, Any], *, max_items: int = 10) -> List[Dict[str, 
         _add({"kind": "provide_field", "field": f})
         if len(actions) >= max_items:
             break
+
+    # 3) Strategic next actions — always relevant even when all inputs are complete.
+    #    These keep the memo forward-looking rather than showing an empty list.
+    risk = ev.get("risk") or {}
+    te = risk.get("timeline_estimate") or {}
+
+    # Suggest confirming batch_zero_eligible if not yet provided (timeline is unanchored)
+    if te.get("status") == "unanchored" and req.get("batch_zero_eligible") is None:
+        _add({
+            "kind": "confirm_field",
+            "field": "batch_zero_eligible",
+            "rationale": "Timeline cannot be anchored without batch qualification status — confirm whether project qualifies for Batch Zero.",
+            "source": "BATCH_001_BATCH_STUDY_PROCESS_PENDING_POLICY",
+        })
+
+    # Suggest monitoring PUCT rulemaking (always relevant while Project 58481 is open)
+    _add({
+        "kind": "monitor",
+        "topic": "PUCT Project 58481 rulemaking (16 TAC §25.194)",
+        "rationale": "Interconnection standards for large loads are being established — final rules may alter LLIS obligations and timelines.",
+        "source": "PUCT_002_REGULATORY_CHANGE_MAY_ALTER_LLIS_OBLIGATIONS",
+    })
+
+    # Suggest monitoring batch study framework finalization
+    _add({
+        "kind": "monitor",
+        "topic": "ERCOT batch study framework finalization",
+        "rationale": "Batch study dates are preliminary per Workshop Slide 2 disclaimer — update when ERCOT publishes final batch rules at June 1 2026 Board meeting.",
+        "source": "BATCH_004_WORKSHOP_PROCESS_ONGOING",
+    })
+
     return actions
 
 
@@ -2478,8 +2509,6 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
                     }
                 )
 
-        out["options"] = options
-
         # Bounded recommendation among baseline + generated options
         base_candidate = {
             "option_id": "baseline",
@@ -2487,7 +2516,11 @@ def evaluate_graph(req: Dict[str, Any], graph: Dict[str, Any], *, include_option
             "source": "baseline",
             "patch": {},
             "summary": baseline_summary,
+            "delta": _diff_option_summaries(baseline_summary, baseline_summary),
         }
+        # Always include baseline as first option so compact table can reference it
+        out["options"] = [base_candidate] + options
+
         candidates = [base_candidate] + list(options)
         out["recommendation"] = _recommendation_from_candidates(
             baseline=base_candidate,
