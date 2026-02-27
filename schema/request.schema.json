@@ -59,6 +59,11 @@
     },
     "cod_target_window": { "type": "string", "description": "Requested/assumed COD window label (e.g., 2027Q4)." },
     "load_profile_type": { "type": "string", "enum": ["baseload", "ramp", "variable", "unknown"], "description": "High-level load shape label for screening (v0 informational)." },
+    "region": {
+      "type": "string",
+      "enum": ["far_west", "west", "north", "central", "houston", "south", "coast", "unknown"],
+      "description": "ERCOT load zone / geographic region of the project POI. Used to scope region-specific rules (e.g., Far West Texas no-solar scenario per M-A022326-01). Values correspond to approximate ERCOT geographic areas. Omit or set to 'unknown' if location is not yet confirmed."
+    },
 
     "is_requesting_energization": { "type": "boolean", "description": "If true, evaluator runs tri-state energization gates and renders the energization checklist." },
     "requested_energization_window": { "type": "string", "description": "Requested energization date/window (used by certain energization timing rules, e.g., '365-day' logic)." },
@@ -107,6 +112,19 @@
 
     "sso_required": { "type": "boolean", "description": "Applicability toggle for conditional energization gate: whether SSO is required for this project." },
     "dme_required": { "type": "boolean", "description": "Applicability toggle for conditional energization gate: whether DME is required for this project." },
+    "batch_zero_eligible": {
+      "type": ["boolean", "null"],
+      "description": "Optional lever input: whether the project is believed eligible for ERCOT's Batch Zero (first batch study cohort). Null/omit if unknown. Subject to ERCOT confirmation when final batch rules are published."
+    },
+    "batch_cycle_window": {
+      "type": "string",
+      "description": "Optional lever input: the target batch study cycle window the project is planning for (e.g., '2026Q3', 'Batch-Zero'). Subject to ERCOT schedule; use for planning/screening context only."
+    },
+    "queue_position": {
+      "type": ["integer", "null"],
+      "description": "Optional lever input: informal queue position estimate (e.g., from ERCOT enrollment list). Treat as unreliable until ERCOT publishes authoritative batch mechanics (see BATCH_005).",
+      "minimum": 1
+    },
     "context": {
       "type": "object",
       "description": "Optional context snapshot (system state / engineering discretion) to make queue- and discretion-dependent signals auditable and to influence v0 risk/recommendation deterministically.",
